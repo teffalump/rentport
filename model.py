@@ -11,7 +11,7 @@ def get_documents():
 
 def get_document(id):
     try:
-        return db.select('agreements', where='id=$id', vars=locals())[0]
+        return db.select('agreements', limit=1, where='id=$id', vars=locals())
     except IndexError:
         return None
 
