@@ -6,8 +6,10 @@
 # Software
 * lighttpd
 * stripe
-* scrypt
-* web.py
+* python libraries
+    + scrypt
+    + web.py
+    + magic
 * request tracker
 * postgresql
 
