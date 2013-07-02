@@ -7,13 +7,19 @@ CREATE TABLE agreements (
     data            TEXT NOT NULL,
     title           TEXT,
     description     TEXT,
-    posted_on       DATETIME NOT NULL,
+    posted_on       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 );
 
 CREATE TABLE users (
     id              SERIAL NOT NULL PRIMARY KEY,
     email           TEXT NOT NULL,
-    pwd             TEXT NOT NULL,
+    password        TEXT NOT NULL,
     privilege       INTEGER NOT NULL DEFAULT 0,
     joined          DATETIME NOT NULL,
+);
+
+CREATE TABLE sessions (
+    session_id      CHAR(128) UNIQUE NOT NULL,
+    atime           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data            TEXT
 );
