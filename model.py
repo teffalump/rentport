@@ -5,8 +5,8 @@ import web, datetime, scrypt, random, magic, base64
 # Connection to database
 db = web.database(dbn='postgres', db='rentport', user='blar')
 
-def get_documents():
-    return db.select('agreements', order='id DESC')
+def get_documents(user):
+    return db.select('agreements', where='user=$user', order='id DESC')
 
 def get_document(id):
     try:
@@ -22,12 +22,12 @@ def delete_document(id):
 
 def hash_password(password, maxtime=0.5, datalength=64):
     r = lambda x: [chr(random.randint(0,255)) for i in range(x)]
-    return scrypt.encrypt(''.join(r(datalength)), password, maxtime)
+    return encode(scrypt.encrypt(''.join(r(datalength)), password, maxtime))
 
 def verify_password(foreign_password, email, maxtime=0.5):
     try:
         hpw=db.select('users', what='password', where='email=$email', limit=1)
-        scrypt.decrypt(hpw, foreign_password, maxtime)
+        scrypt.decrypt(decode(hpw), foreign_password, maxtime)
         return True
     except scrypt.error:
         return False
