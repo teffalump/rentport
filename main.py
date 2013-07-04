@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 
 import web
+from web import form
+
 
 urls = (
             '/agreement', 'agreement',
@@ -11,6 +13,7 @@ urls = (
 render = web.template.render('templates')
 
 #using session store with database
+web.config.session_paramaters['cookie_path'] = '/'
 db = web.database(dbn='postgres', db='rentport', user='blar', pw='blar')
 store = web.session.DBStore(db, 'sessions')
 session = web.session.Session(app, store, initializer={'login': False, 'id': -1})
