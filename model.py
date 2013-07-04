@@ -1,7 +1,6 @@
-# Basic CRUD functionality and user/pw stuff
-#   note: don't need UPDATE
+# The general functional model of the app
 
-import web, datetime, scrypt, random, magic
+import web, datetime, scrypt, random, magic, base64
 
 # Connection to database
 db = web.database(dbn='postgres', db='rentport', user='blar')
@@ -27,11 +26,17 @@ def hash_password(password, maxtime=0.5, datalength=64):
 
 def verify_password(foreign_password, email, maxtime=0.5):
     try:
-        hpw=db.select('users', what='password', where='email=$email')
+        hpw=db.select('users', what='password', where='email=$email', limit=1)
         scrypt.decrypt(hpw, foreign_password, maxtime)
         return True
     except scrypt.error:
-            return False
+        return False
 
 def get_file_type(fobject, mime=True):
     return magic.from_buffer(fobject.read(1024), mime)
+
+def encode(text):
+    return base64.b64encode(text)
+
+def decode(text):
+    return base64.b64decode(text)
