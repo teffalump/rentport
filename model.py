@@ -1,7 +1,7 @@
 # Basic CRUD functionality and user/pw stuff
 #   note: don't need UPDATE
 
-import web, datetime, scrypt, random
+import web, datetime, scrypt, random, magic
 
 # Connection to database
 db = web.database(dbn='postgre', db='rentport', user='blar')
@@ -16,7 +16,7 @@ def get_document(id):
         return None
 
 def save_document():
-    db.insert('agreements', posted_on=datetime.datetime.utcnow())
+    db.insert('agreements')
 
 def delete_document(id):
     db.delete('agreements', where="id=$id", vars=locals())
@@ -31,4 +31,7 @@ def verify_password(foreign_password, email, maxtime=0.5):
         scrypt.decrypt(hpw, foreign_password, maxtime)
         return True
     except scrypt.error:
-        return False
+            return False
+
+def get_file_type(fobject, mime=True):
+    return magic.from_buffer(fobject.read(1024), mime)
