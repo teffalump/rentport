@@ -4,7 +4,7 @@
 import web, datetime, scrypt, random, magic
 
 # Connection to database
-db = web.database(dbn='postgre', db='rentport', user='blar')
+db = web.database(dbn='postgres', db='rentport', user='blar')
 
 def get_documents():
     return db.select('agreements', order='id DESC')
@@ -15,8 +15,8 @@ def get_document(id):
     except IndexError:
         return None
 
-def save_document():
-    db.insert('agreements')
+def save_document(user, data_type, filename, data, landlord=None, title=None, description=None):
+    db.insert('agreements', user=user, landlord=landlord, title=title, data=data, data_type=data_type, description=description)
 
 def delete_document(id):
     db.delete('agreements', where="id=$id", vars=locals())
