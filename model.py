@@ -1,6 +1,6 @@
 # The general functional model of the app
 
-import web, datetime, scrypt, random, magic, base64
+import web, scrypt, random, magic, base64
 import config
 
 # Connection to database
@@ -10,7 +10,10 @@ db = web.database(  dbn='postgres',
                     pw=config.pw)
 
 def get_documents(user):
-    return db.select('agreements', where='user_id=$user', order='id DESC')
+    try:
+        return db.select('agreements', where='user_id=$user', order='id DESC', vars=locals())
+    except IndexError:
+        return None
 
 def get_document(id):
     try:
@@ -33,12 +36,12 @@ def delete_document(id):
 
 def hash_password(password, maxtime=0.5, datalength=64):
     r = lambda x: [chr(random.randint(0,255)) for i in range(x)]
-    return encode(scrypt.encrypt(''.join(r(datalength)), password, maxtime))
+    return scrypt.encrypt(''.join(r(datalength)), password, maxtime).encode('base64')
 
 def verify_password(foreign_password, email, maxtime=0.5):
     try:
-        hpw=db.select('users', what='password', where='email=$email', limit=1)
-        scrypt.decrypt(decode(hpw), foreign_password, maxtime)
+        hpw=db.select('users', what='password', where='email=$email', limit=1, vars=locals())[0]['password'].decode('base64')
+        scrypt.decrypt(hpw, foreign_password, maxtime)
         return True
     except scrypt.error:
         return False
