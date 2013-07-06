@@ -1,9 +1,13 @@
 # The general functional model of the app
 
 import web, datetime, scrypt, random, magic, base64
+import config
 
 # Connection to database
-db = web.database(dbn='postgres', db='rentport', user='blar')
+db = web.database(  dbn='postgres', 
+                    db=config.db, 
+                    user=config.user, 
+                    pw=config.pw)
 
 def get_documents(user):
     return db.select('agreements', where='user_id=$user', order='id DESC')
