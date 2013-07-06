@@ -6,16 +6,23 @@ import web, datetime, scrypt, random, magic, base64
 db = web.database(dbn='postgres', db='rentport', user='blar')
 
 def get_documents(user):
-    return db.select('agreements', where='user=$user', order='id DESC')
+    return db.select('agreements', where='user_id=$user', order='id DESC')
 
 def get_document(id):
     try:
-        return db.select('agreements', limit=1, where='id=$id', vars=locals())
+        return db.select('agreements', limit=1, where='id=$id', vars=locals())[0]
     except IndexError:
         return None
 
 def save_document(user, data_type, filename, data, landlord=None, title=None, description=None):
-    db.insert('agreements', user=user, landlord=landlord, title=title, data=data, data_type=data_type, description=description)
+    db.insert( 'agreements',
+                data_type=data_type,
+                data=data,
+                file_name=filename,
+                user_id=user,
+                landlord=landlord,
+                title=title,
+                description=description)
 
 def delete_document(id):
     db.delete('agreements', where="id=$id", vars=locals())
@@ -34,9 +41,3 @@ def verify_password(foreign_password, email, maxtime=0.5):
 
 def get_file_type(fobject, mime=True):
     return magic.from_buffer(fobject.read(1024), mime)
-
-def encode(text):
-    return base64.b64encode(text)
-
-def decode(text):
-    return base64.b64decode(text)
