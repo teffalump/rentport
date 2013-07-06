@@ -7,8 +7,8 @@ from web import form
 
 
 urls = (
-            '/agreement', 'agreement',
-            '/(.*)', 'hello'
+            '/agreement(/.*)?', 'agreement',
+            '/.*', 'default'
         )
 
 app = web.application(urls, globals())
@@ -17,7 +17,7 @@ app = web.application(urls, globals())
 render = web.template.render('templates')
 
 #using session store with database
-web.config.session_paramaters['cookie_path']='/'
+web.config.session_parameters['cookie_path']='/'
 db = web.database(  dbn='postgres', 
                     db=config.db, 
                     user=config.user, 
@@ -30,20 +30,24 @@ upload_form = form.Form(
                     form.File("agreement"),
                     )
 
-class hello:
-    def GET(self, name):
-        if not name:
-            name = 'World'
-        return 'Hello, ' + name + '!'
-
-class agreement:
+class default:
     def GET(self):
         f = upload_form()
         return render.upload(f)
 
-    def POST(self):
+class agreement:
+    def GET(self, id):
+        f = model.get_document(10)
+        web.header('Content-Type', f['data_type'])
+        web.header('Content-Disposition', 'attachment; filename="{0}"'.format(f['file_name']))
+        web.header('Content-Transfer-Encoding', 'binary')
+        web.header('Cache-Control', 'no-cache')
+        web.header('Pragma', 'no-cache')
+        return f['data'].decode('base64')
+
+    def POST(self, id):
         x = web.input(agreement={})
-        return (x.agreement.filename)
+        return "Uploaded"
 
 if __name__ == "__main__":
     app.run()
