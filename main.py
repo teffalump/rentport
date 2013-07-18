@@ -3,6 +3,7 @@
 import web
 import model
 import config
+import sys
 from web import form
 
 
@@ -33,7 +34,7 @@ upload_form = form.Form(
                     form.File("agreement"),
                     )
 
-#login form
+#login/reg form
 login_form = form.Form(
                     form.Textbox(name="email"),
                     form.Password(name="password"))
@@ -70,18 +71,18 @@ class logout:
 
 class register:
     def GET(self):
-        if not session.login:
+        if session.login:
+            raise web.seeother('/')
+        else:
             f = login_form()
             return render.register(f)
-        else:
-            raise web.seeother('/')
 
     def POST(self):
         x = web.input()
         try:
             model.save_user(email=x.email, password=x.password)
             raise web.seeother('/login')
-        except:
+        except: 
             return "Error"
 
 class agreement:
