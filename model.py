@@ -34,6 +34,11 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
 def delete_document(id):
     db.delete('agreements', where="id=$id", vars=locals())
 
+def save_user(email, password):
+    db.insert( 'users',
+                email=email,
+                password=password)
+
 def hash_password(password, maxtime=0.5, datalength=64):
     r = lambda x: [chr(random.randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), password, maxtime).encode('base64')

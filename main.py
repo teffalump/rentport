@@ -63,9 +63,26 @@ class login:
 
 class logout:
     def GET(self):
-        session.login=0
-        session.kill()
+        if session.login:
+            session.login=False
+            session.kill()
         raise web.seeother('/')
+
+class register:
+    def GET(self):
+        if not session.login:
+            f = login_form()
+            return render.register(f)
+        else:
+            raise web.seeother('/')
+
+    def POST(self):
+        x = web.input()
+        try:
+            model.save_user(email=x.email, password=x.password)
+            raise web.seeother('/login')
+        except:
+            return "Error"
 
 class agreement:
     def GET(self, id):
