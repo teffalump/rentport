@@ -8,6 +8,9 @@ from web import form
 
 urls = (
             '/agreement(/.*)?', 'agreement',
+            '/login', 'login',
+            '/logout', 'logout',
+            '/register', 'register',
             '/.*', 'default'
         )
 
@@ -30,10 +33,39 @@ upload_form = form.Form(
                     form.File("agreement"),
                     )
 
+#login form
+login_form = form.Form(
+                    form.Textbox(name="email"),
+                    form.Password(name="password"))
+
 class default:
     def GET(self):
         f = upload_form()
         return render.upload(f)
+
+class login:
+    def GET(self):
+        if session.login:
+            raise web.seeother('/')
+        else:
+            f = login_form()
+            return render.login(f)
+
+    def POST(self):
+        x = web.input()
+        userid = model.verify_password(x.password, x.email)
+        if userid:
+            session.login=True
+            session.id = userid
+            raise web.seeother('/')
+        else:
+            raise web.seeother('/login')
+
+class logout:
+    def GET(self):
+        session.login=0
+        session.kill()
+        raise web.seeother('/')
 
 class agreement:
     def GET(self, id):
@@ -47,7 +79,16 @@ class agreement:
 
     def POST(self, id):
         x = web.input(agreement={})
-        return "Uploaded"
+        try:
+            model.save_document(
+                                user=session.id,
+                                data_type=model.get_file_type(x.agreement.file),
+                                filename=x.agreement.filename,
+                                data=x.agreement.value
+                                )
+            return "Uploaded"
+        except:
+            return "Error"
 
 if __name__ == "__main__":
     app.run()

@@ -40,9 +40,10 @@ def hash_password(password, maxtime=0.5, datalength=64):
 
 def verify_password(foreign_password, email, maxtime=0.5):
     try:
-        hpw=db.select('users', what='password', where='email=$email', limit=1, vars=locals())[0]['password'].decode('base64')
+        user=db.select('users', what='password,id', where='email=$email', limit=1, vars=locals())[0]
+        hpw=user['password'].decode('base64')
         scrypt.decrypt(hpw, foreign_password, maxtime)
-        return True
+        return user['id']
     except scrypt.error:
         return False
 
