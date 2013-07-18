@@ -36,12 +36,12 @@ def delete_document(id):
 
 def hash_password(password, maxtime=0.5, datalength=64):
     r = lambda x: [chr(random.randint(0,255)) for i in range(x)]
-    return scrypt.encrypt(''.join(r(datalength)), password, maxtime).encode('base64')
+    return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime).encode('base64')
 
 def save_user(email, password):
     db.insert( 'users',
                 email=email,
-                password=hash_password(str(password)))
+                password=hash_password(password))
 
 def verify_password(password, email, maxtime=0.5):
     try:
