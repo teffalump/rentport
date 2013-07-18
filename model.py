@@ -43,13 +43,13 @@ def save_user(email, password):
                 email=email,
                 password=hash_password(str(password)))
 
-def verify_password(foreign_password, email, maxtime=0.5):
+def verify_password(password, email, maxtime=0.5):
     try:
         user=db.select('users', what='password,id', where='email=$email', limit=1, vars=locals())[0]
         hpw=user['password'].decode('base64')
-        scrypt.decrypt(hpw, foreign_password, maxtime)
+        scrypt.decrypt(hpw, str(password), maxtime)
         return user['id']
-    except scrypt.error:
+    except (scrypt.error, IndexError):
         return False
 
 def get_file_type(fobject, mime=True):
