@@ -14,8 +14,9 @@
 * postgresql
 
 # Roadmap
-1. Serve static document
-    + implement CRUD
-    + save old rental agreements
+1. Serve document
+    + implement CRUD - Done
+    + Retrieve old rental agreements
+        + Done fugly, need to polish it up
 2. Payment system
 3. issue tracking system
