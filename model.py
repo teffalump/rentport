@@ -19,7 +19,7 @@ def get_documents(user):
 def get_document(user,id):
     '''Get full document info, including binary data; relative id'''
     try:
-        return db.query("SELECT title,description,landlord,posted_on FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
+        return db.query("SELECT * FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
     except IndexError:
         return None
 
