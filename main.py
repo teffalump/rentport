@@ -69,6 +69,7 @@ class logout:
     def GET(self):
         if session.login:
             session.login=False
+            session.id=-1
             session.kill()
         raise web.seeother('/')
 
