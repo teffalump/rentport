@@ -45,7 +45,7 @@ login_form = form.Form(
 class default:
     def GET(self):
         f = upload_form()
-        return render.upload(f)
+        return render.default(f)
 
 class login:
     def GET(self):
