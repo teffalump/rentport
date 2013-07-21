@@ -6,6 +6,9 @@
 # Software
 * lighttpd
 * stripe
+    + python api
+* sendgrid
+    + python api
 * python libraries
     + scrypt
     + web.py
@@ -15,8 +18,11 @@
 
 # Roadmap
 1. Serve document
-    + implement CRUD - Done
+    + implement CRUD - DONE
     + Retrieve old rental agreements
-        + Done fugly, need to polish it up
-2. Payment system
-3. issue tracking system
+        + Done fugly, polish? But otherwise DONE
+2. Register system
+    + Basic func - DONE
+    + Need email system - use sendgrid
+3. Payment system
+4. issue tracking system
