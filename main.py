@@ -33,6 +33,8 @@ render = web.template.render('templates', globals={'context': session})
 #upload form
 upload_form = form.Form(
                     form.File("agreement"),
+                    form.Textbox(name="title"),
+                    form.Textbox(name="description")
                     )
 
 #login/reg form
@@ -117,6 +119,8 @@ class agreement:
         try:
             model.save_document(
                                 user=session.id,
+                                title=x.title,
+                                description=x.description,
                                 data_type=model.get_file_type(x.agreement.file),
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
