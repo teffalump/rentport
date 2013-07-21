@@ -10,6 +10,7 @@ from web import form
 urls = (
             '/agreement/(.+)', 'query',
             '/agreement/?', 'agreement',
+            '/upload', 'upload',
             '/login', 'login',
             '/logout', 'logout',
             '/register', 'register',
