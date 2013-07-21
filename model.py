@@ -1,6 +1,6 @@
 # The general functional model of the app
 
-import web, scrypt, random, magic, base64
+import web, scrypt, random, magic
 import config
 
 # Connection to database
@@ -12,7 +12,7 @@ db = web.database(  dbn='postgres',
 def get_documents(user):
     '''Retrieve relevant info from documents to display'''
     try:
-        return db.select('agreements', what='title,description,landlord,posted_on', where='user_id=$user', order='id DESC', vars=locals())
+        return db.select('agreements', what='title,description,landlord,posted_on', where='user_id=$user', order='id ASC', vars=locals())
     except IndexError:
         return None
 
