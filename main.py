@@ -8,8 +8,8 @@ from web import form
 
 
 urls = (
-            '/agreement/?', 'agreement'
-            '/agreement/(.*)+', 'retrieve',
+            '/agreement/(.+)', 'retrieve',
+            '/agreement/?', 'agreement',
             '/login', 'login',
             '/logout', 'logout',
             '/register', 'register',
@@ -122,8 +122,8 @@ class agreement:
                                 data=x.agreement.value
                                 )
             return "Uploaded"
-        except:
-            return "Error"
+        except: 
+            return sys.exc_info()
 
 if __name__ == "__main__":
     app.run()

@@ -28,7 +28,7 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
     '''Save rental agreement'''
     db.insert( 'agreements',
                 data_type=data_type,
-                data=data,
+                data=data.encode('base64'),
                 file_name=filename,
                 user_id=user,
                 landlord=landlord,
