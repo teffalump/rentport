@@ -8,7 +8,8 @@ from web import form
 
 
 urls = (
-            '/agreement(/.*)?', 'agreement',
+            '/agreement/?', 'agreement'
+            '/agreement/(.*)+', 'retrieve',
             '/login', 'login',
             '/logout', 'logout',
             '/register', 'register',
@@ -16,9 +17,6 @@ urls = (
         )
 
 app = web.application(urls, globals())
-
-#renderer
-render = web.template.render('templates')
 
 #using session store with database
 web.config.session_parameters['cookie_path']='/'
@@ -28,6 +26,9 @@ db = web.database(  dbn='postgres',
                     pw=config.pw)
 store = web.session.DBStore(db, 'sessions')
 session = web.session.Session(app, store, initializer={'login': False, 'id': -1})
+
+#renderer
+render = web.template.render('templates', globals={'context': session})
 
 #upload form
 upload_form = form.Form(
@@ -85,17 +86,33 @@ class register:
         except: 
             return "Error"
 
-class agreement:
+class retrieve:
     def GET(self, id):
-        f = model.get_document(10)
-        web.header('Content-Type', f['data_type'])
-        web.header('Content-Disposition', 'attachment; filename="{0}"'.format(f['file_name']))
-        web.header('Content-Transfer-Encoding', 'binary')
-        web.header('Cache-Control', 'no-cache')
-        web.header('Pragma', 'no-cache')
-        return f['data'].decode('base64')
+        if session.login:
+            try:
+                docid=int(id)
+                f = model.get_document(session.id, id)
+                web.header('Content-Type', f['data_type'])
+                web.header('Content-Disposition', 'attachment; filename="{0}"'.format(f['file_name']))
+                web.header('Content-Transfer-Encoding', 'binary')
+                web.header('Cache-Control', 'no-cache')
+                web.header('Pragma', 'no-cache')
+                return f['data'].decode('base64')
+            except ValueError:
+                return web.badrequest()
+        else:
+            return web.unauthorized()
 
-    def POST(self, id):
+
+class agreement:
+    def GET(self):
+        if session.login:
+            info=model.get_documents(session.id)
+            return render.agreement(info)
+        else:
+            return web.unauthorized()
+
+    def POST(self):
         x = web.input(agreement={})
         try:
             model.save_document(
