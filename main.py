@@ -44,8 +44,7 @@ login_form = form.Form(
 
 class default:
     def GET(self):
-        f = upload_form()
-        return render.default(f)
+        return render.default()
 
 class login:
     def GET(self):
@@ -64,6 +63,15 @@ class login:
             raise web.seeother('/')
         else:
             raise web.seeother('/login')
+
+class upload:
+    def GET(self):
+        if session.login:
+            f = upload_form()
+            return render.upload(f)
+        else:
+            return web.unauthorized()
+
 
 class logout:
     def GET(self):
