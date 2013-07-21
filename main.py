@@ -8,7 +8,7 @@ from web import form
 
 
 urls = (
-            '/agreement/(.+)', 'retrieve',
+            '/agreement/(.+)', 'query',
             '/agreement/?', 'agreement',
             '/login', 'login',
             '/logout', 'logout',
@@ -88,7 +88,7 @@ class register:
         except: 
             return "Error"
 
-class retrieve:
+class query:
     def GET(self, id):
         if session.login:
             try:
@@ -102,6 +102,15 @@ class retrieve:
                 return f['data'].decode('base64')
             except ValueError:
                 return web.badrequest()
+        else:
+            return web.unauthorized()
+
+    def DELETE(self, id):
+        if session.login:
+            try:
+                model.delete_document(session.id, id)
+            except:
+                return web.notfound()
         else:
             return web.unauthorized()
 
