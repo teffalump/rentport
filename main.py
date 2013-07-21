@@ -92,7 +92,6 @@ class query:
     def GET(self, id):
         if session.login:
             try:
-                docid=int(id)
                 f = model.get_document(session.id, id)
                 web.header('Content-Type', f['data_type'])
                 web.header('Content-Disposition', 'attachment; filename="{0}"'.format(f['file_name']))
