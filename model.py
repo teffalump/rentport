@@ -18,9 +18,8 @@ def get_documents(user):
 
 def get_document(user,id):
     '''Get full document info, including binary data; relative id'''
-    os=int(id)-1
     try:
-        return db.select('agreements', limit=1, offset=os, order='id ASC', where='user_id=$user', vars=locals())[0]
+        return db.query("SELECT title,description,landlord,posted_on FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
     except IndexError:
         return None
 
@@ -35,9 +34,9 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
                 title=title,
                 description=description)
 
-def delete_document(id):
-    '''Delete document'''
-    db.delete('agreements', where="id=$id", vars=locals())
+def delete_document(user, id):
+    '''Delete document, relative id'''
+    return db.query("DELETE FROM agreements WHERE id IN (SELECT id FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os)", vars={'user': user, 'os': int(id)-1})
 
 def hash_password(password, maxtime=0.5, datalength=64):
     '''Scrypt, use password to encrypt random data'''
