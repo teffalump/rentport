@@ -19,8 +19,15 @@ urls = (
 
 app = web.application(urls, globals())
 
-#using session store with database
+#session settings
+web.config.session_parameters['cookie_name']='rentport'
 web.config.session_parameters['cookie_path']='/'
+web.config.session_parameters['timeout']=300
+web.config.session_parameters['ignore_expiry']=False
+web.config.session_parameters['ignore_change_ip']=False
+#web.config.session_parameters['secure']=True
+
+#using session store with database
 db = web.database(  dbn='postgres', 
                     db=config.db, 
                     user=config.user, 
