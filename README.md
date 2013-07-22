@@ -18,11 +18,11 @@
 
 # Roadmap
 1. Serve document
-    + implement CRUD - DONE
-    + Retrieve old rental agreements
+    + implement basic (!) CRUD - DONE
+    + Display old rental agreements, etc with interface
         + Done fugly, polish? But otherwise DONE
 2. Register system
-    + Basic func - DONE
+    + Basic func, no email - DONE
     + Need email system - use sendgrid
 3. Payment system
 4. issue tracking system
