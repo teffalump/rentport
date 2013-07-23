@@ -23,6 +23,7 @@
         + Done fugly, polish? But otherwise DONE
 2. Register system
     + Basic func, no email - DONE
+    + Verify system - Sorta done
     + Need email system - use sendgrid
 3. Payment system
 4. issue tracking system

@@ -59,12 +59,12 @@ def verify_password(password, email, maxtime=0.5):
     except (scrypt.error, IndexError):
         return False
 
-def verify_email(email, code):
+def verify_email(id, code):
     '''verify email through email/code combo'''
     try:
-        db_code=db.select('users', what='email_code', where='email=$email', limit=1, vars=locals())[0]['email_code']
+        db_code=db.select('users', what='email_code', where='id=$id', limit=1, vars=locals())[0]['email_code']
         if code == db_code:
-            db.update('users', where='email=$email', verified=True, email_code=None, vars=locals())
+            db.update('users', where='id=$id', verified=True, email_code=None, vars=locals())
             return True
         else:
             return False

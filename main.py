@@ -111,9 +111,9 @@ class register:
             return "Error"
 
 class verify:
-    '''verify email address with email/code combo'''
+    '''verify email address with email/code combo; need to be logged in'''
     def GET(self):
-        if model.is_verified(session.id):
+        if session.login:
             raise web.seeother('/')
         else:
             f = verify_form()
@@ -122,10 +122,13 @@ class verify:
     def POST(self):
         x = web.input()
         try:
-            if model.verify_email(email=x.email, code=x.code):
-                raise web.seeother('/')
+            if session.login:
+                if model.verify_email(session.id, code=x.code):
+                    raise web.seeother('/')
+                else:
+                    raise web.seeother('/verify')
             else:
-                raise web.seeother('/verify')
+                raise web.unauthorized()
         except:
             return sys.exc_info()
 
