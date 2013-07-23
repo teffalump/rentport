@@ -14,7 +14,7 @@ urls = (
             '/login', 'login',
             '/logout', 'logout',
             '/register/?', 'register',
-            '/verify/?', 'verify'
+            '/verify/?', 'verify',
             '/.*', 'default'
         )
 
@@ -55,7 +55,7 @@ login_form = form.Form(
 #verify form
 verify_form = form.Form(
                     form.Textbox(name="email"),
-                    form.Textbox(code="code"))
+                    form.Textbox(name="code"))
 
 class default:
     def GET(self):

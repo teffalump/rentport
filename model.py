@@ -40,7 +40,7 @@ def delete_document(user, id):
 
 def hash_password(password, maxtime=0.5, datalength=128):
     '''Scrypt, use password to encrypt random data'''
-    r = lambda x: [chr(random.SystemRandom.randint(0,255)) for i in range(x)]
+    r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime).encode('base64')
 
 def save_user(email, password):
@@ -72,18 +72,33 @@ def verify_email(email, code):
         return False
 
 def is_verified(id):
+    '''is email verified'''
     try:
         if db.select('users', what='verified', where='id=$id', limit=1, vars=locals())[0]['verified']:
             return True
         else:
             return False
-    except ValueError:
+    except IndexError:
         return False
 
-def get_email_code():
-    '''generate random 256 bit number converted to base64'''
-    id=str(random.SystemRandom.getrandbits(256)).encode('base64')
-    return id
+def get_email_code(email):
+    '''generate random 256 bit number converted to base64, update db'''
+    try:
+        if is_verified(get_id(email)):
+            return False
+        else:
+            id=str(random.SystemRandom().getrandbits(256)).encode('base64')
+            db.update('users', where='email=$email', email_code=id, vars=locals())
+            return id
+    except:
+        return False
+
+def get_id(email):
+    '''get id from email'''
+    try:
+        return db.select('users', what='id', where='email=$email', limit=1, vars=locals())[0]['id']
+    except IndexError:
+        return False
 
 def get_file_type(fobject, mime=True):
     '''file object, retrieve type'''
