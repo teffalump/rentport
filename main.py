@@ -13,7 +13,8 @@ urls = (
             '/upload', 'upload',
             '/login', 'login',
             '/logout', 'logout',
-            '/register', 'register',
+            '/register/?', 'register',
+            '/verify/?', 'verify'
             '/.*', 'default'
         )
 
@@ -25,6 +26,7 @@ web.config.session_parameters['cookie_path']='/'
 web.config.session_parameters['timeout']=300
 web.config.session_parameters['ignore_expiry']=False
 web.config.session_parameters['ignore_change_ip']=False
+web.config.session_parameters['expired_message']='Session expired: login again'
 #web.config.session_parameters['secure']=True
 
 #using session store with database
@@ -49,6 +51,11 @@ upload_form = form.Form(
 login_form = form.Form(
                     form.Textbox(name="email"),
                     form.Password(name="password"))
+
+#verify form
+verify_form = form.Form(
+                    form.Textbox(name="email"),
+                    form.Textbox(code="code"))
 
 class default:
     def GET(self):
@@ -84,8 +91,6 @@ class upload:
 class logout:
     def GET(self):
         if session.login:
-            session.login=False
-            session.id=-1
             session.kill()
         raise web.seeother('/')
 
@@ -104,6 +109,25 @@ class register:
             raise web.seeother('/login')
         except: 
             return "Error"
+
+class verify:
+    '''verify email address with email/code combo'''
+    def GET(self):
+        if model.is_verified(session.id):
+            raise web.seeother('/')
+        else:
+            f = verify_form()
+            return render.verify(f)
+
+    def POST(self):
+        x = web.input()
+        try:
+            if model.verify_email(email=x.email, code=x.code):
+                raise web.seeother('/')
+            else:
+                raise web.seeother('/verify')
+        except:
+            return sys.exc_info()
 
 class query:
     def GET(self, id):

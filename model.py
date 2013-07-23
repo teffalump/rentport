@@ -38,9 +38,9 @@ def delete_document(user, id):
     '''Delete document, relative id'''
     return db.query("DELETE FROM agreements WHERE id IN (SELECT id FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os)", vars={'user': user, 'os': int(id)-1})
 
-def hash_password(password, maxtime=0.5, datalength=64):
+def hash_password(password, maxtime=0.5, datalength=128):
     '''Scrypt, use password to encrypt random data'''
-    r = lambda x: [chr(random.randint(0,255)) for i in range(x)]
+    r = lambda x: [chr(random.SystemRandom.randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime).encode('base64')
 
 def save_user(email, password):
@@ -58,6 +58,32 @@ def verify_password(password, email, maxtime=0.5):
         return user['id']
     except (scrypt.error, IndexError):
         return False
+
+def verify_email(email, code):
+    '''verify email through email/code combo'''
+    try:
+        db_code=db.select('users', what='email_code', where='email=$email', limit=1, vars=locals())[0]['email_code']
+        if code == db_code:
+            db.update('users', where='email=$email', verified=True, email_code=None, vars=locals())
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def is_verified(id):
+    try:
+        if db.select('users', what='verified', where='id=$id', limit=1, vars=locals())[0]['verified']:
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
+def get_email_code():
+    '''generate random 256 bit number converted to base64'''
+    id=str(random.SystemRandom.getrandbits(256)).encode('base64')
+    return id
 
 def get_file_type(fobject, mime=True):
     '''file object, retrieve type'''
