@@ -7,7 +7,6 @@ import config
 import sys
 from web import form
 
-
 urls = (
             '/agreement/(.+)', 'query',
             '/agreement/?', 'agreement',
@@ -105,6 +104,7 @@ class register:
             return render.register(f)
 
     def POST(self):
+        '''TODO email here'''
         x = web.input()
         try:
             model.save_user(email=x.email, password=x.password)
@@ -113,7 +113,8 @@ class register:
             return "Error"
 
 class verify:
-    '''verify email address with email/code combo; need to be logged in'''
+    '''verify email address with email/code combo; need to be logged in; send email
+    TODO email shit and prevent email dos'''
     def GET(self):
         if not session.login:
             raise web.seeother('/')
@@ -125,16 +126,22 @@ class verify:
 
     def POST(self):
         x = web.input()
-        try:
-            if session.login:
+        if session.login and not model.is_verified(session.id):
+            try:
                 if model.verify_email(session.id, code=x.code):
                     raise web.seeother('/')
                 else:
                     raise web.seeother('/verify')
+            except AttributeError:
+                #TODO email stuff
+                if x.send_email == "true":
+                    return "yes"
+                else:
+                    raise web.badrequest()
             else:
-                raise web.unauthorized()
-        except:
-            return sys.exc_info()
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
 
 class query:
     def GET(self, id):
@@ -162,7 +169,7 @@ class query:
                     if num == 0:
                         return web.notfound()
                     else:
-                        return 'Deleted'
+                        return '<verb>Delete</verb><object>{0}</object>'.format(id)
                 except ValueError:
                     return web.badrequest()
             else:
@@ -188,7 +195,7 @@ class agreement:
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
                                 )
-            return x.agreement.filename
+            return web.seeother('/agreement')
         except: 
             return sys.exc_info()
 
