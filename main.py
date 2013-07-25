@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import re
 import web
 import model
 import config
@@ -54,7 +55,6 @@ login_form = form.Form(
 
 #verify form
 verify_form = form.Form(
-                    form.Textbox(name="email"),
                     form.Textbox(name="code"))
 
 class default:
@@ -87,7 +87,6 @@ class upload:
         else:
             return web.unauthorized()
 
-
 class logout:
     def GET(self):
         if session.login:
@@ -95,6 +94,9 @@ class logout:
         raise web.seeother('/')
 
 class register:
+    '''register an user
+    TODO Add email
+    '''
     def GET(self):
         if session.login:
             raise web.seeother('/')
@@ -113,7 +115,9 @@ class register:
 class verify:
     '''verify email address with email/code combo; need to be logged in'''
     def GET(self):
-        if session.login:
+        if not session.login:
+            raise web.seeother('/')
+        elif model.is_verified(session.id):
             raise web.seeother('/')
         else:
             f = verify_form()
@@ -136,9 +140,11 @@ class query:
     def GET(self, id):
         if session.login:
             try:
+                int(id)
                 f = model.get_document(session.id, id)
                 web.header('Content-Type', f['data_type'])
-                web.header('Content-Disposition', 'attachment; filename="{0}"'.format(f['file_name']))
+                #i'm worried about the security of the following header, how i do it
+                web.header('Content-Disposition', 'attachment; filename="{0}"'.format(re.escape(f['file_name'])))
                 web.header('Content-Transfer-Encoding', 'binary')
                 web.header('Cache-Control', 'no-cache')
                 web.header('Pragma', 'no-cache')
@@ -149,13 +155,18 @@ class query:
             return web.unauthorized()
 
     def DELETE(self, id):
-        if session.login:
-            try:
-                model.delete_document(session.id, id)
-            except:
-                return web.notfound()
-        else:
-            return web.unauthorized()
+            if session.login:
+                try:
+                    int(id)
+                    num=model.delete_document(session.id, id)
+                    if num == 0:
+                        return web.notfound()
+                    else:
+                        return 'Deleted'
+                except ValueError:
+                    return web.badrequest()
+            else:
+                return web.unauthorized()
 
 
 class agreement:
@@ -177,7 +188,7 @@ class agreement:
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
                                 )
-            return "Uploaded"
+            return x.agreement.filename
         except: 
             return sys.exc_info()
 

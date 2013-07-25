@@ -1,6 +1,6 @@
 # The general functional model of the app
 
-import web, scrypt, random, magic
+import web, scrypt, random, magic, hashlib
 import config
 
 # Connection to database
@@ -82,12 +82,12 @@ def is_verified(id):
         return False
 
 def get_email_code(email):
-    '''generate random 256 bit number converted to base64, update db'''
+    '''generate random id for email code, update db'''
     try:
         if is_verified(get_id(email)):
             return False
         else:
-            id=str(random.SystemRandom().getrandbits(256)).encode('base64')
+            id=web.to36(random.SystemRandom().getrandbits(256))
             db.update('users', where='email=$email', email_code=id, vars=locals())
             return id
     except:
