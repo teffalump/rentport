@@ -13,14 +13,22 @@ db = web.database(  dbn='postgres',
 def get_documents(user):
     '''Retrieve relevant info from documents to display'''
     try:
-        return db.select('agreements', what='title,description,landlord,posted_on', where='user_id=$user', order='id ASC', vars=locals())
+        return db.query("SELECT title,description,landlord,to_char(posted_on, 'YYYY-MM-DD') AS posted_on \
+                        FROM agreements \
+                        WHERE user_id=$user \
+                        ORDER BY id ASC",
+                        vars={'user':user})
     except IndexError:
         return None
 
 def get_document(user,id):
     '''Get document info/data for dl; relative id'''
     try:
-        return db.query("SELECT file_name,data_type,decode(data,'base64') AS data FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
+        return db.query("SELECT file_name,data_type,decode(data,'base64') AS data \
+                        FROM agreements \
+                        WHERE user_id=$user \
+                        ORDER BY id ASC LIMIT 1 OFFSET $os",
+                        vars={'user': user, 'os': int(id)-1})[0]
     except IndexError:
         return None
 
@@ -40,7 +48,10 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
 
 def delete_document(user, id):
     '''Delete document, relative id'''
-    return db.query("DELETE FROM agreements WHERE id IN (SELECT id FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os)", vars={'user': user, 'os': int(id)-1})
+    return db.query("DELETE FROM agreements \
+                    WHERE id IN \
+                    (SELECT id FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os)", 
+                    vars={'user': user, 'os': int(id)-1})
 
 def hash_password(password, maxtime=0.5, datalength=128):
     '''Scrypt, use password to encrypt random data'''
