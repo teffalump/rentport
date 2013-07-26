@@ -157,7 +157,7 @@ class query:
                 web.header('Content-Transfer-Encoding', 'binary')
                 web.header('Cache-Control', 'no-cache')
                 web.header('Pragma', 'no-cache')
-                return f['data'].decode('base64')
+                return f['data']
             except ValueError:
                 return web.badrequest()
         else:

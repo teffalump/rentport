@@ -1,4 +1,5 @@
 # The general functional model of the app
+# TODO implement base64 conversions on the database side?
 
 import web, scrypt, random, magic, hashlib
 import config
@@ -17,15 +18,19 @@ def get_documents(user):
         return None
 
 def get_document(user,id):
-    '''Get full document info, including binary data; relative id'''
+    '''Get full document info, including binary data; relative id
+    TODO really ugly way to update encoding scheme'''
     try:
-        return db.query("SELECT * FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
+        info=db.query("SELECT * FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
+        info['data']=info['data'].decode('base64')
+        return info
     except IndexError:
         return None
 
 def save_document(user, data_type, filename, data, landlord=None, title=None, description=None):
     '''Save rental agreement'''
-    db.insert( 'agreements',
+    try:
+        return db.insert( 'agreements',
                 data_type=data_type,
                 data=data.encode('base64'),
                 file_name=filename,
@@ -33,6 +38,8 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
                 landlord=landlord,
                 title=title,
                 description=description)
+    except:
+        return None
 
 def delete_document(user, id):
     '''Delete document, relative id'''
