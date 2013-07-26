@@ -18,12 +18,9 @@ def get_documents(user):
         return None
 
 def get_document(user,id):
-    '''Get full document info, including binary data; relative id
-    TODO really ugly way to update encoding scheme'''
+    '''Get document info/data for dl; relative id'''
     try:
-        return db.query("SELECT title,landlord,description,file_name,data_type,posted_on,decode(data,'base64') AS data FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
-        #info['data']=info['data'].decode('base64')
-        #return info
+        return db.query("SELECT file_name,data_type,decode(data,'base64') AS data FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
     except IndexError:
         return None
 
