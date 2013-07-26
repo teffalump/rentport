@@ -34,17 +34,24 @@ def get_document(user,id):
 
 def save_document(user, data_type, filename, data, landlord=None, title=None, description=None):
     '''Save rental agreement'''
-    try:
-        return db.insert( 'agreements',
-                data_type=data_type,
-                data=data.encode('base64'),
-                file_name=filename,
-                user_id=user,
-                landlord=landlord,
-                title=title,
-                description=description)
-    except:
-        return None
+    return db.query("INSERT INTO agreements \
+                    (data_type, data, file_name, user_id, landlord, title, description) \
+                    VALUES ($data_type, $data, $filename, $user, $landlord, $title, $description)",
+                    vars={'data_type': data_type,
+                        'data': data.encode('base64'),
+                        'filename': filename,
+                        'user': user,
+                        'landlord': landlord,
+                        'title': title,
+                        'description': description})
+        #return db.insert('agreements',
+                #data_type=data_type,
+                #data=data.encode('base64'),
+                #file_name=filename,
+                #user_id=user,
+                #landlord=landlord,
+                #title=title,
+                #description=description)
 
 def delete_document(user, id):
     '''Delete document, relative id'''
