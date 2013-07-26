@@ -21,9 +21,9 @@ def get_document(user,id):
     '''Get full document info, including binary data; relative id
     TODO really ugly way to update encoding scheme'''
     try:
-        info=db.query("SELECT * FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
-        info['data']=info['data'].decode('base64')
-        return info
+        return db.query("SELECT title,landlord,description,file_name,data_type,posted_on,decode(data,'base64') AS data FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os", vars={'user': user, 'os': int(id)-1})[0]
+        #info['data']=info['data'].decode('base64')
+        #return info
     except IndexError:
         return None
 

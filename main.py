@@ -154,7 +154,6 @@ class query:
                 web.header('Content-Type', f['data_type'])
                 #i'm worried about the security of the following header, how i do it
                 web.header('Content-Disposition', 'attachment; filename="{0}"'.format(re.escape(f['file_name'])))
-                web.header('Content-Transfer-Encoding', 'binary')
                 web.header('Cache-Control', 'no-cache')
                 web.header('Pragma', 'no-cache')
                 return f['data']
