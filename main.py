@@ -35,7 +35,7 @@ db = web.database(  dbn='postgres',
                     user=config.user, 
                     pw=config.pw)
 store = web.session.DBStore(db, 'sessions')
-session = web.session.Session(app, store, initializer={'login': False, 'id': -1})
+session = web.session.Session(app, store, initializer={'login': False, 'id': -1, 'verified': False})
 
 #renderer
 render = web.template.render('templates', globals={'context': session})
@@ -74,6 +74,8 @@ class login:
         if userid:
             session.login=True
             session.id = userid
+            if model.is_verified(userid):
+                session.verified = True
             raise web.seeother('/')
         else:
             raise web.seeother('/login')
@@ -118,7 +120,7 @@ class verify:
     def GET(self):
         if not session.login:
             raise web.seeother('/')
-        elif model.is_verified(session.id):
+        elif session.verified:
             raise web.seeother('/')
         else:
             f = verify_form()
@@ -126,7 +128,7 @@ class verify:
 
     def POST(self):
         x = web.input()
-        if session.login and not model.is_verified(session.id):
+        if session.login and not session.verified:
             try:
                 if model.verify_email(session.id, code=x.code):
                     raise web.seeother('/')
@@ -174,7 +176,6 @@ class query:
                     return web.badrequest()
             else:
                 return web.unauthorized()
-
 
 class agreement:
     def GET(self):
