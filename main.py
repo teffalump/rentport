@@ -31,9 +31,9 @@ web.config.session_parameters['expired_message']='Session expired: login again'
 
 #using session store with database
 db = web.database(  dbn='postgres', 
-                    db=config.db, 
-                    user=config.user, 
-                    pw=config.pw)
+                    db=config.db.name, 
+                    user=config.db.user, 
+                    pw=config.db.pw)
 store = web.session.DBStore(db, 'sessions')
 session = web.session.Session(app, store, initializer={'login': False, 'id': -1, 'verified': False})
 
@@ -135,9 +135,12 @@ class verify:
                 else:
                     raise web.seeother('/verify')
             except AttributeError:
-                #TODO email stuff
                 if x.send_email == "true":
-                    return "yes"
+                    #TODO send email
+                    if model.send_verification_email(model.get_email(session.id)) == True:
+                        return "Email sent"
+                    else:
+                        return "Error"
                 else:
                     raise web.badrequest()
             else:

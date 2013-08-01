@@ -1,14 +1,15 @@
 # The general functional model of the app
-# TODO implement base64 conversions on the database side?
+# TODO implement base64 conversions on the database side? - mostly done
+# TODO validate emails
 
-import web, scrypt, random, magic, hashlib
+import web, scrypt, random, magic, hashlib, sendgrid
 import config
 
 # Connection to database
 db = web.database(  dbn='postgres', 
-                    db=config.db, 
-                    user=config.user, 
-                    pw=config.pw)
+                    db=config.db.name, 
+                    user=config.db.user, 
+                    pw=config.db.pw)
 
 def get_documents(user):
     '''Retrieve relevant info from documents to display'''
@@ -93,8 +94,22 @@ def verify_email(id, code):
     except:
         return False
 
+def send_verification_email(email):
+    '''Send email to user with verification code'''
+    try:
+        code=get_email_code(email)
+        subject="Verify please"
+        message="Sign in: https://www.rentport.com/login\nGo to: https://www.rentport.com/verify\nEnter code: {0}".format(code)
+        s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
+        message = sendgrid.Message(config.email.support, subject, message)
+        message.add_to(email)
+        s.smtp.send(message)
+        return True
+    except:
+        return False
+
 def is_verified(id):
-    '''is email verified'''
+    '''is user's email verified?'''
     try:
         if db.select('users', what='verified', where='id=$id', limit=1, vars=locals())[0]['verified']:
             return True
@@ -119,6 +134,13 @@ def get_id(email):
     '''get id from email'''
     try:
         return db.select('users', what='id', where='email=$email', limit=1, vars=locals())[0]['id']
+    except IndexError:
+        return False
+
+def get_email(id):
+    '''get email from id'''
+    try:
+        return db.select('users', what='email', where='id=$id', limit=1, vars=locals())[0]['email']
     except IndexError:
         return False
 
