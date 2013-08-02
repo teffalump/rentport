@@ -5,7 +5,8 @@ CREATE TABLE users (
     privilege       integer NOT NULL DEFAULT 0,
     joined          timestamp NOT NULL DEFAULT current_timestamp
     verified        boolean NOT NULL DEFAULT FALSE
-    email_code      text
+    verify_code     text
+    reset_code      text
 );
 
 CREATE TABLE agreements (

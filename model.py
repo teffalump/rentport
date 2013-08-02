@@ -85,9 +85,9 @@ def verify_password(password, email, maxtime=0.5):
 def verify_email(id, code):
     '''verify email through email/code combo'''
     try:
-        db_code=db.select('users', what='email_code', where='id=$id', limit=1, vars=locals())[0]['email_code']
+        db_code=db.select('users', what='verify_code', where='id=$id', limit=1, vars=locals())[0]['verify_code']
         if code == db_code:
-            db.update('users', where='id=$id', verified=True, email_code=None, vars=locals())
+            db.update('users', where='id=$id', verified=True, verify_code=None, vars=locals())
             return True
         else:
             return False
@@ -108,6 +108,26 @@ def send_verification_email(email):
     except:
         return False
 
+def send_reset_email(email):
+    '''send reset email with reset url'''
+    try:
+        pass
+    except:
+        pass
+
+def verify_reset(email, code):
+    '''verify email/code combo and reset password'''
+    #TODO do this in one motion
+    try:
+        db_code = db.select('users', what='reset_code', where='email=$email', limit=1, vars=locals())[0]['reset_code']
+        if code == db_code:
+            db.update('users', where='email=$email', reset_code=None, vars=locals())
+            return True
+        else:
+            return False
+    except:
+        return False
+
 def is_verified(id):
     '''is user's email verified?'''
     try:
@@ -125,7 +145,7 @@ def get_email_code(email):
             return False
         else:
             id=web.to36(random.SystemRandom().getrandbits(256))
-            db.update('users', where='email=$email', email_code=id, vars=locals())
+            db.update('users', where='email=$email', verify_code=id, vars=locals())
             return id
     except:
         return False

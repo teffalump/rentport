@@ -15,6 +15,7 @@ urls = (
             '/logout', 'logout',
             '/register/?', 'register',
             '/verify/?', 'verify',
+            '/reset/?', 'reset',
             '/.*', 'default'
         )
 
@@ -55,6 +56,10 @@ login_form = form.Form(
 #verify form
 verify_form = form.Form(
                     form.Textbox(name="code"))
+
+#request reset form
+request_reset_form = form.Form(
+                    form.Textbox(name="email"))
 
 class default:
     def GET(self):
@@ -106,13 +111,47 @@ class register:
             return render.register(f)
 
     def POST(self):
-        '''TODO email here'''
         x = web.input()
         try:
+            #TODO Some tuning here
             model.save_user(email=x.email, password=x.password)
+            model.send_verification_email(x.email)
             raise web.seeother('/login')
         except: 
             return "Error"
+
+class reset:
+    '''reset user password
+    TODO figure out method
+        post message with email address --> send email w/ url
+        request url ---> verify
+        reset password ---> what to do?
+    TODO write model funcs'''
+    def GET(self):
+        if not session.login:
+            f=request_reset_form()
+            return render.reset_form(f)
+        else:
+            raise web.badrequest()
+
+    def POST(self):
+        x=web.input()
+        if not session.login:
+            try:
+                if model.verify_reset(x.email, x.code) == True:
+                    #reset password? how to do it?
+                    return "Correct"
+                else:
+                    raise web.unauthorized()
+            except AttributeError:
+                if model.send_reset_email(x.email) == True:
+                    return "Email sent"
+                else:
+                    raise web.unauthorized()
+            else:
+                raise web.badrequest()
+        else:
+            raise web.seeother('/')
 
 class verify:
     '''verify email address with email/code combo; need to be logged in; send email
@@ -136,11 +175,11 @@ class verify:
                     raise web.seeother('/verify')
             except AttributeError:
                 if x.send_email == "true":
-                    #TODO send email
+                    #TODO maybe some tuning here
                     if model.send_verification_email(model.get_email(session.id)) == True:
                         return "Email sent"
                     else:
-                        return "Error"
+                        return "Email error"
                 else:
                     raise web.badrequest()
             else:
