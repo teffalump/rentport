@@ -16,6 +16,7 @@ urls = (
             '/register/?', 'register',
             '/verify/?', 'verify',
             '/reset/?', 'reset',
+            '/profile/?', 'profile',
             '/.*', 'default'
         )
 
@@ -60,6 +61,10 @@ verify_form = form.Form(
 #request reset form
 request_reset_form = form.Form(
                     form.Textbox(name="email"))
+
+#new password form
+new_password_form = form.Form(
+                    form.Textbox(name="password"))
 
 class default:
     def GET(self):
@@ -121,16 +126,28 @@ class register:
             return "Error"
 
 class reset:
-    '''reset user password
-    TODO figure out method
-        post message with email address --> send email w/ url
-        request url ---> verify
-        reset password ---> what to do?
-    TODO write model funcs'''
+    '''reset user password'''
     def GET(self):
+        x=web.input()
         if not session.login:
-            f=request_reset_form()
-            return render.reset_form(f)
+            try:
+                email=x.email.decode('base64')
+                if model.verify_reset(email, x.code) == True:
+                    #if code/email combo matches, login and present new password form
+                    session.id = model.get_id(email)
+                    session.login = True
+                    if model.is_verified(session.id):
+                        session.verified = True
+
+                    f = new_password_form()
+                    return render.password_reset(f)
+                else:
+                    raise web.unauthorized()
+            except AttributeError:
+                f=request_reset_form()
+                return render.reset_form(f)
+            else:
+                return "Unknown error"
         else:
             raise web.badrequest()
 
@@ -138,18 +155,14 @@ class reset:
         x=web.input()
         if not session.login:
             try:
-                if model.verify_reset(x.email, x.code) == True:
-                    #reset password? how to do it?
-                    return "Correct"
-                else:
-                    raise web.unauthorized()
-            except AttributeError:
                 if model.send_reset_email(x.email) == True:
                     return "Email sent"
                 else:
                     raise web.unauthorized()
+            except AttributeError:
+                web.badrequest()
             else:
-                raise web.badrequest()
+                return "Unknown error"
         else:
             raise web.seeother('/')
 
@@ -240,6 +253,22 @@ class agreement:
             return web.seeother('/agreement')
         except: 
             return sys.exc_info()
+
+class profile:
+    '''Change info on profile
+    TODO change this a little'''
+    def POST(self):
+        if session.login:
+            x=web.input()
+            try:
+                if model.update_user(password=x.password) == True:
+                    raise web.seeother('/')
+            except AttributeError:
+                raise web.badrequest()
+            else:
+                return "Unknown Error"
+        else:
+            raise web.unauthorized()
 
 if __name__ == "__main__":
     app.run()

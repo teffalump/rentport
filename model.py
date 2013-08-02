@@ -2,7 +2,7 @@
 # TODO implement base64 conversions on the database side? - mostly done
 # TODO validate emails
 
-import web, scrypt, random, magic, hashlib, sendgrid
+import web, scrypt, random, magic, hashlib, sendgrid, urllib
 import config
 
 # Connection to database
@@ -72,6 +72,20 @@ def save_user(email, password):
                 email=email,
                 password=hash_password(password))
 
+def update_user(id, email=None, password=None):
+    '''Update user; need user id'''
+    try:
+        if email != None and password != None:
+            db.update('users', where='id=$id', email=email, password=hash_password(password), vars=locals())
+        elif password != None:
+            db.update('users', where='id=$id', password=hash_password(password), vars=locals())
+        elif email != None:
+            db.update('users', where='id=$id', email=email, vars=locals())
+        else:
+            return False
+    except:
+        return False
+
 def verify_password(password, email, maxtime=0.5):
     '''Verify pw/email combo and return user id, or False'''
     try:
@@ -97,7 +111,7 @@ def verify_email(id, code):
 def send_verification_email(email):
     '''Send email to user with verification code'''
     try:
-        code=get_email_code(email)
+        code=get_verify_code(email)
         subject="Verify please"
         message="Sign in: https://www.rentport.com/login\nGo to: https://www.rentport.com/verify\nEnter code: {0}".format(code)
         s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
@@ -111,9 +125,17 @@ def send_verification_email(email):
 def send_reset_email(email):
     '''send reset email with reset url'''
     try:
-        pass
+        subject="Reset email"
+        f = { 'email': email.encode('base64'), 'code': get_reset_code(email)}
+        url="https://www.rentport.com/reset?" + urllib.urlencode(f)
+        message="Go here to reset password: {0}".format(url)
+        s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
+        message = sendgrid.Message(config.email.support, subject, message)
+        message.add_to(email)
+        s.smtp.send(message)
+        return True
     except:
-        pass
+        return False
 
 def verify_reset(email, code):
     '''verify email/code combo and reset password'''
@@ -138,8 +160,8 @@ def is_verified(id):
     except IndexError:
         return False
 
-def get_email_code(email):
-    '''generate random id for email code, update db'''
+def get_verify_code(email):
+    '''generate random id for verify email code, update db'''
     try:
         if is_verified(get_id(email)):
             return False
@@ -147,6 +169,15 @@ def get_email_code(email):
             id=web.to36(random.SystemRandom().getrandbits(256))
             db.update('users', where='email=$email', verify_code=id, vars=locals())
             return id
+    except:
+        return False
+
+def get_reset_code(email):
+    '''generate random id for reset email code, update db'''
+    try:
+        id=web.to36(random.SystemRandom().getrandbits(256))
+        db.update('users', where='email=$email', reset_code=id, vars=locals())
+        return id
     except:
         return False
 
