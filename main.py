@@ -10,9 +10,9 @@ from web import form
 urls = (
             '/agreement/(.+)', 'query',
             '/agreement/?', 'agreement',
-            '/upload', 'upload',
-            '/login', 'login',
-            '/logout', 'logout',
+            '/upload/?', 'upload',
+            '/login/?', 'login',
+            '/logout/?', 'logout',
             '/register/?', 'register',
             '/verify/?', 'verify',
             '/reset/?', 'reset',
@@ -255,7 +255,7 @@ class agreement:
 
 class profile:
     '''Change info on profile
-    TODO change this a little'''
+    TODO change this a little, to support robust modifications'''
     def POST(self):
         if session.login:
             x=web.input()
