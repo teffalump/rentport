@@ -28,7 +28,7 @@ web.config.session_parameters['cookie_path']='/'
 web.config.session_parameters['timeout']=300
 web.config.session_parameters['ignore_expiry']=False
 web.config.session_parameters['ignore_change_ip']=False
-web.config.session_parameters['expired_message']='Session expired: login again'
+web.config.session_parameters['expired_message']='Session expired'
 #web.config.session_parameters['secure']=True
 
 #using session store with database
