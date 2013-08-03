@@ -131,10 +131,9 @@ class reset:
         x=web.input()
         if not session.login:
             try:
-                email=x.email.decode('base64')
-                if model.verify_reset(email, x.code) == True:
+                if model.verify_reset(x.email, x.code) == True:
                     #if code/email combo matches, login and present new password form
-                    session.id = model.get_id(email)
+                    session.id = model.get_id(x.email)
                     session.login = True
                     if model.is_verified(session.id):
                         session.verified = True
@@ -145,7 +144,7 @@ class reset:
                     raise web.unauthorized()
             except AttributeError:
                 f=request_reset_form()
-                return render.reset_form(f)
+                return render.reset(f)
             else:
                 return "Unknown error"
         else:
@@ -261,12 +260,14 @@ class profile:
         if session.login:
             x=web.input()
             try:
-                if model.update_user(password=x.password) == True:
+                if model.update_user(id=session.id, password=x.password) == True:
                     raise web.seeother('/')
+                else:
+                    raise web.badrequest()
             except AttributeError:
                 raise web.badrequest()
             else:
-                return "Unknown Error"
+                return sys.exc_info()
         else:
             raise web.unauthorized()
 

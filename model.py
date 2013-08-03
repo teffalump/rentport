@@ -77,10 +77,13 @@ def update_user(id, email=None, password=None):
     try:
         if email != None and password != None:
             db.update('users', where='id=$id', email=email, password=hash_password(password), vars=locals())
+            return True
         elif password != None:
             db.update('users', where='id=$id', password=hash_password(password), vars=locals())
+            return True
         elif email != None:
             db.update('users', where='id=$id', email=email, vars=locals())
+            return True
         else:
             return False
     except:
@@ -126,7 +129,7 @@ def send_reset_email(email):
     '''send reset email with reset url'''
     try:
         subject="Reset email"
-        f = { 'email': email.encode('base64'), 'code': get_reset_code(email)}
+        f = { 'email': email, 'code': get_reset_code(email) }
         url="https://www.rentport.com/reset?" + urllib.urlencode(f)
         message="Go here to reset password: {0}".format(url)
         s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
