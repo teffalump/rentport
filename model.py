@@ -89,6 +89,12 @@ def update_user(id, email=None, password=None):
     except:
         return False
 
+def get_user_info(id):
+    try:
+        return db.select('users', where='id=$id', what='joined,email,verified', limit=1,vars=locals())[0]
+    except:
+        return False
+
 def verify_password(password, email, maxtime=0.5):
     '''Verify pw/email combo and return user id, or False'''
     try:

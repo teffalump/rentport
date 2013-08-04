@@ -49,7 +49,7 @@ upload_form = form.Form(
                     form.Textbox(name="description")
                     )
 
-#login/reg form
+#login/register form
 login_form = form.Form(
                     form.Textbox(name="email"),
                     form.Password(name="password"))
@@ -254,8 +254,16 @@ class agreement:
             return sys.exc_info()
 
 class profile:
-    '''Change info on profile
+    '''View and change info on profile
     TODO change this a little, to support robust modifications'''
+    def GET(self):
+        if session.login:
+            f = new_password_form()
+            info = model.get_user_info(session.id)
+            return render.profile(info, f)
+        else:
+            raise web.unauthorized()
+
     def POST(self):
         if session.login:
             x=web.input()
