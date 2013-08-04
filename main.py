@@ -10,7 +10,6 @@ from web import form
 urls = (
             '/agreement/(.+)', 'query',
             '/agreement/?', 'agreement',
-            '/upload/?', 'upload',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
@@ -96,14 +95,6 @@ class login:
             raise web.seeother('/')
         else:
             raise web.seeother('/login')
-
-class upload:
-    def GET(self):
-        if session.login:
-            f = upload_form()
-            return render.upload(f)
-        else:
-            return web.unauthorized()
 
 class logout:
     def GET(self):
@@ -241,7 +232,8 @@ class agreement:
     def GET(self):
         if session.login:
             info=model.get_documents(session.id)
-            return render.agreement(info)
+            f = upload_form()
+            return render.agreement(f, info)
         else:
             return web.unauthorized()
 
