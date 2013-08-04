@@ -45,14 +45,6 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
                         'landlord': landlord,
                         'title': title,
                         'description': description})
-        #return db.insert('agreements',
-                #data_type=data_type,
-                #data=data.encode('base64'),
-                #file_name=filename,
-                #user_id=user,
-                #landlord=landlord,
-                #title=title,
-                #description=description)
 
 def delete_document(user, id):
     '''Delete document, relative id'''
@@ -91,7 +83,10 @@ def update_user(id, email=None, password=None):
 
 def get_user_info(id):
     try:
-        return db.select('users', where='id=$id', what='joined,email,verified', limit=1,vars=locals())[0]
+        return db.query("SELECT email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
+                        FROM users \
+                        WHERE id=$id \
+                        LIMIT 1", vars={'id': id})[0]
     except:
         return False
 

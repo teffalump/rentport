@@ -46,25 +46,32 @@ render = web.template.render('templates', globals={'context': session})
 upload_form = form.Form(
                     form.File("agreement"),
                     form.Textbox(name="title"),
-                    form.Textbox(name="description")
-                    )
+                    form.Textbox(name="description"),
+                    form.Button("submit", type="submit", html="Upload"))
+
 
 #login/register form
 login_form = form.Form(
                     form.Textbox(name="email"),
-                    form.Password(name="password"))
+                    form.Password(name="password"),
+                    form.Button("submit", type="submit", html="Confirm"))
 
 #verify form
 verify_form = form.Form(
-                    form.Textbox(name="code"))
+                    form.Textbox("code"),
+                    form.Button("submit", type="submit", html="Verify"),
+                    form.Hidden("hidden", value="true", id="send_email"),
+                    form.Button("send", type="submit", html="Send verification email"))
 
 #request reset form
 request_reset_form = form.Form(
-                    form.Textbox(name="email"))
+                    form.Textbox(name="email"),
+                    form.Button("submit", type="submit", html="Request reset email"))
 
 #new password form
 new_password_form = form.Form(
-                    form.Textbox(name="password"))
+                    form.Textbox(name="password", autocomplete="off"),
+                    form.Button("submit", type="submit", html="Submit"))
 
 class default:
     def GET(self):
