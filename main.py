@@ -84,10 +84,12 @@ verify_form = form.Form(
                     form.Hidden("hidden", value="true", id="send_email"),
                     form.Button("send", type="submit", html="Send verification email"))
 
-#request reset form
+#reset form
 request_reset_form = form.Form(
                     form.Textbox("email", vemail),
-                    form.Button("submit", type="submit", html="Request reset email"))
+                    form.Button("submit", type="submit", html="Request reset email"),
+                    form.Textbox("code"),
+                    form.Button("confirm", type="submit", html="Confirm reset"))
 
 #new password form
 new_password_form = form.Form(
@@ -158,25 +160,14 @@ class register:
 class reset:
     '''reset user password'''
     def GET(self):
-        '''try verify with get paramaters, or serve reset form'''
+        '''try verify with get paramaters, or serve reset form
+        TODO GET should never have side-effects, need to think more on this'''
         x=web.input()
         if not session.login:
             try:
-                if model.verify_reset(x.email, x.code) == True:
-                    #if code/email combo matches, login and present new password form
-                    session.id = model.get_id(x.email)
-                    session.login = True
-                    if model.is_verified(session.id):
-                        session.verified = True
-
-                    f = new_password_form()
-                    return render.password_reset(f)
-                else:
-                    raise web.unauthorized()
-            except AttributeError:
                 f=request_reset_form()
                 return render.reset(f)
-            else:
+            except:
                 return "Unknown error"
         else:
             raise web.badrequest()
@@ -191,12 +182,22 @@ class reset:
                 raise web.seeother('/reset')
 
             try:
+                if model.verify_reset(x.email, x.code) == True:
+                    #if code/email combo matches, login and present new password form
+                    session.id = model.get_id(x.email)
+                    session.login = True
+                    if model.is_verified(session.id):
+                        session.verified = True
+
+                    f = new_password_form()
+                    return render.password_reset(f)
+                else:
+                    raise web.unauthorized()
+            except AttributeError:
                 if model.send_reset_email(x.email) == True:
                     return "Email sent"
                 else:
                     raise web.unauthorized()
-            except AttributeError:
-                web.badrequest()
             else:
                 return "Unknown error"
         else:

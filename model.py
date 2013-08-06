@@ -130,9 +130,8 @@ def send_reset_email(email):
     '''send reset email with reset url'''
     try:
         subject="Reset email"
-        f = { 'email': email, 'code': get_reset_code(email) }
-        url="https://www.rentport.com/reset?" + urllib.urlencode(f)
-        message="Go here to reset password: {0}".format(url)
+        code=get_reset_code(email)
+        message="Go here to reset password: https://www.rentport.com/reset\nEnter email: {0}\nEnter code: {0}".format(email, code)
         s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
         message = sendgrid.Message(config.email.support, subject, message)
         message.add_to(email)
