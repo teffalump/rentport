@@ -131,7 +131,7 @@ def send_reset_email(email):
     try:
         subject="Reset email"
         code=get_reset_code(email)
-        message="Go here to reset password: https://www.rentport.com/reset\nEnter email: {0}\nEnter code: {0}".format(email, code)
+        message="Go here to reset password: https://www.rentport.com/reset\nEnter email: {0}\nEnter code: {1}".format(email, code)
         s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
         message = sendgrid.Message(config.email.support, subject, message)
         message.add_to(email)
