@@ -41,18 +41,22 @@ session = web.session.Session(app, store, initializer={'login': False, 'id': -1,
 #renderer
 render = web.template.render('templates', globals={'context': session})
 
+#form validators
+vemail = form.regexp(r".*@.*", "must be a valid email address")
+vpass = form.regexp(r".{15,}$", 'must be at least 15 characters')
+
 #upload form
 upload_form = form.Form(
                     form.File("agreement"),
-                    form.Textbox(name="title"),
-                    form.Textbox(name="description"),
+                    form.Textbox("title"),
+                    form.Textbox("description"),
                     form.Button("submit", type="submit", html="Upload"))
 
 
 #login/register form
 login_form = form.Form(
-                    form.Textbox(name="email"),
-                    form.Password(name="password"),
+                    form.Textbox("email", vemail),
+                    form.Password("password", vpass),
                     form.Button("submit", type="submit", html="Confirm"))
 
 #verify form
@@ -64,12 +68,12 @@ verify_form = form.Form(
 
 #request reset form
 request_reset_form = form.Form(
-                    form.Textbox(name="email"),
+                    form.Textbox("email", vemail),
                     form.Button("submit", type="submit", html="Request reset email"))
 
 #new password form
 new_password_form = form.Form(
-                    form.Textbox(name="password", autocomplete="off"),
+                    form.Textbox("password", vpass, autocomplete="off"),
                     form.Button("submit", type="submit", html="Submit"))
 
 class default:
@@ -85,6 +89,10 @@ class login:
             return render.login(f)
 
     def POST(self):
+        f = login_form()
+        if not f.validates():
+            raise web.seeother('/login')
+
         x = web.input()
         userid = model.verify_password(x.password, x.email)
         if userid:
@@ -114,11 +122,15 @@ class register:
             return render.register(f)
 
     def POST(self):
+        f = login_form()
+        if not f.validates():
+            raise web.seeother('/register')
+
         x = web.input()
         try:
             #TODO Some tuning here
             model.save_user(email=x.email, password=x.password)
-            model.send_verification_email(x.email)
+            #model.send_verification_email(x.email)
             raise web.seeother('/login')
         except: 
             return "Error"
@@ -126,6 +138,7 @@ class register:
 class reset:
     '''reset user password'''
     def GET(self):
+        '''try verify with get paramaters, or serve reset form'''
         x=web.input()
         if not session.login:
             try:
@@ -149,8 +162,13 @@ class reset:
             raise web.badrequest()
 
     def POST(self):
+        '''Send reset email'''
         x=web.input()
         if not session.login:
+            f = request_reset_form()
+            if not f.validates():
+                raise web.seeother('/reset')
+
             try:
                 if model.send_reset_email(x.email) == True:
                     return "Email sent"
@@ -178,6 +196,10 @@ class verify:
     def POST(self):
         x = web.input()
         if session.login and not session.verified:
+            f = verify_form()
+            if not f.validates():
+                raise web.seeother('/verify')
+
             try:
                 if model.verify_email(session.id, code=x.code):
                     raise web.seeother('/')
@@ -265,6 +287,10 @@ class profile:
 
     def POST(self):
         if session.login:
+            f = new_password_form()
+            if not f.validates():
+                raise web.seeother('/profile')
+
             x=web.input()
             try:
                 if model.update_user(id=session.id, password=x.password) == True:
