@@ -5,6 +5,7 @@ import web
 import model
 import config
 import sys
+from uuid import uuid4
 from web import form
 
 urls = (
@@ -38,12 +39,29 @@ db = web.database(  dbn='postgres',
 store = web.session.DBStore(db, 'sessions')
 session = web.session.Session(app, store, initializer={'login': False, 'id': -1, 'verified': False})
 
-#renderer
-render = web.template.render('templates', globals={'context': session})
 
 #form validators
 vemail = form.regexp(r".*@.*", "must be a valid email address")
 vpass = form.regexp(r".{15,}$", 'must be at least 15 characters')
+
+#prevent csrf
+def csrf_token():
+    if not session.has_key('csrf_token'):
+        session.csrf_token=uuid4().hex
+    return session.csrf_token
+
+def csrf_protected(f):
+    def decorated(*args,**kwargs):
+        inp = web.input()
+        if not (inp.has_key('csrf_token') and inp.csrf_token==session.pop('csrf_token',None)):
+            raise web.HTTPError("400 Bad Request", 
+                                {'content-type': 'text/html'},
+                                'CSRF')
+        return f(*args,**kwargs)
+    return decorated
+
+#renderer
+render = web.template.render('templates', globals={'context': session, 'csrf_token': csrf_token})
 
 #upload form
 upload_form = form.Form(
@@ -88,6 +106,7 @@ class login:
             f = login_form()
             return render.login(f)
 
+    @csrf_protected
     def POST(self):
         f = login_form()
         if not f.validates():
@@ -121,6 +140,7 @@ class register:
             f = login_form()
             return render.register(f)
 
+    @csrf_protected
     def POST(self):
         f = login_form()
         if not f.validates():
@@ -161,6 +181,7 @@ class reset:
         else:
             raise web.badrequest()
 
+    @csrf_protected
     def POST(self):
         '''Send reset email'''
         x=web.input()
@@ -193,6 +214,7 @@ class verify:
             f = verify_form()
             return render.verify(f)
 
+    @csrf_protected
     def POST(self):
         x = web.input()
         if session.login and not session.verified:
@@ -259,6 +281,7 @@ class agreement:
         else:
             return web.unauthorized()
 
+    @csrf_protected
     def POST(self):
         x = web.input(agreement={})
         try:
@@ -285,6 +308,7 @@ class profile:
         else:
             raise web.unauthorized()
 
+    @csrf_protected
     def POST(self):
         if session.login:
             f = new_password_form()
