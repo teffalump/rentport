@@ -87,7 +87,10 @@ verify_form = form.Form(
 #reset form
 request_reset_form = form.Form(
                     form.Textbox("email", vemail),
-                    form.Button("submit", type="submit", html="Request reset email"),
+                    form.Button("submit", type="submit", html="Request reset email"))
+#confirm reset form
+confirm_reset_form = form.Form(
+                    form.Textbox("email", vemail),
                     form.Textbox("code"),
                     form.Button("confirm", type="submit", html="Confirm reset"))
 
@@ -165,8 +168,9 @@ class reset:
         x=web.input()
         if not session.login:
             try:
+                t=confirm_reset_form()
                 f=request_reset_form()
-                return render.reset(f)
+                return render.reset(f, t )
             except:
                 return "Unknown error"
         else:

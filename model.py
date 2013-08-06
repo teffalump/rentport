@@ -2,7 +2,7 @@
 # TODO implement base64 conversions on the database side? - mostly done
 # TODO validate emails
 
-import web, scrypt, random, magic, hashlib, sendgrid, urllib
+import web, scrypt, random, magic, hashlib, sendgrid
 import config
 
 # Connection to database
@@ -19,7 +19,7 @@ def get_documents(user):
                         WHERE user_id=$user \
                         ORDER BY id ASC",
                         vars={'user':user})
-    except IndexError:
+    except:
         return None
 
 def get_document(user,id):
@@ -35,7 +35,8 @@ def get_document(user,id):
 
 def save_document(user, data_type, filename, data, landlord=None, title=None, description=None):
     '''Save rental agreement'''
-    return db.query("INSERT INTO agreements \
+    try:
+        a=db.query("INSERT INTO agreements \
                     (data_type, data, file_name, user_id, landlord, title, description) \
                     VALUES ($data_type, $data, $filename, $user, $landlord, $title, $description)",
                     vars={'data_type': data_type,
@@ -45,13 +46,26 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
                         'landlord': landlord,
                         'title': title,
                         'description': description})
+        if a > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 def delete_document(user, id):
     '''Delete document, relative id'''
-    return db.query("DELETE FROM agreements \
+    try:
+        a=db.query("DELETE FROM agreements \
                     WHERE id IN \
                     (SELECT id FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os)", 
                     vars={'user': user, 'os': int(id)-1})
+        if a > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 def hash_password(password, maxtime=0.5, datalength=128):
     '''Scrypt, use password to encrypt random data'''
@@ -60,9 +74,16 @@ def hash_password(password, maxtime=0.5, datalength=128):
 
 def save_user(email, password):
     '''Insert new user'''
-    db.insert( 'users',
+    try:
+        a=db.insert( 'users',
                 email=email,
                 password=hash_password(password))
+        if a > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 def update_user(id, email=None, password=None):
     '''Update user; need user id'''
