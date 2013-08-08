@@ -86,11 +86,11 @@ verify_form = form.Form(
 
 #reset form
 request_reset_form = form.Form(
-                    form.Textbox("email", vemail),
+                    form.Textbox("email", vemail, id="reset_email"),
                     form.Button("submit", type="submit", html="Request reset email"))
 #confirm reset form
 confirm_reset_form = form.Form(
-                    form.Textbox("email", vemail),
+                    form.Textbox("email", vemail, id="confirm_email"),
                     form.Textbox("code"),
                     form.Button("confirm", type="submit", html="Confirm reset"))
 
@@ -135,9 +135,7 @@ class logout:
         raise web.seeother('/')
 
 class register:
-    '''register an user
-    TODO Add email
-    '''
+    '''register an user'''
     def GET(self):
         if session.login:
             raise web.seeother('/')
@@ -163,8 +161,6 @@ class register:
 class reset:
     '''reset user password'''
     def GET(self):
-        '''try verify with get paramaters, or serve reset form
-        TODO GET should never have side-effects, need to think more on this'''
         x=web.input()
         if not session.login:
             try:
@@ -179,15 +175,15 @@ class reset:
     @csrf_protected
     def POST(self):
         '''Send reset email'''
-        x=web.input()
         if not session.login:
             f = request_reset_form()
-            if not f.validates():
+            t = confirm_reset_form()
+            if not f.validates() or not t.validates():
                 raise web.seeother('/reset')
 
+            x=web.input()
             try:
                 if model.verify_reset(x.email, x.code) == True:
-                    #if code/email combo matches, login and present new password form
                     session.id = model.get_id(x.email)
                     session.login = True
                     if model.is_verified(session.id):
