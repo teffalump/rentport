@@ -222,3 +222,86 @@ def get_email(id):
 def get_file_type(fobject, mime=True):
     '''file object, retrieve type'''
     return magic.from_buffer(fobject.read(1024), mime)
+
+def allow_login(account, ip):
+    '''Quite complicated sql queries for most recent attempt from/for:
+            -originating ip
+            -target account
+       throttle attempts based on account, and ip, and time'''
+    try:
+        num=db.query("SELECT max(count) \
+                        FROM (SELECT count(*) \
+                                FROM attempts \
+                                WHERE ip=$ip \
+                                UNION ALL \
+                              SELECT count(*) \
+                                FROM attempts \
+                                WHERE account=$account) \
+                            as num", 
+                    vars={'account': account, 'ip': ip})[0]['max']
+        time_delta=db.query("SELECT EXTRACT(EPOCH FROM age(max)) as age \
+                                FROM (SELECT max(max) \
+                                    FROM \
+                                        (SELECT max(time) \
+                                            FROM attempts \
+                                            WHERE ip=$ip \
+                                        UNION ALL \
+                                        SELECT max(time) \
+                                            FROM attempts \
+                                            WHERE account=$account) \
+                                    as t) \
+                                as p",
+                    vars={'account': account, 'ip': ip})[0]['age']
+        if num == 0:
+            return True
+        elif num == 1:
+            '''enforce 5 sec delay'''
+            if time_delta <= 5:
+                return False 
+            else:
+                return True
+        elif num == 2:
+            '''enforce 15 sec delay'''
+            if time_delta <= 15:
+                return False
+            else:
+                return True
+        else:
+            '''enforce 45 sec delay'''
+            if time_delta <= 45:
+                return False
+            else:
+                return True
+    except:
+        '''some sort of error, fail safely'''
+        return False
+
+def clear_login_attempts(account, ip):
+    '''clear attempts from account and ip'''
+    try:
+        num=db.query("DELETE FROM attempts \
+                        WHERE \
+                            ip=$ip \
+                            AND \
+                            account=$account",
+                            vars={'account': account, 'ip': ip})
+        if num > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def add_login_attempt(account, ip):
+    '''add failed login to db'''
+    try:
+        num=db.query("INSERT INTO attempts \
+                        (account, ip) \
+                        VALUES ($account, $ip)",
+                    vars={'account': account, 'ip': ip})
+        if num == 1:
+            return True
+        else:
+            return False
+    except:
+        return False

@@ -117,15 +117,21 @@ class login:
         if not f.validates():
             raise web.seeother('/login')
 
+        ip = web.ctx.ip
         x = web.input()
+        if model.allow_login(x.email, ip):
+            raise web.seeother('/login')
+
         userid = model.verify_password(x.password, x.email)
         if userid:
+            model.clear_login_attempts(x.email, ip)
             session.login=True
             session.id = userid
             if model.is_verified(userid):
                 session.verified = True
             raise web.seeother('/')
         else:
+            model.add_login_attempt(x.email, ip)
             raise web.seeother('/login')
 
 class logout:

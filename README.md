@@ -33,3 +33,4 @@
 # Security TODOs
     + Prevent CSRF by protecting forms
     + Any DoS/spam/bruteforce-possible attack surfaces need throttling
+        + throttle logins

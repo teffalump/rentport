@@ -26,3 +26,9 @@ CREATE TABLE sessions (
     atime           timestamp NOT NULL DEFAULT current_timestamp,
     data            text
 );
+
+CREATE TABLE attempts (
+    account         text NOT NULL,
+    ip              inet NOT NULL,
+    time            timestamp NOT NULL DEFAULT current_timestamp
+);
