@@ -239,7 +239,7 @@ def allow_login(account, ip):
                                 WHERE account=$account) \
                             as num", 
                     vars={'account': account, 'ip': ip})[0]['max']
-        time_delta=db.query("SELECT EXTRACT(EPOCH FROM age(max)) as age \
+        time_delta=db.query("SELECT EXTRACT(EPOCH FROM now()-max) as age \
                                 FROM (SELECT max(max) \
                                     FROM \
                                         (SELECT max(time) \

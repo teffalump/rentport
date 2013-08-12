@@ -119,7 +119,7 @@ class login:
 
         ip = web.ctx.ip
         x = web.input()
-        if model.allow_login(x.email, ip):
+        if not model.allow_login(x.email, ip):
             raise web.seeother('/login')
 
         userid = model.verify_password(x.password, x.email)
