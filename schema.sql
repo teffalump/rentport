@@ -1,12 +1,13 @@
 CREATE TABLE users (
     id              serial NOT NULL primary key,
-    email           text NOT NULL,
+    username        text UNIQUE,
+    email           text NOT NULL UNIQUE,
     password        text NOT NULL,
     privilege       integer NOT NULL DEFAULT 0,
-    joined          timestamp NOT NULL DEFAULT current_timestamp
-    verified        boolean NOT NULL DEFAULT FALSE
-    verify_code     text
-    reset_code      text
+    joined          timestamp NOT NULL DEFAULT current_timestamp,
+    verified        boolean NOT NULL DEFAULT FALSE,
+    verify_code     text,
+    reset_code      text,
     accepts_cc      boolean NOT NULL DEFAULT FALSE
 );
 
@@ -35,15 +36,16 @@ CREATE TABLE failed_logins (
 );
 
 CREATE TABLE sent_emails (
-    account         text NOT NULL,
+    account         integer references users (id) NOT NULL,
     ip              inet NOT NULL,
     type            text NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
 
 CREATE TABLE payments (
-    from            text NOT NULL,
-    to              text NOT NULL,
+    id              serial NOT NULL primary key,
+    from            integer references users (id) NOT NULL,
+    to              integer references users (id) NOT NULL,
     amount          integer NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );

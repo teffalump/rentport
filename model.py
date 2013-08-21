@@ -390,3 +390,28 @@ def save_payment(origin,to,amount):
             return False
     except:
         return False
+
+def get_payments(user):
+    '''return all user related payments'''
+    try:
+        return db.query("SELECT to,from,amount,to_char(time, 'YYYY-MM-DD') as time \
+                            FROM payments \
+                            WHERE from = $user OR to = $user",
+                            vars={'user': user})
+    except:
+        return None
+
+def get_payment(user, id):
+    '''get user related payment; relative id'''
+    try:
+        return db.query("SELECT from,to,amount,to_char(time, 'YYYY-MM-DD') as time \
+                            FROM payments \
+                            WHERE from=$user OR to=$user \
+                            ORDER BY id ASC LIMIT 1 OFFSET $os",
+                            vars={'user': user, 'os': int(id)-1})[0]
+    except IndexError:
+        return None
+
+def post_payment():
+    '''actually execute payment; unfinished atm'''
+    pass
