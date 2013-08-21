@@ -209,11 +209,14 @@ class reset:
                 else:
                     raise web.unauthorized()
             except AttributeError:
-                if model.send_reset_email(x.email) == True:
-                    model.save_sent_email(web.ctx.ip,x.email,'reset')
-                    return "Email sent"
+                if model.allow_email(x.email, 'reset', web.ctx.ip):
+                    if model.send_reset_email(x.email) == True:
+                        model.save_sent_email(web.ctx.ip,x.email,'reset')
+                        return "Email sent"
+                    else:
+                        raise web.unauthorized()
                 else:
-                    raise web.unauthorized()
+                    return "Email throttled, wait 1 min"
             else:
                 return "Unknown error"
         else:
@@ -246,13 +249,15 @@ class verify:
                     raise web.seeother('/verify')
             except AttributeError:
                 if x.send_email == "true":
-                    #TODO maybe some tuning here
                     email=model.get_email(session.id)
-                    if model.send_verification_email(email) == True:
-                        model.save_sent_email(web.ctx.ip,email,'reset')
-                        return "Email sent"
+                    if model.allow_email(email,'verify', web.ctx.ip) == True:
+                        if model.send_verification_email(email) == True:
+                            model.save_sent_email(web.ctx.ip,email,'reset')
+                            return "Email sent"
+                        else:
+                            return "Email error"
                     else:
-                        return "Email error"
+                        return "Email throttled, wait 1 min"
                 else:
                     raise web.badrequest()
             else:
