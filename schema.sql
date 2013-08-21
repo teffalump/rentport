@@ -40,3 +40,10 @@ CREATE TABLE sent_emails (
     type            text NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
+
+CREATE TABLE payments (
+    from            text NOT NULL,
+    to              text NOT NULL,
+    amount          integer NOT NULL,
+    time            timestamp NOT NULL DEFAULT current_timestamp
+);

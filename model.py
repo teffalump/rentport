@@ -310,3 +310,83 @@ def add_failed_login(account, ip):
     except:
         return False
 
+def allow_email(account, type, ip):
+    '''throttle email according to criteria:
+            verify: 1 email/min/acct
+            reset:  1 email/min/acct && 1 email/min/ip)'''
+
+    if type == 'verify':
+        try:
+            time_delta=db.query("SELECT EXTRACT(EPOCH FROM now()-max) as age \
+                                    FROM (SELECT max(time) \
+                                            FROM sent_emails \
+                                            WHERE account=$account AND type=$type) \
+                                    as p",
+                                vars={'account': account, 'type': 'verify'})[0]['age']
+        except (KeyError, IndexError):
+            return True
+
+        if time_delta > 60:
+            '''only 1 email per 1 min'''
+            return True
+        else:
+            return False
+    elif type == 'reset':
+        '''only 1 email per 1 min for acct and ip''' 
+        try:
+            time_delta=db.query("SELECT EXTRACT(EPOCH FROM now()-max) as age \
+                                    FROM (SELECT max(time) \
+                                            FROM sent_emails \
+                                            WHERE account=$account AND type=$type \
+                                        UNION ALL \
+                                        SELECT max(time) \
+                                                FROM sent_emails \
+                                                WHERE ip=$ip AND type=$type) \
+                                    as t",
+                                    vars={'ip': ip, 'type': 'reset', 'account': account})
+            if time_delta[0]['age'] > 60 and time_delta[1]['age'] > 60:
+                return True
+            else:
+                return False
+        except (KeyError, IndexError):
+            return True
+    else:
+        return False
+
+def accepts_cc(id):
+    '''accepts cc --> t/f'''
+    try:
+        if db.select('users', what='accepts_cc', where='id=$id', limit=1, vars=locals())[0]['accepts_cc']:
+            return True
+        else:
+            return False
+    except IndexError:
+        return False
+
+def save_sent_email(ip, account, type):
+    '''save sent email to db'''
+    try:
+        num=db.query("INSERT INTO sent_emails \
+                        (ip,account,type,time) \
+                    VALUES ($ip, $account, $type, now())",
+                    vars={'ip': ip, 'account': account, 'type': type})
+        if num == 1:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def save_payment(origin,to,amount):
+    '''save payment to db'''
+    try:
+        num=db.query("INSERT INTO payments \
+                        (from,to,amount,time) \
+                    VALUES ($origin, $to, $amount, now())",
+                    vars={'origin': origin, 'to': to, 'amount': amount})
+        if num == 1:
+            return True
+        else:
+            return False
+    except:
+        return False
