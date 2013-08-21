@@ -31,6 +31,7 @@
 4. issue tracking system
 
 # Security TODOs
-    + Prevent CSRF by protecting forms
+    + Prevent CSRF by protecting forms - done
     + Any DoS/spam/bruteforce-possible attack surfaces need throttling
-        + throttle logins
+        + throttle logins - done (some testing)
+        + throttle emails - done (untested)
