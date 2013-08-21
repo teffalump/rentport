@@ -7,6 +7,7 @@ CREATE TABLE users (
     verified        boolean NOT NULL DEFAULT FALSE
     verify_code     text
     reset_code      text
+    accepts_cc      boolean NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE agreements (
@@ -27,8 +28,15 @@ CREATE TABLE sessions (
     data            text
 );
 
-CREATE TABLE attempts (
+CREATE TABLE failed_logins (
     account         text NOT NULL,
     ip              inet NOT NULL,
+    time            timestamp NOT NULL DEFAULT current_timestamp
+);
+
+CREATE TABLE sent_emails (
+    account         text NOT NULL,
+    ip              inet NOT NULL,
+    type            text NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );

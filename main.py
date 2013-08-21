@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 
-import re
 import web
 import model
 import config
@@ -25,7 +24,7 @@ app = web.application(urls, globals())
 #session settings
 web.config.session_parameters['cookie_name']='rentport'
 web.config.session_parameters['cookie_path']='/'
-web.config.session_parameters['timeout']=300
+web.config.session_parameters['timeout']=900
 web.config.session_parameters['ignore_expiry']=False
 web.config.session_parameters['ignore_change_ip']=False
 web.config.session_parameters['expired_message']='Session expired'
@@ -44,7 +43,9 @@ session = web.session.Session(app, store, initializer={'login': False, 'id': -1,
 vemail = form.regexp(r".*@.*", "must be a valid email address")
 vpass = form.regexp(r".{15,}$", 'must be at least 15 characters')
 
-#prevent csrf
+### UTILITY FUNCTIONS ###
+
+#### prevent csrf
 def csrf_token():
     if not session.has_key('csrf_token'):
         session.csrf_token=uuid4().hex
@@ -60,6 +61,16 @@ def csrf_protected(f):
         return f(*args,**kwargs)
     return decorated
 
+#### on success, set session variables
+def set_session_values(userid):
+    session.login=True
+    session.id = userid
+    if model.is_verified(userid):
+        session.verified = True
+    return True
+
+##########################
+
 #renderer
 render = web.template.render('templates', globals={'context': session, 'csrf_token': csrf_token})
 
@@ -69,7 +80,6 @@ upload_form = form.Form(
                     form.Textbox("title"),
                     form.Textbox("description"),
                     form.Button("submit", type="submit", html="Upload"))
-
 
 #login/register form
 login_form = form.Form(
@@ -124,14 +134,11 @@ class login:
 
         userid = model.verify_password(x.password, x.email)
         if userid:
-            model.clear_login_attempts(x.email, ip)
-            session.login=True
-            session.id = userid
-            if model.is_verified(userid):
-                session.verified = True
+            model.clear_failed_logins(x.email, ip)
+            set_session_values(userid)
             raise web.seeother('/')
         else:
-            model.add_login_attempt(x.email, ip)
+            model.add_failed_login(x.email, ip)
             raise web.seeother('/login')
 
 class logout:
@@ -158,9 +165,14 @@ class register:
         x = web.input()
         try:
             #TODO Some tuning here
-            model.save_user(email=x.email, password=x.password)
-            #model.send_verification_email(x.email)
-            raise web.seeother('/login')
+            if model.save_user(email=x.email, password=x.password) == True:
+                raise web.seeother('/login')
+                #if model.send_verification_email(x.email) == True:
+                    #raise web.seeother('/login')
+                #else:
+                    #return "Error"
+            else:
+                return "Error"
         except: 
             return "Error"
 
@@ -172,7 +184,7 @@ class reset:
             try:
                 t=confirm_reset_form()
                 f=request_reset_form()
-                return render.reset(f, t )
+                return render.reset(f, t)
             except:
                 return "Unknown error"
         else:
@@ -190,11 +202,7 @@ class reset:
             x=web.input()
             try:
                 if model.verify_reset(x.email, x.code) == True:
-                    session.id = model.get_id(x.email)
-                    session.login = True
-                    if model.is_verified(session.id):
-                        session.verified = True
-
+                    set_session_values(model.get_id(x.email))
                     f = new_password_form()
                     return render.password_reset(f)
                 else:
@@ -252,14 +260,7 @@ class query:
     def GET(self, id):
         if session.login:
             try:
-                int(id)
-                f = model.get_document(session.id, id)
-                web.header('Content-Type', f['data_type'])
-                #i'm worried about the security of the following header, how i do it
-                web.header('Content-Disposition', 'attachment; filename="{0}"'.format(re.escape(f['file_name'])))
-                web.header('Cache-Control', 'no-cache')
-                web.header('Pragma', 'no-cache')
-                return f['data']
+                model.get_document(session.id, id)
             except ValueError:
                 return web.badrequest()
         else:
@@ -268,7 +269,6 @@ class query:
     def DELETE(self, id):
             if session.login:
                 try:
-                    int(id)
                     num=model.delete_document(session.id, id)
                     if num == 0:
                         return web.notfound()

@@ -1,8 +1,6 @@
 # The general functional model of the app
-# TODO implement base64 conversions on the database side? - mostly done
-# TODO validate emails
 
-import web, scrypt, random, magic, hashlib, sendgrid
+import web, scrypt, random, magic, hashlib, sendgrid, re
 import config
 
 # Connection to database
@@ -25,13 +23,19 @@ def get_documents(user):
 def get_document(user,id):
     '''Get document info/data for dl; relative id'''
     try:
-        return db.query("SELECT file_name,data_type,decode(data,'base64') AS data \
+        f=db.query("SELECT file_name,data_type,decode(data,'base64') AS data \
                         FROM agreements \
                         WHERE user_id=$user \
                         ORDER BY id ASC LIMIT 1 OFFSET $os",
                         vars={'user': user, 'os': int(id)-1})[0]
+        web.header('Content-Type', f['data_type'])
+        #i'm worried about the security of the following header, how i do it
+        web.header('Content-Disposition', 'attachment; filename="{0}"'.format(re.escape(f['file_name'])))
+        web.header('Cache-Control', 'no-cache')
+        web.header('Pragma', 'no-cache')
+        return f['data']
     except IndexError:
-        return None
+        return web.notfound()
 
 def save_document(user, data_type, filename, data, landlord=None, title=None, description=None):
     '''Save rental agreement'''
@@ -231,11 +235,11 @@ def allow_login(account, ip):
     try:
         num=db.query("SELECT max(count) \
                         FROM (SELECT count(*) \
-                                FROM attempts \
+                                FROM failed_logins \
                                 WHERE ip=$ip \
                                 UNION ALL \
                               SELECT count(*) \
-                                FROM attempts \
+                                FROM failed_logins \
                                 WHERE account=$account) \
                             as num", 
                     vars={'account': account, 'ip': ip})[0]['max']
@@ -243,11 +247,11 @@ def allow_login(account, ip):
                                 FROM (SELECT max(max) \
                                     FROM \
                                         (SELECT max(time) \
-                                            FROM attempts \
+                                            FROM failed_logins \
                                             WHERE ip=$ip \
                                         UNION ALL \
                                         SELECT max(time) \
-                                            FROM attempts \
+                                            FROM failed_logins \
                                             WHERE account=$account) \
                                     as t) \
                                 as p",
@@ -276,10 +280,10 @@ def allow_login(account, ip):
         '''some sort of error, fail safely'''
         return False
 
-def clear_login_attempts(account, ip):
+def clear_failed_logins(account, ip):
     '''clear attempts from account and ip'''
     try:
-        num=db.query("DELETE FROM attempts \
+        num=db.query("DELETE FROM failed_logins \
                         WHERE \
                             ip=$ip \
                             AND \
@@ -292,10 +296,10 @@ def clear_login_attempts(account, ip):
     except:
         return False
 
-def add_login_attempt(account, ip):
+def add_failed_login(account, ip):
     '''add failed login to db'''
     try:
-        num=db.query("INSERT INTO attempts \
+        num=db.query("INSERT INTO failed_logins \
                         (account, ip) \
                         VALUES ($account, $ip)",
                     vars={'account': account, 'ip': ip})
@@ -305,3 +309,4 @@ def add_login_attempt(account, ip):
             return False
     except:
         return False
+
