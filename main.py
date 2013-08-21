@@ -168,6 +168,7 @@ class register:
             if model.save_user(email=x.email, password=x.password) == True:
                 raise web.seeother('/login')
                 #if model.send_verification_email(x.email) == True:
+                    #model.save_sent_email(web.ctx.ip, x.email,'verify')
                     #raise web.seeother('/login')
                 #else:
                     #return "Error"
@@ -209,6 +210,7 @@ class reset:
                     raise web.unauthorized()
             except AttributeError:
                 if model.send_reset_email(x.email) == True:
+                    model.save_sent_email(web.ctx.ip,x.email,'reset')
                     return "Email sent"
                 else:
                     raise web.unauthorized()
@@ -245,7 +247,9 @@ class verify:
             except AttributeError:
                 if x.send_email == "true":
                     #TODO maybe some tuning here
-                    if model.send_verification_email(model.get_email(session.id)) == True:
+                    email=model.get_email(session.id)
+                    if model.send_verification_email(email) == True:
+                        model.save_sent_email(web.ctx.ip,email,'reset')
                         return "Email sent"
                     else:
                         return "Email error"

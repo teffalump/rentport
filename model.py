@@ -165,6 +165,20 @@ def send_reset_email(email):
     except:
         return False
 
+def save_sent_email(ip, account, type):
+    '''save sent email to db'''
+    try:
+        num=db.query("INSERT INTO sent_emails \
+                        (ip,account,type,time) \
+                    VALUES ($ip, $account, $type, now())",
+                    vars={'ip': ip, 'account': account, 'type': type})
+        if num == 1:
+            return True
+        else:
+            return False
+    except:
+        return False
+
 def verify_reset(email, code):
     '''verify email/code combo and reset password'''
     #TODO do this in one motion
@@ -361,20 +375,6 @@ def accepts_cc(id):
         else:
             return False
     except IndexError:
-        return False
-
-def save_sent_email(ip, account, type):
-    '''save sent email to db'''
-    try:
-        num=db.query("INSERT INTO sent_emails \
-                        (ip,account,type,time) \
-                    VALUES ($ip, $account, $type, now())",
-                    vars={'ip': ip, 'account': account, 'type': type})
-        if num == 1:
-            return True
-        else:
-            return False
-    except:
         return False
 
 def save_payment(origin,to,amount):
