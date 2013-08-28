@@ -1,6 +1,6 @@
 # The general functional model of the app
 
-import web, scrypt, random, magic, hashlib, sendgrid, re
+import web, scrypt, random, magic, hashlib, sendgrid, re, stripe
 import config
 
 # Connection to database
@@ -377,13 +377,13 @@ def accepts_cc(id):
     except IndexError:
         return False
 
-def save_payment(origin,to,amount):
-    '''save payment to db'''
+def save_payment(origin,to,amount, stripe_id):
+    '''save payment to db; to and origin are ids, not email'''
     try:
         num=db.query("INSERT INTO payments \
-                        (from,to,amount,time) \
-                    VALUES ($origin, $to, $amount, now())",
-                    vars={'origin': origin, 'to': to, 'amount': amount})
+                        (from,to,amount,time,stripe_id) \
+                    VALUES ($origin, $to, $amount, now(), $stripe_id)",
+                    vars={'origin': origin, 'to': to, 'amount': amount, 'stripe_id': stripe_id})
         if num == 1:
             return True
         else:
@@ -412,6 +412,18 @@ def get_payment(user, id):
     except IndexError:
         return None
 
-def post_payment():
-    '''actually execute payment; unfinished atm'''
-    pass
+def post_payment(token, amount, from_user):
+    '''actually execute payment using stripe'''
+    #TODO Dynamically change api key
+    try:
+        stripe.api_key = "sk_test_mkGsLqEW6SLnZa487HYfJVLf"
+        charge = stripe.Charge.create(
+            amount=amount, # cents
+            currency="usd",
+            card=token,
+            description=from_user)
+        return charge
+
+    except stripe.CardError:
+        #declined, etc
+        return False

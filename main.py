@@ -16,6 +16,7 @@ urls = (
             '/verify/?', 'verify',
             '/reset/?', 'reset',
             '/profile/?', 'profile',
+            '/pay/?', 'pay',
             '/.*', 'default'
         )
 
@@ -343,6 +344,39 @@ class profile:
                 return sys.exc_info()
         else:
             raise web.unauthorized()
+
+class pay:
+    '''payment integration'''
+    def GET(self):
+        '''return payment page'''
+        if session.login == True:
+            #TODO WAY IN FUTURE, MAKE IT POSSIBLE TO PAY DIFFERENT USERS
+            user_key='pk_test_czwzkTp2tactuLOEOqbMTRzG'
+            return render.pay(user_key)
+        else:
+            raise web.unauthorized()
+
+    @csrf_protected
+    def POST(self):
+        '''payment info'''
+        #TODO Worried about js injection/poisoning
+        #TODO Another user, etc
+        if session.login == True:
+            x=web.input()
+            try:
+                amount=x.amount
+                token=x.stripeToken
+                charge = model.post_payment(token,amount,model.get_email(session.id))
+                if charge:
+                    #model.save_payment(session.id,8,model.get_id(),charge['amount'])
+                    pass
+                else:
+                    return "Payment error"
+            except AttributeError:
+                return "Payment error"
+        else:
+            raise web.unauthorized()
+
 
 if __name__ == "__main__":
     app.run()

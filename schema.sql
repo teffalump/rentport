@@ -1,5 +1,5 @@
 CREATE TABLE users (
-    id              serial NOT NULL primary key,
+    id              serial primary key,
     username        text UNIQUE,
     email           text NOT NULL UNIQUE,
     password        text NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE agreements (
-    id              serial NOT NULL primary key,
+    id              serial primary key,
     user_id         integer references users (id) NOT NULL,
     landlord        integer references users (id),
     file_name       text NOT NULL,
@@ -44,6 +44,7 @@ CREATE TABLE sent_emails (
 
 CREATE TABLE payments (
     id              serial NOT NULL primary key,
+    stripe_id       text NOT NULL,
     from            integer references users (id) NOT NULL,
     to              integer references users (id) NOT NULL,
     amount          integer NOT NULL,
