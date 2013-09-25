@@ -27,6 +27,7 @@
     + Reset system - Sorta done
     + Need email system - use sendgrid - untested code
 3. Payment system
+    + stripe stuff - started
     + Should I include paypal? evil!
 4. issue tracking system
 

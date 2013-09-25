@@ -1,6 +1,6 @@
 # The general functional model of the app
 
-import web, scrypt, random, magic, hashlib, sendgrid, re, stripe
+import web, scrypt, random, magic, hashlib, sendgrid, re, stripe, json
 import config
 
 # Connection to database
@@ -108,17 +108,20 @@ def update_user(id, email=None, password=None):
 
 def get_user_info(id):
     try:
-        return db.query("SELECT email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
+        return db.query("SELECT username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
                         FROM users \
                         WHERE id=$id \
                         LIMIT 1", vars={'id': id})[0]
     except:
         return False
 
-def verify_password(password, email, maxtime=0.5):
-    '''Verify pw/email combo and return user id, or False'''
+def verify_password(password, login_id, maxtime=0.5):
+    '''Verify pw/login_id combo and return user id, or False'''
     try:
-        user=db.select('users', what='password,id', where='email=$email', limit=1, vars=locals())[0]
+        user = db.query("SELECT password,id \
+                            FROM users \
+                            WHERE email=$login_id OR username=$login_id \
+                            LIMIT 1", vars={'login_id': login_id})[0]
         hpw=user['password'].decode('base64')
         scrypt.decrypt(hpw, str(password), maxtime)
         return user['id']
@@ -237,6 +240,13 @@ def get_email(id):
     except IndexError:
         return False
 
+def get_username(id):
+    '''get username from id'''
+    try:
+        return db.select('users', what='username', where='id=$id', limit=1, vars=locals())[0]['username']
+    except IndexError:
+        return False
+
 def get_file_type(fobject, mime=True):
     '''file object, retrieve type'''
     return magic.from_buffer(fobject.read(1024), mime)
@@ -244,7 +254,7 @@ def get_file_type(fobject, mime=True):
 def allow_login(account, ip):
     '''Quite complicated sql queries for most recent attempt from/for:
             -originating ip
-            -target account
+            -target account (email or username)
        throttle attempts based on account, and ip, and time'''
     try:
         num=db.query("SELECT max(count) \
@@ -295,7 +305,20 @@ def allow_login(account, ip):
         return False
 
 def clear_failed_logins(account, ip):
-    '''clear attempts from account and ip'''
+    '''TODO There is a subtle bug here, since someone
+     might use both username and email to login,
+     it's possible that they could get around the
+     throttling behavior and get an extra login
+     attempt per throttling level but - unless I'm
+     mistaken - they will still be throttled. 
+     
+     TODO In addition, successful login by email will not
+     clear failed login by username. Similarly, 
+     successful login from ip x will not clear failed
+     logins from ip y. Think about this more.
+
+
+    clear attempts from account and ip'''
     try:
         num=db.query("DELETE FROM failed_logins \
                         WHERE \
@@ -377,11 +400,11 @@ def accepts_cc(id):
     except IndexError:
         return False
 
-def save_payment(origin,to,amount, stripe_id):
+def save_payment(origin,to,stripe_id):
     '''save payment to db; to and origin are ids, not email'''
     try:
         num=db.query("INSERT INTO payments \
-                        (from,to,amount,time,stripe_id) \
+                        (from,to,time,stripe_id) \
                     VALUES ($origin, $to, $amount, now(), $stripe_id)",
                     vars={'origin': origin, 'to': to, 'amount': amount, 'stripe_id': stripe_id})
         if num == 1:
@@ -392,9 +415,9 @@ def save_payment(origin,to,amount, stripe_id):
         return False
 
 def get_payments(user):
-    '''return all user related payments'''
+    '''return all user related payments - NO amount info'''
     try:
-        return db.query("SELECT to,from,amount,to_char(time, 'YYYY-MM-DD') as time \
+        return db.query("SELECT to,from,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
                             WHERE from = $user OR to = $user",
                             vars={'user': user})
@@ -402,28 +425,40 @@ def get_payments(user):
         return None
 
 def get_payment(user, id):
-    '''get user related payment; relative id'''
+    '''get user related payment info; relative id'''
     try:
-        return db.query("SELECT from,to,amount,to_char(time, 'YYYY-MM-DD') as time \
+        info = db.query("SELECT stripe_id,from,to,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
                             WHERE from=$user OR to=$user \
                             ORDER BY id ASC LIMIT 1 OFFSET $os",
                             vars={'user': user, 'os': int(id)-1})[0]
-    except IndexError:
+        charge = get_charge_info(info['stripe_id'])
+        info['amount']=charge['amount']
+        return info
+    except (IndexError, KeyError):
         return None
 
 def post_payment(token, amount, from_user):
-    '''actually execute payment using stripe'''
+    '''actually execute payment using stripe; charge return is json, so convert to dic'''
     #TODO Dynamically change api key
     try:
-        stripe.api_key = "sk_test_mkGsLqEW6SLnZa487HYfJVLf"
+        stripe.api_key = config.stripe.test_private_key
         charge = stripe.Charge.create(
             amount=amount, # cents
             currency="usd",
             card=token,
             description=from_user)
-        return charge
+        return json.loads(charge)
 
     except stripe.CardError:
         #declined, etc
+        return False
+
+def get_charge_info(charge_id):
+    '''Return charge info'''
+    try:
+        stripe.api_key = config.stripe.test_private_key
+        charge = stripe.Charge.retrieve(charge_id)
+        return json.loads(charge)
+    except stripe.InvalidRequestError:
         return False

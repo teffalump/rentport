@@ -8,7 +8,7 @@ from uuid import uuid4
 from web import form
 
 urls = (
-            '/agreement/(.+)', 'query',
+            '/agreement/(.+)', 'agreement_query',
             '/agreement/?', 'agreement',
             '/login/?', 'login',
             '/logout/?', 'logout',
@@ -16,6 +16,7 @@ urls = (
             '/verify/?', 'verify',
             '/reset/?', 'reset',
             '/profile/?', 'profile',
+            '/pay/(.+)', 'pay_query',
             '/pay/?', 'pay',
             '/.*', 'default'
         )
@@ -37,12 +38,13 @@ db = web.database(  dbn='postgres',
                     user=config.db.user, 
                     pw=config.db.pw)
 store = web.session.DBStore(db, 'sessions')
-session = web.session.Session(app, store, initializer={'login': False, 'id': -1, 'verified': False})
+session = web.session.Session(app, store, initializer={'login': False, 'id': -1, 'verified': False, 'email': None, 'username': None})
 
 
 #form validators
-vemail = form.regexp(r".*@.*", "must be a valid email address")
-vpass = form.regexp(r".{15,}$", 'must be at least 15 characters')
+vemail = form.regexp(r"^.+@.+$", "must be a valid email address")
+vname= form.regexp(r"^[a-zA-Z0-9._-+]+$", "must be a valid username (numbers, letters, and . _ - +)")
+vpass = form.regexp(r"^.{15,}$", 'must be at least 15 characters')
 
 ### UTILITY FUNCTIONS ###
 
@@ -58,16 +60,18 @@ def csrf_protected(f):
         if not (inp.has_key('csrf_token') and inp.csrf_token==session.pop('csrf_token',None)):
             raise web.HTTPError("400 Bad Request", 
                                 {'content-type': 'text/html'},
-                                'CSRF')
+                                'Sorry for the inconvenience, but this could be an CSRF attempt, so we blocked it. That is, fail safely')
         return f(*args,**kwargs)
     return decorated
 
-#### on success, set session variables
 def set_session_values(userid):
+    '''set the default session values'''
     session.login=True
     session.id = userid
-    if model.is_verified(userid):
-        session.verified = True
+    info = model.get_user_info(userid)
+    session.email = info['email']
+    session.username = info['username']
+    session.verified = info['verified']
     return True
 
 ##########################
@@ -82,12 +86,18 @@ upload_form = form.Form(
                     form.Textbox("description"),
                     form.Button("submit", type="submit", html="Upload"))
 
-#login/register form
-login_form = form.Form(
+#register form
+register_form = form.Form(
                     form.Textbox("email", vemail),
+                    form.Textbox("username", vname),
                     form.Password("password", vpass),
                     form.Button("submit", type="submit", html="Confirm"))
 
+#login form
+login_form = form.Form(
+                    form.Textbox("login_id"),
+                    form.Password("password", vpass),
+                    form.Button("submit", type="submit", html="Confirm"))
 #verify form
 verify_form = form.Form(
                     form.Textbox("code"),
@@ -116,7 +126,7 @@ class default:
 
 class login:
     def GET(self):
-        if session.login:
+        if session.login == True:
             raise web.seeother('/')
         else:
             f = login_form()
@@ -124,55 +134,57 @@ class login:
 
     @csrf_protected
     def POST(self):
-        f = login_form()
-        if not f.validates():
-            raise web.seeother('/login')
+        '''REMEMBER: User can use email or username'''
+        #f = login_form()
+        #if not f.validates():
+            #raise web.seeother('/login')
 
         ip = web.ctx.ip
         x = web.input()
-        if not model.allow_login(x.email, ip):
+        if not model.allow_login(x.login_id, ip):
             raise web.seeother('/login')
 
-        userid = model.verify_password(x.password, x.email)
-        if userid:
-            model.clear_failed_logins(x.email, ip)
+        userid = model.verify_password(x.password, x.login_id)
+        if userid == True:
+            model.clear_failed_logins(x.login_id, ip)
             set_session_values(userid)
             raise web.seeother('/')
         else:
-            model.add_failed_login(x.email, ip)
+            model.add_failed_login(x.login_id, ip)
             raise web.seeother('/login')
 
 class logout:
     def GET(self):
-        if session.login:
+        if session.login == True:
             session.kill()
         raise web.seeother('/')
 
 class register:
     '''register an user'''
     def GET(self):
-        if session.login:
+        if session.login == True:
             raise web.seeother('/')
         else:
-            f = login_form()
+            f = register_form()
             return render.register(f)
 
     @csrf_protected
     def POST(self):
-        f = login_form()
+        f = register_form()
         if not f.validates():
             raise web.seeother('/register')
 
         x = web.input()
         try:
             #TODO Some tuning here
+            #TODO Add username
             if model.save_user(email=x.email, password=x.password) == True:
-                raise web.seeother('/login')
                 #if model.send_verification_email(x.email) == True:
                     #model.save_sent_email(web.ctx.ip, x.email,'verify')
                     #raise web.seeother('/login')
                 #else:
                     #return "Error"
+                raise web.seeother('/login')
             else:
                 return "Error"
         except: 
@@ -266,7 +278,7 @@ class verify:
         else:
             raise web.unauthorized()
 
-class query:
+class agreement_query:
     def GET(self, id):
         if session.login:
             try:
@@ -315,8 +327,8 @@ class agreement:
             return sys.exc_info()
 
 class profile:
-    '''View and change info on profile
-    TODO change this a little, to support robust modifications'''
+    '''View and change info on profile'''
+    #TODO change this a little, to support robust modifications
     def GET(self):
         if session.login:
             f = new_password_form()
@@ -350,9 +362,10 @@ class pay:
     def GET(self):
         '''return payment page'''
         if session.login == True:
-            #TODO WAY IN FUTURE, MAKE IT POSSIBLE TO PAY DIFFERENT USERS
-            user_key='pk_test_czwzkTp2tactuLOEOqbMTRzG'
-            return render.pay(user_key)
+            #TODO In future, make it possible to pay different users
+            payment_info = model.get_payments(session.id)
+            user_key=config.stripe.test_public_key
+            return render.pay(user_key, payment_info)
         else:
             raise web.unauthorized()
 
@@ -368,7 +381,7 @@ class pay:
                 token=x.stripeToken
                 charge = model.post_payment(token,amount,model.get_email(session.id))
                 if charge:
-                    #model.save_payment(session.id,8,model.get_id(),charge['amount'])
+                    #model.save_payment(session.id,8,model.get_id())
                     pass
                 else:
                     return "Payment error"
@@ -377,6 +390,17 @@ class pay:
         else:
             raise web.unauthorized()
 
+class pay_query:
+    '''return payment info from id'''
+    def GET(self, id):
+        if session.login == True:
+            try:
+                charge=model.get_payment(session.id, id)
+                return charge
+            except ValueError:
+                return web.badrequest()
+        else:
+            raise web.unauthorized()
 
 if __name__ == "__main__":
     app.run()

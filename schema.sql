@@ -1,6 +1,6 @@
 CREATE TABLE users (
     id              serial primary key,
-    username        text UNIQUE,
+    username        text NOT NULL UNIQUE,
     email           text NOT NULL UNIQUE,
     password        text NOT NULL,
     privilege       integer NOT NULL DEFAULT 0,
@@ -47,6 +47,5 @@ CREATE TABLE payments (
     stripe_id       text NOT NULL,
     from            integer references users (id) NOT NULL,
     to              integer references users (id) NOT NULL,
-    amount          integer NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
