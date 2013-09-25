@@ -405,8 +405,8 @@ def save_payment(origin,to,stripe_id):
     try:
         num=db.query("INSERT INTO payments \
                         (from,to,time,stripe_id) \
-                    VALUES ($origin, $to, $amount, now(), $stripe_id)",
-                    vars={'origin': origin, 'to': to, 'amount': amount, 'stripe_id': stripe_id})
+                    VALUES ($origin, $to, now(), $stripe_id)",
+                    vars={'origin': origin, 'to': to, 'stripe_id': stripe_id})
         if num == 1:
             return True
         else:
