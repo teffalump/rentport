@@ -43,8 +43,8 @@ session = web.session.Session(app, store, initializer={'login': False, 'id': -1,
 
 #form validators
 vemail = form.regexp(r"^.+@.+$", "must be a valid email address")
-vname= form.regexp(r"^[a-zA-Z0-9._-+]+$", "must be a valid username (numbers, letters, and . _ - +)")
-vpass = form.regexp(r"^.{15,}$", 'must be at least 15 characters')
+vname= form.regexp(r"^[A-Za-z0-9._+-]+$", "must be a valid username (numbers, letters, and . _ - +)")
+vpass = form.regexp(r"^.{12,}$", 'must be at least 12 characters')
 
 ### UTILITY FUNCTIONS ###
 
@@ -60,7 +60,7 @@ def csrf_protected(f):
         if not (inp.has_key('csrf_token') and inp.csrf_token==session.pop('csrf_token',None)):
             raise web.HTTPError("400 Bad Request", 
                                 {'content-type': 'text/html'},
-                                'Sorry for the inconvenience, but this could be an CSRF attempt, so we blocked it. That is, fail safely')
+                                'Sorry for the inconvenience, but this could be an CSRF attempt, so we blocked it. Fail safely')
         return f(*args,**kwargs)
     return decorated
 
@@ -360,12 +360,12 @@ class profile:
 class pay:
     '''payment integration'''
     def GET(self):
-        '''return payment page'''
+        '''payment page, list payments'''
         if session.login == True:
             #TODO In future, make it possible to pay different users
-            payment_info = model.get_payments(session.id)
+            payments_info = model.get_payments(session.id)
             user_key=config.stripe.test_public_key
-            return render.pay(user_key, payment_info)
+            return render.pay(user_key, payments_info)
         else:
             raise web.unauthorized()
 

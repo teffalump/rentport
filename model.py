@@ -405,7 +405,7 @@ def save_payment(origin,to,stripe_id):
     '''save payment to db; to and origin are ids, not email'''
     try:
         num=db.query("INSERT INTO payments \
-                        (from,to,time,stripe_id) \
+                        (from_user,to_user,time,stripe_id) \
                     VALUES ($origin, $to, now(), $stripe_id)",
                     vars={'origin': origin, 'to': to, 'stripe_id': stripe_id})
         if num == 1:
@@ -418,7 +418,7 @@ def save_payment(origin,to,stripe_id):
 def get_payments(user):
     '''return all user related payments - NO amount info'''
     try:
-        return db.query("SELECT to,from,to_char(time, 'YYYY-MM-DD') as date \
+        return db.query("SELECT to_user as to,from_user as from,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
                             WHERE from = $user OR to = $user",
                             vars={'user': user})
@@ -426,11 +426,11 @@ def get_payments(user):
         return None
 
 def get_payment(user, id):
-    '''get user related payment info; relative id'''
+    '''get complete user related payment info; relative id'''
     try:
-        info = db.query("SELECT stripe_id,from,to,to_char(time, 'YYYY-MM-DD') as date \
+        info = db.query("SELECT stripe_id,from_user as from,to_user as to,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
-                            WHERE from=$user OR to=$user \
+                            WHERE from_user=$user OR to_user=$user \
                             ORDER BY id ASC LIMIT 1 OFFSET $os",
                             vars={'user': user, 'os': int(id)-1})[0]
         charge = get_charge_info(info['stripe_id'])
