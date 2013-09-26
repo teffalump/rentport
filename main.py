@@ -177,8 +177,8 @@ class register:
         x = web.input()
         try:
             #TODO Some tuning here
-            #TODO Add username
-            if model.save_user(email=x.email, password=x.password) == True:
+            #TODO Return different errors on problems (taken username, etc)
+            if model.save_user(email=x.email, username=x.username, password=x.password) == True:
                 #if model.send_verification_email(x.email) == True:
                     #model.save_sent_email(web.ctx.ip, x.email,'verify')
                     #raise web.seeother('/login')

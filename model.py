@@ -76,11 +76,12 @@ def hash_password(password, maxtime=0.5, datalength=128):
     r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime).encode('base64')
 
-def save_user(email, password):
+def save_user(email, username, password):
     '''Insert new user'''
     try:
         a=db.insert( 'users',
                 email=email,
+                username=username,
                 password=hash_password(password))
         if a > 0:
             return True

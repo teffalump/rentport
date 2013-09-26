@@ -45,7 +45,7 @@ CREATE TABLE sent_emails (
 CREATE TABLE payments (
     id              serial NOT NULL primary key,
     stripe_id       text NOT NULL,
-    from            integer references users (id) NOT NULL,
-    to              integer references users (id) NOT NULL,
+    from_user       integer references users (id) NOT NULL,
+    to_user         integer references users (id) NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
