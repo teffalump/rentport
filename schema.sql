@@ -49,3 +49,11 @@ CREATE TABLE payments (
     to_user         integer references users (id) NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
+
+CREATE TABLE user_keys (
+    id              serial NOT NULL primary key,
+    user_id         integer references users(id) NOT NULL UNIQUE,
+    pub_key         text NOT NULL,
+    sec_key         text NOT NULL,
+    created         timestamp NOT NULL DEFAULT current_timestamp
+);

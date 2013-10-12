@@ -18,6 +18,7 @@ urls = (
             '/profile/?', 'profile',
             '/pay/(.+)', 'pay_query',
             '/pay/?', 'pay',
+            '/search_users/?', 'search_users',
             '/.*', 'default'
         )
 
@@ -142,10 +143,11 @@ class login:
         ip = web.ctx.ip
         x = web.input()
         if not model.allow_login(x.login_id, ip):
-            raise web.seeother('/login')
+            return 'throttled'
+            #raise web.seeother('/login')
 
         userid = model.verify_password(x.password, x.login_id)
-        if userid == True:
+        if userid:
             model.clear_failed_logins(x.login_id, ip)
             set_session_values(userid)
             raise web.seeother('/')
@@ -365,7 +367,7 @@ class pay:
             #TODO In future, make it possible to pay different users
             payments_info = model.get_payments(session.id)
             user_key=config.stripe.test_public_key
-            return render.pay(user_key, payments_info)
+            return render.pay(payments_info)
         else:
             raise web.unauthorized()
 
@@ -379,10 +381,13 @@ class pay:
             try:
                 amount=x.amount
                 token=x.stripeToken
-                charge = model.post_payment(token,amount,model.get_email(session.id))
+                charge = model.authorize_payment(token,amount,session.email,api_key)
                 if charge:
-                    #model.save_payment(session.id,8,model.get_id())
                     pass
+                    #if model.capture_payment(charge, api_key) == True:
+                        #model.save_payment(session.id,to,charge)
+                    #else
+                        #return "Payment error"
                 else:
                     return "Payment error"
             except AttributeError:
@@ -391,14 +396,30 @@ class pay:
             raise web.unauthorized()
 
 class pay_query:
-    '''return payment info from id'''
+    '''return payment info from id, or display pay username page'''
     def GET(self, id):
         if session.login == True:
-            try:
-                charge=model.get_payment(session.id, id)
-                return charge
-            except ValueError:
-                return web.badrequest()
+            if id.isdigit() == True:
+                try:
+                    charge=model.get_payment(session.id, id)
+                    return charge
+                except ValueError:
+                    return web.badrequest()
+            else:
+                try:
+                    #display pay to user page
+                    pass
+                except:
+                    return "Error"
+        else:
+            raise web.unauthorized()
+
+class search_users:
+    '''grep similar usernames'''
+    def GET(self):
+        if session.login == True:
+            x=web.input()
+            return '<br />'.join([row['username'] for row in model.search_users(x.txt)])
         else:
             raise web.unauthorized()
 

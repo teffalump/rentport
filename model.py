@@ -71,15 +71,15 @@ def delete_document(user, id):
     except:
         return False
 
-def hash_password(password, maxtime=0.5, datalength=128):
+def hash_password(password, maxtime=0.5, datalength=64):
     '''Scrypt, use password to encrypt random data'''
     r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
-    return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime).encode('base64')
+    return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime=maxtime).encode('base64')
 
 def save_user(email, username, password):
     '''Insert new user'''
     try:
-        a=db.insert( 'users',
+        a=db.insert('users',
                 email=email,
                 username=username,
                 password=hash_password(password))
@@ -116,7 +116,18 @@ def get_user_info(id):
     except:
         return False
 
-def verify_password(password, login_id, maxtime=0.5):
+def search_users(txt):
+    '''search for users'''
+    try:
+        return db.query("SELECT username \
+                        FROM users \
+                        WHERE username LIKE $txt \
+                        AND accepts_cc = TRUE \
+                        LIMIT 10", vars={'txt': '%' + txt + '%'})
+    except:
+        return None
+
+def verify_password(password, login_id, maxtime=1):
     '''Verify pw/login_id combo and return user id, or False'''
     try:
         user = db.query("SELECT password,id \
@@ -124,7 +135,7 @@ def verify_password(password, login_id, maxtime=0.5):
                             WHERE email=$login_id OR username=$login_id \
                             LIMIT 1", vars={'login_id': login_id})[0]
         hpw=user['password'].decode('base64')
-        scrypt.decrypt(hpw, str(password), maxtime)
+        scrypt.decrypt(hpw, str(password), maxtime=maxtime)
         return user['id']
     except (scrypt.error, IndexError):
         return False
@@ -401,13 +412,13 @@ def accepts_cc(id):
     except IndexError:
         return False
 
-def save_payment(origin,to,stripe_id):
+def save_payment(origin,to,charge_id):
     '''save payment to db; to and origin are ids, not email'''
     try:
         num=db.query("INSERT INTO payments \
                         (from_user,to_user,time,stripe_id) \
-                    VALUES ($origin, $to, now(), $stripe_id)",
-                    vars={'origin': origin, 'to': to, 'stripe_id': stripe_id})
+                    VALUES ($origin, $to, now(), $charge_id)",
+                    vars={'origin': origin, 'to': to, 'stripe_id': charge_id})
         if num == 1:
             return True
         else:
@@ -439,27 +450,40 @@ def get_payment(user, id):
     except (IndexError, KeyError):
         return None
 
-def post_payment(token, amount, from_user):
-    '''actually execute payment using stripe; charge return is json, so convert to dic'''
-    #TODO Dynamically change api key
+def authorize_payment(token, amount, from_user, api_key):
+    '''authorize payment, return charge id'''
     try:
-        stripe.api_key = config.stripe.test_private_key
         charge = stripe.Charge.create(
             amount=amount, # cents
             currency="usd",
+            capture="false",
+            api_key=api_key,
             card=token,
             description=from_user)
-        return json.loads(charge)
+        return json.loads(charge)['id']
 
     except stripe.CardError:
-        #declined, etc
+        '''declined'''
         return False
 
-def get_charge_info(charge_id):
+def capture_payment(charge_id, api_key):
+    '''capture payment using stripe'''
+    try:
+        ch = stripe.Charge.retrieve(
+                id=charge_id,
+                api_key=api_key)
+        ch.capture()
+        return True
+
+    except:
+        return False
+
+def get_charge_info(charge_id, api_key):
     '''Return charge info'''
     try:
-        stripe.api_key = config.stripe.test_private_key
-        charge = stripe.Charge.retrieve(charge_id)
+        charge = stripe.Charge.retrieve(
+                id=charge_id,
+                api_key=api_key)
         return json.loads(charge)
     except stripe.InvalidRequestError:
         return False
