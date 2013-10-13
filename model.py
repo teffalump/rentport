@@ -71,7 +71,7 @@ def delete_document(user, id):
     except:
         return False
 
-def hash_password(password, maxtime=0.5, datalength=64):
+def hash_password(password, maxtime=0.5, datalength=128):
     '''Scrypt, use password to encrypt random data'''
     r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime=maxtime).encode('base64')
@@ -238,10 +238,10 @@ def get_reset_code(email):
     except:
         return False
 
-def get_id(email):
-    '''get id from email'''
+def get_id(login_id):
+    '''get id from email or username'''
     try:
-        return db.select('users', what='id', where='email=$email', limit=1, vars=locals())[0]['id']
+        return db.select('users', what='id', where='email=$login_id OR username=$login_id', limit=1, vars=locals())[0]['id']
     except IndexError:
         return False
 
@@ -486,4 +486,24 @@ def get_charge_info(charge_id, api_key):
                 api_key=api_key)
         return json.loads(charge)
     except stripe.InvalidRequestError:
+        return False
+
+def get_user_pk(user_id):
+    '''retrieve user pk_key from db'''
+    try:
+        row=db.query("SELECT pub_key FROM user_keys \
+                        WHERE user_id = $user_id \
+                        LIMIT 1", vars={'user_id': user_id})
+        return row['pub_key']
+    except:
+        return False
+
+def get_user_pk(user_id):
+    '''retrieve user pk_key from db'''
+    try:
+        row=db.query("SELECT sec_key FROM user_keys \
+                        WHERE user_id = $user_id \
+                        LIMIT 1", vars={'user_id': user_id})
+        return row['sec_key']
+    except:
         return False

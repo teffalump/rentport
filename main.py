@@ -379,13 +379,14 @@ class pay:
         if session.login == True:
             x=web.input()
             try:
+                sk_key=model.get_user_sk(session.payee)
                 amount=x.amount
                 token=x.stripeToken
-                charge = model.authorize_payment(token,amount,session.email,api_key)
+                charge = model.authorize_payment(token,amount,session.email,sk_key)
                 if charge:
                     pass
-                    #if model.capture_payment(charge, api_key) == True:
-                        #model.save_payment(session.id,to,charge)
+                    #if model.capture_payment(charge, sk_key) == True:
+                        #model.save_payment(session.id,,charge)
                     #else
                         #return "Payment error"
                 else:
@@ -397,18 +398,31 @@ class pay:
 
 class pay_query:
     '''return payment info from id, or display pay username page'''
-    def GET(self, id):
+    def GET(self, arg):
         if session.login == True:
-            if id.isdigit() == True:
+            if arg.isdigit() == True:
                 try:
-                    charge=model.get_payment(session.id, id)
+                    charge=model.get_payment(session.id, arg)
                     return charge
                 except ValueError:
                     return web.badrequest()
             else:
                 try:
                     #display pay to user page
-                    pass
+                    #remember, don't leak user/email stuff
+                    user_id=model.get_id(arg)
+                    if user_id:
+                        if model.accepts_cc(user_id):
+                            pk_key=model.get_user_pk(user_id)
+                            #set payee userid, so i know what sk_key to use later
+                            session.payee=user_id
+                            return render.pay_person(pk_key)
+                        else:
+                            #no accept cc
+                            return "Invalid user"
+                    else:
+                        #not a user
+                        return "Invalid user"
                 except:
                     return "Error"
         else:
