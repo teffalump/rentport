@@ -4,11 +4,9 @@ CREATE TABLE users (
     email           text NOT NULL UNIQUE,
     password        text NOT NULL,
     privilege       integer NOT NULL DEFAULT 0,
-    joined          timestamp NOT NULL DEFAULT current_timestamp,
     verified        boolean NOT NULL DEFAULT FALSE,
-    verify_code     text,
-    reset_code      text,
-    accepts_cc      boolean NOT NULL DEFAULT FALSE
+    accepts_cc      boolean NOT NULL DEFAULT FALSE,
+    joined          timestamp NOT NULL DEFAULT current_timestamp
 );
 
 CREATE TABLE agreements (
@@ -35,6 +33,11 @@ CREATE TABLE failed_logins (
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
 
+CREATE TABLE failed_emails (
+    ip              inet NOT NULL,
+    time            timestamp NOT NULL DEFAULT current_timestamp
+);
+
 CREATE TABLE sent_emails (
     account         integer references users (id) NOT NULL,
     ip              inet NOT NULL,
@@ -55,5 +58,16 @@ CREATE TABLE user_keys (
     user_id         integer references users(id) NOT NULL UNIQUE,
     pub_key         text NOT NULL,
     sec_key         text NOT NULL,
-    created         timestamp NOT NULL DEFAULT current_timestamp
+    retrieved       timestamp NOT NULL DEFAULT current_timestamp
+);
+
+CREATE TABLE codes (
+    user_id         integer references users(id) NOT NULL,
+    text            text,
+    value           text
+);
+
+CREATE TABLE relations (
+    tenant          integer references users(id) NOT NULL UNIQUE,
+    landlord        integer references users(id) NOT NULL
 );

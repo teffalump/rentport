@@ -1,6 +1,6 @@
 # The general functional model of the app
 
-import web, scrypt, random, magic, hashlib, sendgrid, re, stripe, json
+import web, scrypt, random, magic, sendgrid, re, stripe, json
 import config
 
 # Connection to database
@@ -76,7 +76,7 @@ def hash_password(password, maxtime=0.5, datalength=128):
     r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime=maxtime).encode('base64')
 
-def save_user(email, username, password):
+def save_user(email, username, password, ):
     '''Insert new user'''
     try:
         a=db.insert('users',
@@ -107,23 +107,31 @@ def update_user(id, email=None, password=None):
     except:
         return False
 
-def get_user_info(id):
+def get_user_info(identifier):
+    '''get info given email or id'''
     try:
         return db.query("SELECT username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
                         FROM users \
-                        WHERE id=$id \
-                        LIMIT 1", vars={'id': id})[0]
+                        WHERE id=$id OR \
+                            email=$id \
+                        LIMIT 1", vars={'id': identifier})[0]
     except:
         return False
 
-def search_users(txt):
+def search_users(txt, cc=True):
     '''search for users'''
     try:
-        return db.query("SELECT username \
-                        FROM users \
-                        WHERE username LIKE $txt \
-                        AND accepts_cc = TRUE \
-                        LIMIT 10", vars={'txt': '%' + txt + '%'})
+        if cc == True:
+            return db.query("SELECT username \
+                            FROM users \
+                            WHERE username LIKE $txt \
+                            AND accepts_cc = TRUE \
+                            LIMIT 10", vars={'txt': '%' + txt + '%'})
+        else:
+            return db.query("SELECT username \
+                            FROM users \
+                            WHERE username LIKE $txt \
+                            LIMIT 10", vars={'txt': '%' + txt + '%'})
     except:
         return None
 
@@ -140,22 +148,24 @@ def verify_password(password, login_id, maxtime=1):
     except (scrypt.error, IndexError):
         return False
 
-def verify_email(id, code):
-    '''verify email through email/code combo'''
+def verify_code(user_id, code, type):
     try:
-        db_code=db.select('users', what='verify_code', where='id=$id', limit=1, vars=locals())[0]['verify_code']
-        if code == db_code:
-            db.update('users', where='id=$id', verified=True, verify_code=None, vars=locals())
+        a=db.query('DELETE FROM codes \
+                    WHERE user_id = $user_id AND \
+                        type = $type AND \
+                        code = $code',
+                    vars={'code': code, 'user_id': user_id, 'type': type})
+        if a > 0:
             return True
         else:
             return False
     except:
         return False
 
-def send_verification_email(email):
+def send_verification_email(userid, email):
     '''Send email to user with verification code'''
     try:
-        code=get_verify_code(email)
+        code=get_email_code(userid, 'verify')
         subject="Verify please"
         message="Sign in: https://www.rentport.com/login\nGo to: https://www.rentport.com/verify\nEnter code: {0}".format(code)
         s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
@@ -166,11 +176,11 @@ def send_verification_email(email):
     except:
         return False
 
-def send_reset_email(email):
+def send_reset_email(userid, email):
     '''send reset email with reset url'''
     try:
+        code=get_email_code(userid, 'reset')
         subject="Reset email"
-        code=get_reset_code(email)
         message="Go here to reset password: https://www.rentport.com/reset\nEnter email: {0}\nEnter code: {1}".format(email, code)
         s = sendgrid.Sendgrid(config.email.user, config.email.pw, secure=True)
         message = sendgrid.Message(config.email.support, subject, message)
@@ -194,19 +204,6 @@ def save_sent_email(ip, account, type):
     except:
         return False
 
-def verify_reset(email, code):
-    '''verify email/code combo and reset password'''
-    #TODO do this in one motion
-    try:
-        db_code = db.select('users', what='reset_code', where='email=$email', limit=1, vars=locals())[0]['reset_code']
-        if code == db_code:
-            db.update('users', where='email=$email', reset_code=None, vars=locals())
-            return True
-        else:
-            return False
-    except:
-        return False
-
 def is_verified(id):
     '''is user's email verified?'''
     try:
@@ -217,46 +214,16 @@ def is_verified(id):
     except IndexError:
         return False
 
-def get_verify_code(email):
-    '''generate random id for verify email code, update db'''
-    try:
-        if is_verified(get_id(email)):
-            return False
-        else:
-            id=web.to36(random.SystemRandom().getrandbits(256))
-            db.update('users', where='email=$email', verify_code=id, vars=locals())
-            return id
-    except:
-        return False
-
-def get_reset_code(email):
-    '''generate random id for reset email code, update db'''
+def get_email_code(userid, type):
+    '''generate random id for verify or reset email'''
     try:
         id=web.to36(random.SystemRandom().getrandbits(256))
-        db.update('users', where='email=$email', reset_code=id, vars=locals())
+        db.query("INSERT INTO codes \
+                (user_id, type, value) \
+                VALUES ($user_id, $type, $id)", 
+                vars = {'user_id': userid, 'id': id, 'type': type})
         return id
     except:
-        return False
-
-def get_id(login_id):
-    '''get id from email or username'''
-    try:
-        return db.select('users', what='id', where='email=$login_id OR username=$login_id', limit=1, vars=locals())[0]['id']
-    except IndexError:
-        return False
-
-def get_email(id):
-    '''get email from id'''
-    try:
-        return db.select('users', what='email', where='id=$id', limit=1, vars=locals())[0]['email']
-    except IndexError:
-        return False
-
-def get_username(id):
-    '''get username from id'''
-    try:
-        return db.select('users', what='username', where='id=$id', limit=1, vars=locals())[0]['username']
-    except IndexError:
         return False
 
 def get_file_type(fobject, mime=True):
@@ -359,6 +326,33 @@ def add_failed_login(account, ip):
     except:
         return False
 
+def add_failed_email(ip):
+    '''add failed email to db'''
+    try:
+        num=db.query("INSERT INTO failed_emails \
+                        (ip) \
+                        VALUES ($ip)",
+                    vars={'ip': ip})
+        if num == 1:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def throttle_email_attempt(ip):
+    try:
+        time_delta=db.query("SELECT EXTRACT(EPOCH FROM now()-max(time)) as age \
+                                FROM failed_emails \
+                                WHERE ip=$ip",
+                                vars={'ip': ip})[0]['age']
+        if time_delta == None or time_delta > 3600:
+            return False
+        else:
+            return False
+    except:
+        return False
+
 def allow_email(account, type, ip):
     '''throttle email according to criteria:
             verify: 1 email/min/acct
@@ -375,7 +369,7 @@ def allow_email(account, type, ip):
         except (KeyError, IndexError):
             return True
 
-        if time_delta > 60:
+        if time_delta > 60 or time_delta == None:
             '''only 1 email per 1 min'''
             return True
         else:

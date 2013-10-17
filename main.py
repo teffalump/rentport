@@ -44,7 +44,7 @@ session = web.session.Session(app, store, initializer={'login': False, 'id': -1,
 
 #form validators
 vemail = form.regexp(r"^.+@.+$", "must be a valid email address")
-vname= form.regexp(r"^[A-Za-z0-9._+-]+$", "must be a valid username (numbers, letters, and . _ - +)")
+vname= form.regexp(r"^[A-Za-z0-9._+-]{3,}$", "must be a valid username (numbers, letters, and . _ - +)")
 vpass = form.regexp(r"^.{12,}$", 'must be at least 12 characters')
 
 ### UTILITY FUNCTIONS ###
@@ -136,10 +136,6 @@ class login:
     @csrf_protected
     def POST(self):
         '''REMEMBER: User can use email or username'''
-        #f = login_form()
-        #if not f.validates():
-            #raise web.seeother('/login')
-
         ip = web.ctx.ip
         x = web.input()
         if not model.allow_login(x.login_id, ip):
@@ -208,7 +204,7 @@ class reset:
 
     @csrf_protected
     def POST(self):
-        '''Send reset email'''
+        '''Send reset email or verify the reset code'''
         if not session.login:
             f = request_reset_form()
             t = confirm_reset_form()
@@ -216,30 +212,40 @@ class reset:
                 raise web.seeother('/reset')
 
             x=web.input()
+            if model.throttle_email_attempt(web.ctx.ip):
+                return 'try again in six minutes'
+            user_info = model.get_user_info(x.email)
+
             try:
-                if model.verify_reset(x.email, x.code) == True:
-                    set_session_values(model.get_id(x.email))
+                if model.verify_code(user_info['id'], x.code, 'reset') == True:
+                    set_session_values(user_id)
                     f = new_password_form()
                     return render.password_reset(f)
                 else:
                     raise web.unauthorized()
             except AttributeError:
                 if model.allow_email(x.email, 'reset', web.ctx.ip):
-                    if model.send_reset_email(x.email) == True:
+                    if model.send_reset_email(user_info['id'], x.email) == True:
                         model.save_sent_email(web.ctx.ip,x.email,'reset')
                         return "Email sent"
                     else:
                         raise web.unauthorized()
                 else:
                     return "Email throttled, wait 1 min"
+            except TypeError:
+                if user_info == False: 
+                    #lie, but prevents email harvesting...sort of
+                    #timing attacks still possible
+                    model.add_failed_email(web.ctx.ip)
+                    return "Email sent"
+
             else:
                 return "Unknown error"
         else:
             raise web.seeother('/')
 
 class verify:
-    '''verify email address with email/code combo; need to be logged in; send email
-    TODO email shit and prevent email dos'''
+    '''verify email address with email/code combo; need to be logged in; send email'''
     def GET(self):
         if not session.login:
             raise web.seeother('/')
@@ -258,16 +264,15 @@ class verify:
                 raise web.seeother('/verify')
 
             try:
-                if model.verify_email(session.id, code=x.code):
+                if model.verify_code(session.id, x.code, 'reset'):
                     raise web.seeother('/')
                 else:
                     raise web.seeother('/verify')
             except AttributeError:
                 if x.send_email == "true":
-                    email=model.get_email(session.id)
-                    if model.allow_email(email,'verify', web.ctx.ip) == True:
-                        if model.send_verification_email(email) == True:
-                            model.save_sent_email(web.ctx.ip,email,'reset')
+                    if model.allow_email(session.email,'verify', web.ctx.ip) == True:
+                        if model.send_verification_email(session.id, session.email) == True:
+                            model.save_sent_email(web.ctx.ip,session.email,'reset')
                             return "Email sent"
                         else:
                             return "Email error"
@@ -324,7 +329,7 @@ class agreement:
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
                                 )
-            return web.seeother('/agreement')
+            raise web.seeother('/agreement')
         except: 
             return sys.exc_info()
 
@@ -404,7 +409,7 @@ class pay_query:
                 try:
                     charge=model.get_payment(session.id, arg)
                     return charge
-                except ValueError:
+                except:
                     return web.badrequest()
             else:
                 try:
@@ -429,7 +434,7 @@ class pay_query:
             raise web.unauthorized()
 
 class search_users:
-    '''grep similar usernames'''
+    '''grep similar username'''
     def GET(self):
         if session.login == True:
             x=web.input()

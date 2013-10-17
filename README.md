@@ -13,7 +13,7 @@
     + scrypt
     + web.py
     + magic
-* request tracker
+* request tracker OR roundup
 * postgresql
 
 # Roadmap
@@ -27,7 +27,7 @@
     + Reset system - Sorta done
     + Need email system - use sendgrid - untested code
 3. Payment system
-    + stripe stuff - started
+    + stripe stuff - started; need to test
     + Should I include paypal? evil!
 4. issue tracking system
 
