@@ -108,13 +108,15 @@ def update_user(id, email=None, password=None):
         return False
 
 def get_user_info(identifier):
-    '''get info given email or id'''
+    '''get info given email or id or username'''
     try:
         return db.query("SELECT username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
                         FROM users \
                         WHERE id=$id OR \
-                            email=$id \
-                        LIMIT 1", vars={'id': identifier})[0]
+                            email=$email OR \
+                            username=$username \
+                            LIMIT 1",
+                        vars={'id': identifier, 'email': str(identifier), 'username': str(identifier)})[0]
     except:
         return False
 
