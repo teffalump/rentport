@@ -76,13 +76,14 @@ def hash_password(password, maxtime=0.5, datalength=128):
     r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime=maxtime).encode('base64')
 
-def save_user(email, username, password, ):
+def save_user(email, username, password, category):
     '''Insert new user'''
     try:
         a=db.insert('users',
                 email=email,
                 username=username,
-                password=hash_password(password))
+                password=hash_password(password),
+                category=category if category == 'Tenant' else 'Landlord')
         if a > 0:
             return True
         else:
@@ -110,7 +111,7 @@ def update_user(id, email=None, password=None):
 def get_user_info(identifier):
     '''get info given email or id or username'''
     try:
-        return db.query("SELECT username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
+        return db.query("SELECT category,username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
                         FROM users \
                         WHERE id=$id OR \
                             email=$email OR \

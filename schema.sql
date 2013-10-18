@@ -3,6 +3,7 @@ CREATE TABLE users (
     username        text NOT NULL UNIQUE,
     email           text NOT NULL UNIQUE,
     password        text NOT NULL,
+    category        text NOT NULL,
     privilege       integer NOT NULL DEFAULT 0,
     verified        boolean NOT NULL DEFAULT FALSE,
     accepts_cc      boolean NOT NULL DEFAULT FALSE,

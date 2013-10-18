@@ -37,9 +37,14 @@ web.config.session_parameters['expired_message']='Session expired'
 db = web.database(  dbn='postgres', 
                     db=config.db.name, 
                     user=config.db.user, 
-                    pw=config.db.pw)
+                    pw=config.db.pw
+                )
 store = web.session.DBStore(db, 'sessions')
-session = web.session.Session(app, store, initializer={'login': False, 'id': -1, 'verified': False, 'email': None, 'username': None})
+session = web.session.Session(app, store, initializer={ 'login': False,
+                                                        'id': -1, 
+                                                        'verified': False, 
+                                                        'email': None, 
+                                                        'username': None})
 
 
 #form validators
@@ -92,6 +97,7 @@ register_form = form.Form(
                     form.Textbox("email", vemail),
                     form.Textbox("username", vname),
                     form.Password("password", vpass),
+                    form.Dropdown("category", args=['Tenant', 'Landlord'], value='Tenant'),
                     form.Button("submit", type="submit", html="Confirm"))
 
 #login form
@@ -176,7 +182,7 @@ class register:
         try:
             #TODO Some tuning here
             #TODO Return different errors on problems (taken username, etc)
-            if model.save_user(email=x.email, username=x.username, password=x.password) == True:
+            if model.save_user(email=x.email, username=x.username, password=x.password, category=x.category) == True:
                 #if model.send_verification_email(x.email) == True:
                     #model.save_sent_email(web.ctx.ip, x.email,'verify')
                     #raise web.seeother('/login')
@@ -223,6 +229,7 @@ class reset:
                     return render.password_reset(f)
                 else:
                     raise web.unauthorized()
+
             except AttributeError:
                 if model.allow_email(x.email, 'reset', web.ctx.ip):
                     if model.send_reset_email(user_info['id'], x.email) == True:
@@ -232,12 +239,14 @@ class reset:
                         raise web.unauthorized()
                 else:
                     return "Email throttled, wait 1 min"
+
             except TypeError:
                 if user_info == False: 
-                    #lie, but prevents email harvesting...sort of
-                    #timing attacks still possible
+                    #FIX I could lie, which prevents email harvesting...sort of
+                    #timing attacks still possible but what if honest mistake?
+                    #then misleading --> so think about this in the future
                     model.add_failed_email(web.ctx.ip)
-                    return "Email sent"
+                    return "No account associated with that email"
 
             else:
                 return "Unknown error"
@@ -299,10 +308,10 @@ class agreement_query:
             if session.login:
                 try:
                     num=model.delete_document(session.id, id)
-                    if num == 0:
-                        return web.notfound()
+                    if num == 1:
+                        return '<verb>Deleted</verb><object>{0}</object>'.format(id)
                     else:
-                        return '<verb>Delete</verb><object>{0}</object>'.format(id)
+                        return web.notfound()
                 except ValueError:
                     return web.badrequest()
             else:
