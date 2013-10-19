@@ -108,8 +108,8 @@ def update_user(id, **kw):
         return False
 
 def get_user_info(identifier):
-    #TODO allow dynamic querying (e.g., only return category and email, etc)
     '''get info given email or id or username'''
+    #TODO allow dynamic querying (e.g., only return category and email, etc)
     try:
         return db.query("SELECT category,username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
                         FROM users \
@@ -124,21 +124,17 @@ def get_user_info(identifier):
         return False
 
 def search_users(user, **kw):
-    '''search for users given constraints'''
+    '''search for similar usernames given constraints'''
+    #TODO FIX DEBUG CAN GIVE A LOT OF DANGEROUS INFO! Whitelist safe keys!!!
     allowed_keys=['accepts_cc', 'category']
-    base=['SELECT','username','FROM', 'users','WHERE','username','LIKE', '$user']
-    for key,value in kw.items():
-        if key in allowed_keys:
-            base.extend(['AND', key, '=', '$'+key])
-    base.extend(['LIMIT','10'])
-    kw['user']='%'+user+'%'
+    for key in kw.keys():
+        if key not in allowed_keys:
+            del kw[key]
+    like=web.db.SQLQuery(['username LIKE ', web.db.SQLParam("%" + user + "%")])
+    base=web.db.sqlwhere(kw)
+    where=web.SQLQuery.join([like, base], sep=' AND ')
     try:
-        return db.query(' '.join(base), vars=kw)
-            #return db.query("SELECT username \
-                            #FROM users \
-                            #WHERE username LIKE $user \
-                            #AND accepts_cc = TRUE \
-                            #LIMIT 10", vars={'txt': '%' + user + '%'})
+        return db.select('users', what='username', where=where, limit=10, vars=kw)
     except:
         return ''
 
@@ -494,17 +490,17 @@ def get_user_pk(user_id):
     try:
         row=db.query("SELECT pub_key FROM user_keys \
                         WHERE user_id = $user_id \
-                        LIMIT 1", vars={'user_id': user_id})
+                        LIMIT 1", vars={'user_id': user_id})[0]
         return row['pub_key']
     except:
         return False
 
-def get_user_pk(user_id):
-    '''retrieve user pk_key from db'''
+def get_user_sk(user_id):
+    '''retrieve user sk_key from db'''
     try:
         row=db.query("SELECT sec_key FROM user_keys \
                         WHERE user_id = $user_id \
-                        LIMIT 1", vars={'user_id': user_id})
+                        LIMIT 1", vars={'user_id': user_id})[0]
         return row['sec_key']
     except:
         return False
@@ -542,8 +538,8 @@ def confirm_relation_request(tenant, landlord):
         return False
 
 def end_relation(tenant, landlord):
-    '''end relation'''
-    #TODO No idea how to confirm this stuff
+    '''end relation, only tenant can'''
+    #TODO No idea how to confirm this - only tenant can?
     try:
         num=db.query("UPDATE relations \
                     SET stopped = current_timestamp \
@@ -557,18 +553,20 @@ def end_relation(tenant, landlord):
     except:
         return False
 
-def get_relations(userid):
-    '''return confirmed tenant-landlord relations in accessible manner'''
+def get_relations(userid, username):
+    '''return confirmed tenant-landlord relations in readable and accessible manner'''
     #TODO FUCKING CLEAN THIS UP - SO SLOW I BET
     #TODO Add dates to relations?
     try:
-        opaque=db.query("SELECT tenant,landlord,started,stopped \
-                        WHERE confirmed = True \
-                        AND (tenant = $userid OR landlord = $userid)",
+        opaque=db.query("SELECT k.username AS tenant,kk.username AS landlord,p.started,p.stopped \
+                        FROM relations as p \
+                        INNER JOIN users k ON p.tenant = k.id \
+                        INNER JOIN users kk ON p.landlord = kk.id \
+                        WHERE p.confirmed = True AND (p.tenant = $userid OR p.landlord = $userid) ORDER BY started DESC",
                         vars={'userid': userid})
         relations={}
         for row in opaque:
-            if row['tenant'] == userid:
+            if row['tenant'] == username:
                 #user was/is tenant
                 if row['stopped']:
                     #was previous tenant

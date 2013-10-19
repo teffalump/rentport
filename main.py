@@ -347,8 +347,12 @@ class profile:
     def GET(self):
         if session.login:
             f = new_password_form()
-            info = dict(model.get_user_info(session.id).items() + model.get_relations(session.id).items())
-            return render.profile(info, f)
+            user_info=model.get_user_info(session.id)
+            try:
+                info = dict(user_info.items() + model.get_relations(session.id, session.username).items())
+                return render.profile(info, f)
+            except:
+                return render.profile(user_info, f)
         else:
             raise web.unauthorized()
 
@@ -451,11 +455,16 @@ class pay_query:
             raise web.unauthorized()
 
 class search_users:
-    '''grep similar username'''
+    '''grep similar username, given constrants'''
+    #FIX DEBUG TODO This is available to any user, be very careful of the keys allowed!
     def GET(self):
+        allowed_keys=['accepts_cc', 'category']
         try:
             if session.login == True:
                 x=web.input()
+                for key in x.keys():
+                    if key not in allowed_keys:
+                        del x[key]
                 return '<br />'.join([row['username'] for row in model.search_users(x.username, **x)])
             else:
                 raise web.unauthorized()
