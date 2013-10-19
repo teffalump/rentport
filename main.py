@@ -344,25 +344,34 @@ class agreement:
 
 class profile:
     '''View and change info on profile'''
-    #TODO change this a little, to support robust modifications
     def GET(self):
         if session.login:
             f = new_password_form()
-            info = model.get_user_info(session.id)
+            info = dict(model.get_user_info(session.id).items() + model.get_relations(session.id).items())
             return render.profile(info, f)
         else:
             raise web.unauthorized()
 
     @csrf_protected
     def POST(self):
-        if session.login:
-            f = new_password_form()
-            if not f.validates():
-                raise web.seeother('/profile')
-
+        #TODO Show what errors there were
+        #TODO This section is getting too big, simplify
+        if session.login == True:
+            allowed_changes=['email', 'password']
             x=web.input()
+            for key in x.keys():
+                if key not in allowed_changes:
+                    #x.pop(key, None) 
+                    del[key]
+                elif key == 'password':
+                    if not vpass.valid(x['password']): raise web.seeother('/profile')
+                elif key == 'email':
+                    if not vemail.valid(x[key]): raise web.seeother('/profile')
+                else:
+                    pass
+
             try:
-                if model.update_user(id=session.id, password=x.password) == True:
+                if model.update_user(id=session.id, **x) == True:
                     raise web.seeother('/')
                 else:
                     raise web.badrequest()
@@ -389,7 +398,6 @@ class pay:
     def POST(self):
         '''payment info'''
         #TODO Worried about js injection/poisoning
-        #TODO Another user, etc
         if session.login == True:
             x=web.input()
             try:
@@ -445,11 +453,14 @@ class pay_query:
 class search_users:
     '''grep similar username'''
     def GET(self):
-        if session.login == True:
-            x=web.input()
-            return '<br />'.join([row['username'] for row in model.search_users(x.txt)])
-        else:
-            raise web.unauthorized()
+        try:
+            if session.login == True:
+                x=web.input()
+                return '<br />'.join([row['username'] for row in model.search_users(x.username, **x)])
+            else:
+                raise web.unauthorized()
+        except:
+            return ''
 
 if __name__ == "__main__":
     app.run()

@@ -83,7 +83,7 @@ def save_user(email, username, password, category):
                 email=email,
                 username=username,
                 password=hash_password(password),
-                category=category if category == 'Tenant' else 'Landlord')
+                category=category)
         if a > 0:
             return True
         else:
@@ -91,17 +91,16 @@ def save_user(email, username, password, category):
     except:
         return False
 
-def update_user(id, email=None, password=None):
+def update_user(id, **kw):
     '''Update user; need user id'''
     try:
-        if email != None and password != None:
-            db.update('users', where='id=$id', email=email, password=hash_password(password), vars=locals())
-            return True
-        elif password != None:
-            db.update('users', where='id=$id', password=hash_password(password), vars=locals())
-            return True
-        elif email != None:
-            db.update('users', where='id=$id', email=email, vars=locals())
+        if 'password' in kw:
+            kw['password']=hash_password(kw['password'])
+        if 'email' in kw:
+            #TODO gotta send another verification email/etc
+            pass
+        a=db.update('users', where='id=$id', vars=locals(), **kw)
+        if a>0:
             return True
         else:
             return False
@@ -109,6 +108,7 @@ def update_user(id, email=None, password=None):
         return False
 
 def get_user_info(identifier):
+    #TODO allow dynamic querying (e.g., only return category and email, etc)
     '''get info given email or id or username'''
     try:
         return db.query("SELECT category,username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
@@ -117,26 +117,30 @@ def get_user_info(identifier):
                             email=$email OR \
                             username=$username \
                             LIMIT 1",
-                        vars={'id': identifier, 'email': str(identifier), 'username': str(identifier)})[0]
+                        vars={'id': identifier, 
+                            'email': str(identifier), 
+                            'username': str(identifier)})[0]
     except:
         return False
 
-def search_users(txt, cc=True):
-    '''search for users'''
+def search_users(user, **kw):
+    '''search for users given constraints'''
+    allowed_keys=['accepts_cc', 'category']
+    base=['SELECT','username','FROM', 'users','WHERE','username','LIKE', '$user']
+    for key,value in kw.items():
+        if key in allowed_keys:
+            base.extend(['AND', key, '=', '$'+key])
+    base.extend(['LIMIT','10'])
+    kw['user']='%'+user+'%'
     try:
-        if cc == True:
-            return db.query("SELECT username \
-                            FROM users \
-                            WHERE username LIKE $txt \
-                            AND accepts_cc = TRUE \
-                            LIMIT 10", vars={'txt': '%' + txt + '%'})
-        else:
-            return db.query("SELECT username \
-                            FROM users \
-                            WHERE username LIKE $txt \
-                            LIMIT 10", vars={'txt': '%' + txt + '%'})
+        return db.query(' '.join(base), vars=kw)
+            #return db.query("SELECT username \
+                            #FROM users \
+                            #WHERE username LIKE $user \
+                            #AND accepts_cc = TRUE \
+                            #LIMIT 10", vars={'txt': '%' + user + '%'})
     except:
-        return None
+        return ''
 
 def verify_password(password, login_id, maxtime=1):
     '''Verify pw/login_id combo and return user id, or False'''
@@ -152,6 +156,7 @@ def verify_password(password, login_id, maxtime=1):
         return False
 
 def verify_code(user_id, code, type):
+    '''verify code from reset or register process'''
     try:
         a=db.query('DELETE FROM codes \
                     WHERE user_id = $user_id AND \
@@ -220,11 +225,11 @@ def is_verified(id):
 def get_email_code(userid, type):
     '''generate random id for verify or reset email'''
     try:
-        id=web.to36(random.SystemRandom().getrandbits(256))
+        uuid=web.to36(random.SystemRandom().getrandbits(256))
         db.query("INSERT INTO codes \
                 (user_id, type, value) \
-                VALUES ($user_id, $type, $id)", 
-                vars = {'user_id': userid, 'id': id, 'type': type})
+                VALUES ($user_id, $type, $uuid)", 
+                vars = {'user_id': userid, 'uuid': uuid, 'type': type})
         return id
     except:
         return False
@@ -287,18 +292,17 @@ def allow_login(account, ip):
         return False
 
 def clear_failed_logins(account, ip):
-    '''TODO There is a subtle bug here, since someone
+    '''DEBUG There is a subtle bug here, since someone
      might use both username and email to login,
      it's possible that they could get around the
      throttling behavior and get an extra login
      attempt per throttling level but - unless I'm
      mistaken - they will still be throttled. 
-     
-     TODO In addition, successful login by email will not
+
+     DEBUG In addition, successful login by email will not
      clear failed login by username. Similarly, 
      successful login from ip x will not clear failed
      logins from ip y. Think about this more.
-
 
     clear attempts from account and ip'''
     try:
@@ -504,3 +508,82 @@ def get_user_pk(user_id):
         return row['sec_key']
     except:
         return False
+
+def make_relation_request(tenant, landlord):
+    '''relation request, only tenant can'''
+    #UPSERT WOULD WORK, BUT DIFFICULT TO DO WELL
+    #TODO Send email reminder?
+    try:
+        num=db.query("INSERT INTO relations \
+                        (tenant, landlord) \
+                    VALUES ($tenant, $landlord)",
+                    vars={'tenant': tenant, 'landlord': landlord})
+        if num > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def confirm_relation_request(tenant, landlord):
+    '''confirm relation request, only landlord can'''
+    #UPSERT WOULD WORK, BUT DIFFICULT TO DO WELL
+    try:
+        num=db.query("UPDATE relations \
+                    SET confirmed = $confirmed \
+                    WHERE tenant = $tenant \
+                    AND landlord = $landlord",
+                    vars={'confirmed': True, 'tenant': tenant, 'landlord': landlord})
+        if num > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def end_relation(tenant, landlord):
+    '''end relation'''
+    #TODO No idea how to confirm this stuff
+    try:
+        num=db.query("UPDATE relations \
+                    SET stopped = current_timestamp \
+                    WHERE tenant = $tenant \
+                    AND landlord = $landlord",
+                    vars={'tenant': tenant, 'landlord': landlord})
+        if num > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def get_relations(userid):
+    '''return confirmed tenant-landlord relations in accessible manner'''
+    #TODO FUCKING CLEAN THIS UP - SO SLOW I BET
+    #TODO Add dates to relations?
+    try:
+        opaque=db.query("SELECT tenant,landlord,started,stopped \
+                        WHERE confirmed = True \
+                        AND (tenant = $userid OR landlord = $userid)",
+                        vars={'userid': userid})
+        relations={}
+        for row in opaque:
+            if row['tenant'] == userid:
+                #user was/is tenant
+                if row['stopped']:
+                    #was previous tenant
+                    relations.setdefault('prev_landlords', []).append(row['landlord'])
+                else:
+                    #is current tenant
+                    relations['landlord']=row['landlord']
+            else:
+                #user was/is landlord
+                if row['stopped']:
+                    #was previous landlord
+                    relations.setdefault('prev_tenants', []).append(row['tenant'])
+                else:
+                    #is current landlord
+                    relations.setdefault('tenants', []).append(row['tenant'])
+        return relations
+    except:
+        return None

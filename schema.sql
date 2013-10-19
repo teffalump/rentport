@@ -1,10 +1,10 @@
+CREATE TYPE user_class AS ENUM ('Tenant', 'Landlord', 'Both');
 CREATE TABLE users (
     id              serial primary key,
     username        text NOT NULL UNIQUE,
     email           text NOT NULL UNIQUE,
     password        text NOT NULL,
-    category        text NOT NULL,
-    privilege       integer NOT NULL DEFAULT 0,
+    category        user_class NOT NULL,
     verified        boolean NOT NULL DEFAULT FALSE,
     accepts_cc      boolean NOT NULL DEFAULT FALSE,
     joined          timestamp NOT NULL DEFAULT current_timestamp
@@ -64,11 +64,16 @@ CREATE TABLE user_keys (
 
 CREATE TABLE codes (
     user_id         integer references users(id) NOT NULL,
-    text            text,
-    value           text
+    type            text,
+    value           text,
+    created         timestamp NOT NULL DEFAULT current_timestamp
 );
 
 CREATE TABLE relations (
-    tenant          integer references users(id) NOT NULL UNIQUE,
-    landlord        integer references users(id) NOT NULL
+    tenant          integer references users(id) NOT NULL,
+    landlord        integer references users(id) NOT NULL,
+    started         timestamp NOT NULL DEFAULT current_timestamp,
+    confirmed       boolean NOT NULL DEFAULT FALSE,
+    stopped         timestamp,
+    unique (tenant, landlord)
 );
