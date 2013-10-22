@@ -18,6 +18,8 @@ urls = (
             '/profile/?', 'profile',
             '/pay/(.+)', 'pay_query',
             '/pay/?', 'pay',
+            '/landlord/?', 'landlord',
+            '/landlord/(.+)', 'landlord_query',
             '/search_users/?', 'search_users',
             '/.*', 'default'
         )
@@ -97,7 +99,7 @@ register_form = form.Form(
                     form.Textbox("email", vemail),
                     form.Textbox("username", vname),
                     form.Password("password", vpass),
-                    form.Dropdown("category", args=['Tenant', 'Landlord'], value='Tenant'),
+                    form.Dropdown("category", args=['Tenant', 'Landlord', 'Both'], value='Tenant'),
                     form.Button("submit", type="submit", html="Confirm"))
 
 #login form
@@ -349,7 +351,7 @@ class profile:
             f = new_password_form()
             user_info=model.get_user_info(session.id)
             try:
-                info = dict(user_info.items() + model.get_relations(session.id, session.username).items())
+                info = dict(user_info.items() + model.get_relations(session.id).items())
                 return render.profile(info, f)
             except:
                 return render.profile(user_info, f)
@@ -359,14 +361,13 @@ class profile:
     @csrf_protected
     def POST(self):
         #TODO Show what errors there were
-        #TODO This section is getting too big, simplify
+        #TODO This section is getting too big, simplify or push to backend
         if session.login == True:
             allowed_changes=['email', 'password']
             x=web.input()
             for key in x.keys():
                 if key not in allowed_changes:
-                    #x.pop(key, None) 
-                    del[key]
+                    del x[key]
                 elif key == 'password':
                     if not vpass.valid(x['password']): raise web.seeother('/profile')
                 elif key == 'email':
@@ -454,6 +455,18 @@ class pay_query:
         else:
             raise web.unauthorized()
 
+class landlord:
+    '''landlord search and connect'''
+    def GET(self):
+        if session.login == True:
+            if model.get_user_info(session.id, category=True)['category'] == 'Tenant':
+                return render.landlord()
+
+            else:
+                raise web.seeother('/')
+        else:
+            raise web.unauthorized()
+
 class search_users:
     '''grep similar username, given constrants'''
     #FIX DEBUG TODO This is available to any user, be very careful of the keys allowed!
@@ -462,14 +475,15 @@ class search_users:
         try:
             if session.login == True:
                 x=web.input()
+                username=x.username
                 for key in x.keys():
                     if key not in allowed_keys:
                         del x[key]
-                return '<br />'.join([row['username'] for row in model.search_users(x.username, **x)])
+                return '<br />'.join([row['username'] for row in model.search_users(username, **x)])
             else:
                 raise web.unauthorized()
         except:
-            return ''
+            raise web.badrequest()
 
 if __name__ == "__main__":
     app.run()

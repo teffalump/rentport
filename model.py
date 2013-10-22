@@ -107,33 +107,46 @@ def update_user(id, **kw):
     except:
         return False
 
-def get_user_info(identifier):
+def get_user_info(identifier, **kwargs):
     '''get info given email or id or username'''
-    #TODO allow dynamic querying (e.g., only return category and email, etc)
+    #DEBUG FIX TODO This is a powerful function, restrict access
+    #TODO Maybe check if column exists?
+    #TODO TUNING
+    default=['category', 'username', 'email', 'verified', "to_char(joined, 'YYYY-MM-DD') as joined"]
+    categories=[]
+    if len(kwargs) == 0:
+        categories = default
+    else:
+        for key in kwargs.keys():
+            if key == 'joined':
+                categories.append("to_char(joined, 'YYYY-MM-DD') as joined")
+            else:
+                categories.append(key)
+    what=web.SQLQuery.join(categories, sep=',')
+    where_dict={'id': identifier, 'email': str(identifier), 'username': str(identifier)}
+    where=web.db.sqlwhere(where_dict, grouping=' OR ')
     try:
-        return db.query("SELECT category,username,email,verified,to_char(joined, 'YYYY-MM-DD') AS joined \
-                        FROM users \
-                        WHERE id=$id OR \
-                            email=$email OR \
-                            username=$username \
-                            LIMIT 1",
-                        vars={'id': identifier, 
-                            'email': str(identifier), 
-                            'username': str(identifier)})[0]
+        return db.select('users', what=what, where=where, limit=1, vars=where_dict)[0]
     except:
         return False
 
 def search_users(user, **kw):
     '''search for similar usernames given constraints'''
     #TODO FIX DEBUG CAN GIVE A LOT OF DANGEROUS INFO! Whitelist safe keys!!!
-    allowed_keys=['accepts_cc', 'category']
-    for key in kw.keys():
-        if key not in allowed_keys:
-            del kw[key]
-    like=web.db.SQLQuery(['username LIKE ', web.db.SQLParam("%" + user + "%")])
-    base=web.db.sqlwhere(kw)
-    where=web.SQLQuery.join([like, base], sep=' AND ')
+    #TODO TUNING
     try:
+        like=web.db.SQLQuery(['username LIKE ', web.db.SQLParam("%" + user + "%")])
+        allowed_keys=['accepts_cc', 'category']
+
+        for key in kw.keys():
+            if key not in allowed_keys:
+                del kw[key]
+
+        if len(kw) == 0:
+            where=like
+        else:
+            base=web.db.sqlwhere(kw)
+            where=web.SQLQuery.join([like, base], sep=' AND ')
         return db.select('users', what='username', where=where, limit=10, vars=kw)
     except:
         return ''
@@ -553,20 +566,22 @@ def end_relation(tenant, landlord):
     except:
         return False
 
-def get_relations(userid, username):
+def get_relations(userid):
     '''return confirmed tenant-landlord relations in readable and accessible manner'''
     #TODO FUCKING CLEAN THIS UP - SO SLOW I BET
     #TODO Add dates to relations?
     try:
-        opaque=db.query("SELECT k.username AS tenant,kk.username AS landlord,p.started,p.stopped \
+        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id,kk.username AS landlord,p.landlord AS landlord_id,p.started,p.stopped \
                         FROM relations as p \
                         INNER JOIN users k ON p.tenant = k.id \
                         INNER JOIN users kk ON p.landlord = kk.id \
-                        WHERE p.confirmed = True AND (p.tenant = $userid OR p.landlord = $userid) ORDER BY started DESC",
+                        WHERE p.confirmed = True \
+                        AND (p.tenant = $userid OR p.landlord = $userid) \
+                        ORDER BY started DESC",
                         vars={'userid': userid})
         relations={}
         for row in opaque:
-            if row['tenant'] == username:
+            if row['tenant_id'] == userid:
                 #user was/is tenant
                 if row['stopped']:
                     #was previous tenant
