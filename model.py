@@ -122,13 +122,19 @@ def get_user_info(identifier, **kwargs):
                 categories.append("to_char(joined, 'YYYY-MM-DD') as joined")
             else:
                 categories.append(key)
-    what=web.SQLQuery.join(categories, sep=',')
-    where_dict={'id': identifier, 'email': str(identifier), 'username': str(identifier)}
+    what=web.db.SQLQuery.join(categories, sep=',')
+    try:
+        where_dict={'id': int(identifier)}
+    except ValueError:
+        where_dict={'email': identifier,
+                    'username': identifier}
     where=web.db.sqlwhere(where_dict, grouping=' OR ')
     try:
         return db.select('users', what=what, where=where, limit=1, vars=where_dict)[0]
+    except KeyError:
+        return None
     except:
-        return False
+        return sys.exc_info()
 
 def search_users(user, **kw):
     '''search for similar usernames given constraints'''
@@ -460,7 +466,7 @@ def get_payment(user, id):
     except (IndexError, KeyError):
         return None
 
-def authorize_payment(token, amount, from_user, api_key):
+def authorize_payment(token, amount, api_key, from_user, from_user_id, to_user_id):
     '''authorize payment, return charge id'''
     try:
         charge = stripe.Charge.create(
@@ -469,7 +475,9 @@ def authorize_payment(token, amount, from_user, api_key):
             capture="false",
             api_key=api_key,
             card=token,
-            description=from_user)
+            description=from_user,
+            metadata={'from': from_user_id,
+                        'to': to_user_id})
         return json.loads(charge)['id']
 
     except stripe.CardError:

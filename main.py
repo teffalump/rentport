@@ -8,16 +8,17 @@ from uuid import uuid4
 from web import form
 
 urls = (
-            '/agreement/(.+)', 'agreement_query',
-            '/agreement/?', 'agreement',
+            '/agreement/post/?', 'post_agreement',
+            '/agreement/list/?', 'list_agreements',
+            '/agreement/(.+)', 'agreements',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
             '/verify/?', 'verify',
             '/reset/?', 'reset',
             '/profile/?', 'profile',
-            '/pay/(.+)', 'pay_query',
-            '/pay/?', 'pay',
+            '/pay/(.+)', 'pay_page',
+            '/pay/list/?', 'list_payments',
             '/landlord/?', 'landlord',
             '/landlord/(.+)', 'landlord_query',
             '/search_users/?', 'search_users',
@@ -296,21 +297,20 @@ class verify:
         else:
             raise web.unauthorized()
 
-class agreement_query:
-    def GET(self, id):
+class agreements:
+    def GET(self, num):
         if session.login:
             try:
-                model.get_document(session.id, id)
+                model.get_document(session.id, num)
             except ValueError:
                 return web.badrequest()
         else:
             return web.unauthorized()
 
-    def DELETE(self, id):
+    def DELETE(self, num):
             if session.login:
                 try:
-                    num=model.delete_document(session.id, id)
-                    if num == 1:
+                    if model.delete_document(session.id, num) == True:
                         return '<verb>Deleted</verb><object>{0}</object>'.format(id)
                     else:
                         return web.notfound()
@@ -319,17 +319,9 @@ class agreement_query:
             else:
                 return web.unauthorized()
 
-class agreement:
-    def GET(self):
-        if session.login:
-            info=model.get_documents(session.id)
-            f = upload_form()
-            return render.agreement(f, info)
-        else:
-            return web.unauthorized()
-
+class post_agreement:
     @csrf_protected
-    def POST(self):
+    def POST(self, num):
         x = web.input(agreement={})
         try:
             model.save_document(
@@ -340,9 +332,20 @@ class agreement:
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
                                 )
-            raise web.seeother('/agreement')
+            info=model.get_documents(session.id)
+            f = upload_form()
+            return render.agreement(f, info)
         except: 
             return sys.exc_info()
+
+class list_agreements:
+    def GET(self):
+        if session.login:
+            info=model.get_documents(session.id)
+            f = upload_form()
+            return render.agreement(f, info)
+        else:
+            return web.unauthorized()
 
 class profile:
     '''View and change info on profile'''
@@ -387,83 +390,135 @@ class profile:
         else:
             raise web.unauthorized()
 
-class pay:
-    '''payment integration'''
+class list_payments:
     def GET(self):
-        '''payment page, list payments'''
+        '''list payments'''
         if session.login == True:
-            #TODO In future, make it possible to pay different users
             payments_info = model.get_payments(session.id)
-            user_key=config.stripe.test_public_key
             return render.pay(payments_info)
         else:
             raise web.unauthorized()
 
-    @csrf_protected
-    def POST(self):
-        '''payment info'''
-        #TODO Worried about js injection/poisoning
-        if session.login == True:
-            x=web.input()
-            try:
-                sk_key=model.get_user_sk(session.payee)
-                amount=x.amount
-                token=x.stripeToken
-                charge = model.authorize_payment(token,amount,session.email,sk_key)
-                if charge:
-                    pass
-                    #if model.capture_payment(charge, sk_key) == True:
-                        #model.save_payment(session.id,,charge)
-                    #else
-                        #return "Payment error"
-                else:
-                    return "Payment error"
-            except AttributeError:
-                return "Payment error"
-        else:
-            raise web.unauthorized()
-
-class pay_query:
+class pay_page:
     '''return payment info from id, or display pay username page'''
     def GET(self, arg):
         if session.login == True:
             if arg.isdigit() == True:
+                '''return payment info from id'''
                 try:
                     charge=model.get_payment(session.id, arg)
                     return charge
                 except:
                     return web.badrequest()
+
             else:
+                '''try to display pay_person page'''
+                #TODO FIX DEBUG THIS LEAKS USER (maybe email - fixed?) INFO
                 try:
-                    #display pay to user page
-                    #remember, don't leak user/email stuff
-                    user_id=model.get_id(arg)
-                    if user_id:
-                        if model.accepts_cc(user_id):
-                            pk_key=model.get_user_pk(user_id)
-                            #set payee userid, so i know what sk_key to use later
-                            session.payee=user_id
-                            return render.pay_person(pk_key)
+                    info=model.get_user_info(arg.replace('@', ''),id=True,accepts_cc=True)
+                    if info['accepts_cc'] == True:
+                        pk_key=model.get_user_pk(info['id'])
+                        if pk_key:
+                            return render.pay_person(pk_key, arg)
                         else:
-                            #no accept cc
-                            return "Invalid user"
+                            return "error"
                     else:
-                        #not a user
-                        return "Invalid user"
+                        #not accepts cc
+                        return "user"
                 except:
-                    return "Error"
+                    #not a user
+                    return sys.exc_info()
         else:
             raise web.unauthorized()
 
-class landlord:
-    '''landlord search and connect'''
+    @csrf_protected
+    def POST(self, arg):
+        '''payment info'''
+        #TODO DEBUG FIX Worried about js injection/poisoning
+        if session.login == True:
+            x=web.input()
+            try:
+                info=model.get_user_info(arg.replace('@', ''),id=True)
+                if info:
+                    sk_key=model.get_user_sk(info['id'])
+                    if sk_key:
+                        charge = model.authorize_payment(x.stripeToken,
+                                                        x.amount,
+                                                        sk_key,
+                                                        session.username,
+                                                        session.id,
+                                                        info['id'])
+                        if charge:
+                            #if model.capture_payment(charge, sk_key) == True:
+                                #model.save_payment(session.id,,charge)
+                            #else
+                                #return "Payment error"
+                            pass
+                        else:
+                            return "Payment error"
+                    else:
+                        return "Payment error"
+                else:
+                    return "Payment error"
+            except AttributeError:
+                return "Payment error"
+            except:
+                return "error"
+        else:
+            raise web.unauthorized()
+
+class search_landlord:
+    '''landlord search'''
     def GET(self):
         if session.login == True:
             if model.get_user_info(session.id, category=True)['category'] == 'Tenant':
-                return render.landlord()
-
+                return render.search_landlord()
             else:
                 raise web.seeother('/')
+        else:
+            raise web.unauthorized()
+
+class landlord_query:
+    '''get landlord info/make request'''
+    #TODO Shorten, and give more info on errors
+    def GET(self, arg):
+        if session.login == True:
+            if not arg.isdigit():
+                try:
+                    info=model.get_user_info(arg.replace('@',''))
+                    if info['category'] == 'Landlord':
+                        return render.landlord(info)
+
+                    else:
+                        raise web.badrequest()
+                except:
+                    raise web.badrequest()
+            else:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+    @csrf_protected
+    def POST(self, name):
+        x=web.input()
+        if session.login == True:
+            if not name.isdigit() == True:
+                try: 
+                    lan=model.get_user_info(name.replace('@',''),id=True,category=True)
+                    if lan['category'] == 'Landlord':
+                        if x.type == 'request':
+                            if model.make_relation_request(session.id,info['id']):
+                                return 'made request'
+                            else:
+                                raise web.badrequest()
+                        else:
+                            raise web.badrequest()
+                    else:
+                        raise web.badrequest()
+                except:
+                    raise web.badrequest()
+            else:
+                raise web.badrequest()
         else:
             raise web.unauthorized()
 
