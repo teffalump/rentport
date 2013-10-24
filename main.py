@@ -11,16 +11,18 @@ urls = (
             '/agreement/post/?', 'post_agreement',
             '/agreement/list/?', 'list_agreements',
             '/agreement/(.+)', 'agreements',
+            '/verify/confirm/?', 'confirm_verify',
+            '/verify/request/?', 'request_verify',
+            '/reset/confirm/?', 'confirm_reset',
+            '/reset/request/?', 'request_reset',
+            '/landlord/search/?', 'search_landlord',
+            '/landlord/(.+)', 'landlord_query',
+            '/pay/(.+)', 'pay_page',
+            '/pay/list/?', 'list_payments',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
-            '/verify/?', 'verify',
-            '/reset/?', 'reset',
             '/profile/?', 'profile',
-            '/pay/(.+)', 'pay_page',
-            '/pay/list/?', 'list_payments',
-            '/landlord/?', 'landlord',
-            '/landlord/(.+)', 'landlord_query',
             '/search_users/?', 'search_users',
             '/.*', 'default'
         )
@@ -108,17 +110,21 @@ login_form = form.Form(
                     form.Textbox("login_id"),
                     form.Password("password", vpass),
                     form.Button("submit", type="submit", html="Confirm"))
-#verify form
-verify_form = form.Form(
+#confirm verify form
+confirm_verify_form = form.Form(
                     form.Textbox("code"),
-                    form.Button("submit", type="submit", html="Verify"),
-                    form.Hidden("hidden", value="true", id="send_email"),
+                    form.Button("submit", type="submit", html="Verify"))
+
+#request verify form
+request_verify_form = form.Form(
+                    form.Hidden("send_email", value="true"),
                     form.Button("send", type="submit", html="Send verification email"))
 
-#reset form
+#request reset form
 request_reset_form = form.Form(
                     form.Textbox("email", vemail, id="reset_email"),
                     form.Button("submit", type="submit", html="Request reset email"))
+
 #confirm reset form
 confirm_reset_form = form.Form(
                     form.Textbox("email", vemail, id="confirm_email"),
@@ -129,6 +135,11 @@ confirm_reset_form = form.Form(
 new_password_form = form.Form(
                     form.Textbox("password", vpass, autocomplete="off"),
                     form.Button("submit", type="submit", html="Submit"))
+
+#make relation request form
+relation_request_form = form.Form(
+                        form.Hidden("relation_type", value="request"),
+                        form.Button("submit", type="submit", html="Request relation"))
 
 class default:
     def GET(self):
@@ -197,35 +208,29 @@ class register:
         except: 
             return "Error"
 
-class reset:
+class confirm_reset:
     '''reset user password'''
     def GET(self):
-        x=web.input()
-        if not session.login:
-            try:
-                t=confirm_reset_form()
-                f=request_reset_form()
-                return render.reset(f, t)
-            except:
-                return "Unknown error"
-        else:
-            raise web.badrequest()
+        try:
+            if not session.login:
+                f=confirm_reset_form()
+                return render.confirm_reset(f)
+            else:
+                raise web.seeother('/')
+        except:
+            return "Unknown Error"
 
     @csrf_protected
     def POST(self):
-        '''Send reset email or verify the reset code'''
+        '''Verify the reset code'''
         if not session.login:
-            f = request_reset_form()
             t = confirm_reset_form()
-            if not f.validates() or not t.validates():
+            if not t.validates():
                 raise web.seeother('/reset')
 
-            x=web.input()
-            if model.throttle_email_attempt(web.ctx.ip):
-                return 'try again in six minutes'
-            user_info = model.get_user_info(x.email)
-
             try:
+                x=web.input()
+                user_info = model.get_user_info(x.email)
                 if model.verify_code(user_info['id'], x.code, 'reset') == True:
                     set_session_values(user_id)
                     f = new_password_form()
@@ -233,7 +238,42 @@ class reset:
                 else:
                     raise web.unauthorized()
 
-            except AttributeError:
+            except:
+                return "Error"
+        else:
+            raise web.seeother('/')
+
+class request_reset:
+    def GET(self):
+        try:
+            if not session.login:
+                f=request_reset_form()
+                return render.request_reset(f)
+            else:
+                raise web.seeother('/')
+        except:
+            return "Unknown Error"
+
+    @csrf_protected
+    def POST(self):
+        if not session.login:
+            f = request_reset_form()
+            if not f.validates():
+                raise web.seeother('/reset/request')
+
+            if model.throttle_email_attempt(web.ctx.ip):
+                return 'try again in six minutes'
+
+            x=web.input()
+            try:
+                user_info = model.get_user_info(x.email, id=True)
+                if user_info == False: 
+                    #FIX I could lie, which prevents email harvesting...sort of
+                    #timing attacks still possible but what if honest mistake?
+                    #then misleading --> so think about this in the future
+                    model.add_failed_email(web.ctx.ip)
+                    return "No account associated with that email"
+
                 if model.allow_email(x.email, 'reset', web.ctx.ip):
                     if model.send_reset_email(user_info['id'], x.email) == True:
                         model.save_sent_email(web.ctx.ip,x.email,'reset')
@@ -243,29 +283,19 @@ class reset:
                 else:
                     return "Email throttled, wait 1 min"
 
-            except TypeError:
-                if user_info == False: 
-                    #FIX I could lie, which prevents email harvesting...sort of
-                    #timing attacks still possible but what if honest mistake?
-                    #then misleading --> so think about this in the future
-                    model.add_failed_email(web.ctx.ip)
-                    return "No account associated with that email"
-
-            else:
-                return "Unknown error"
+            except:
+                raise "Error"
         else:
-            raise web.seeother('/')
+            raise web.unauthorized()
 
-class verify:
-    '''verify email address with email/code combo; need to be logged in; send email'''
+class confirm_verify:
+    '''confirm email address with email/code combo'''
     def GET(self):
-        if not session.login:
-            raise web.seeother('/')
-        elif session.verified:
-            raise web.seeother('/')
+        if session.login and not session.verified:
+            f = confirm_verify_form()
+            return render.confirm_verify(f)
         else:
-            f = verify_form()
-            return render.verify(f)
+            raise web.seeother('/')
 
     @csrf_protected
     def POST(self):
@@ -280,22 +310,37 @@ class verify:
                     raise web.seeother('/')
                 else:
                     raise web.seeother('/verify')
-            except AttributeError:
-                if x.send_email == "true":
-                    if model.allow_email(session.email,'verify', web.ctx.ip) == True:
-                        if model.send_verification_email(session.id, session.email) == True:
-                            model.save_sent_email(web.ctx.ip,session.email,'reset')
-                            return "Email sent"
-                        else:
-                            return "Email error"
+            except:
+                return "Error"
+        else:
+            raise web.seeother('/')
+
+class request_verify:
+    '''send verify email'''
+    def GET(self):
+        if session.login and not session.verified:
+            f = request_verify_form()
+            return render.request_verify(f)
+        else:
+            raise web.seeother('/')
+
+    @csrf_protected
+    def POST(self):
+        if session.login and not session.verified:
+            x=web.input()
+            if x.send_email == "true":
+                if model.allow_email(session.email,'verify', web.ctx.ip) == True:
+                    if model.send_verification_email(session.id, session.email) == True:
+                        model.save_sent_email(web.ctx.ip,session.email,'reset')
+                        return "Email sent"
                     else:
-                        return "Email throttled, wait 1 min"
+                        return "Email error"
                 else:
-                    raise web.badrequest()
+                    return "Email throttled, wait 1 min"
             else:
                 raise web.badrequest()
         else:
-            raise web.unauthorized()
+            raise web.seeother('/')
 
 class agreements:
     def GET(self, num):
@@ -320,8 +365,19 @@ class agreements:
                 return web.unauthorized()
 
 class post_agreement:
+    def GET(self):
+        try:
+            if session.login == True:
+                f=upload_form()
+                return render.post_agreement(f)
+
+            else:
+                raise web.unauthorized()
+        except:
+            return sys.exc_info()
+
     @csrf_protected
-    def POST(self, num):
+    def POST(self):
         x = web.input(agreement={})
         try:
             model.save_document(
@@ -332,9 +388,7 @@ class post_agreement:
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
                                 )
-            info=model.get_documents(session.id)
-            f = upload_form()
-            return render.agreement(f, info)
+            raise web.seeother('/agreement/list')
         except: 
             return sys.exc_info()
 
@@ -342,8 +396,7 @@ class list_agreements:
     def GET(self):
         if session.login:
             info=model.get_documents(session.id)
-            f = upload_form()
-            return render.agreement(f, info)
+            return render.list_agreements(info)
         else:
             return web.unauthorized()
 
@@ -419,6 +472,7 @@ class pay_page:
                     if info['accepts_cc'] == True:
                         pk_key=model.get_user_pk(info['id'])
                         if pk_key:
+                            #FIX urlencode arg (username)
                             return render.pay_person(pk_key, arg)
                         else:
                             return "error"
@@ -487,8 +541,8 @@ class landlord_query:
                 try:
                     info=model.get_user_info(arg.replace('@',''))
                     if info['category'] == 'Landlord':
-                        return render.landlord(info)
-
+                        f = relation_request_form()
+                        return render.landlord_page(info, f)
                     else:
                         raise web.badrequest()
                 except:
@@ -503,20 +557,21 @@ class landlord_query:
         x=web.input()
         if session.login == True:
             if not name.isdigit() == True:
-                try: 
+                try:
+                    x=web.input()
                     lan=model.get_user_info(name.replace('@',''),id=True,category=True)
                     if lan['category'] == 'Landlord':
-                        if x.type == 'request':
-                            if model.make_relation_request(session.id,info['id']):
+                        if x.relation_type == 'request':
+                            if model.make_relation_request(session.id,lan['id']):
                                 return 'made request'
                             else:
-                                raise web.badrequest()
+                                return "no request"
                         else:
-                            raise web.badrequest()
+                            return 'weird requst type'
                     else:
-                        raise web.badrequest()
+                        return 'not landlord'
                 except:
-                    raise web.badrequest()
+                    return sys.exc_info()
             else:
                 raise web.badrequest()
         else:
