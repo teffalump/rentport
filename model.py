@@ -116,7 +116,7 @@ def get_user_info(identifier, where='username', **kw):
     '''get user info given key and value, returning whatever is specified'''
     #RISK This is a powerful, potentially dangerous function
     #TODO TUNING
-    default=['category', 'username', 'email', 'verified', "to_char(joined, 'YYYY-MM-DD') as joined"]
+    default=['category', 'username', 'email', 'verified', 'id']
     categories=[]
     if len(kw) == 0:
         categories = default
@@ -241,10 +241,7 @@ def save_sent_email(ip, account, type):
 def is_verified(userid):
     '''is user's email verified?'''
     try:
-        if db.select('users', what='verified', where='id=$userid', limit=1, vars=locals())[0]['verified']:
-            return True
-        else:
-            return False
+        return db.select('users', what='verified', where='id=$userid', limit=1, vars=locals())[0]['verified']
     except IndexError:
         return False
 
@@ -548,7 +545,7 @@ def get_unconfirmed_requests(userid):
                         AND (p.landlord = $userid OR p.tenant = $userid) \
                         ORDER BY p.started DESC",vars={'userid': userid})
     except:
-        return False
+       return []
 
 def make_relation_request(tenant, landlord):
     '''relation request, only tenant can'''

@@ -16,6 +16,7 @@ urls = (
             '/reset/confirm/?', 'confirm_reset',
             '/reset/request/?', 'request_reset',
             '/landlord/search/?', 'search_landlord',
+            '/landlord/confirm/?', 'confirm_relation',
             '/landlord/(.+)', 'landlord_query',
             '/pay/(.+)', 'pay_user',
             '/payment/list/?', 'list_payments',
@@ -50,7 +51,8 @@ session = web.session.Session(app, store, initializer={ 'login': False,
                                                         'id': -1, 
                                                         'verified': False, 
                                                         'email': None, 
-                                                        'username': None})
+                                                        'username': None,
+                                                        'category': None})
 
 
 #form validators
@@ -81,6 +83,7 @@ def set_session_values(userid):
     session.login=True
     session.id = userid
     info = model.get_user_info(userid,where='id')
+    session.category = info['category']
     session.email = info['email']
     session.username = info['username']
     session.verified = info['verified']
@@ -144,6 +147,11 @@ new_password_form = form.Form(
 relation_request_form = form.Form(
                         form.Hidden("relation_type", value="request"),
                         form.Button("submit", type="submit", html="Request relation"))
+
+#confirm relation request form
+confirm_relation_form = form.Form(
+                        form.Textbox("tenant"),
+                        form.Button("submit", type="submit", html="Confirm relation"))
 
 class default:
     def GET(self):
@@ -563,26 +571,26 @@ class landlord_query:
     def POST(self, name):
         x=web.input()
         if session.login == True:
-                try:
-                    x=web.input()
-                    lan=model.get_user_info(name,where='username',id=True,category=True)
-                    if lan['category'] == 'Landlord':
-                        if x.relation_type == 'request':
-                            if model.make_relation_request(session.id,lan['id']):
-                                return 'made request'
-                            else:
-                                return "no request"
-                        elif x.relation_type == 'end':
-                            if model.end_relation(session.id,land['id']):
-                                return 'ended relationship'
-                            else:
-                                return 'unknown relation'
+            try:
+                x=web.input()
+                lan=model.get_user_info(name,where='username',id=True,category=True)
+                if lan['category'] == 'Landlord':
+                    if x.relation_type == 'request':
+                        if model.make_relation_request(session.id,lan['id']):
+                            return 'made request'
                         else:
-                            return 'weird request type'
+                            return "no request"
+                    elif x.relation_type == 'end':
+                        if model.end_relation(session.id,lan['id']):
+                            return 'ended relationship'
+                        else:
+                            return 'unknown relation'
                     else:
-                        return 'not landlord'
-                except:
-                    raise web.badrequest()
+                        return 'weird request type'
+                else:
+                    return 'not landlord'
+            except:
+                raise web.badrequest()
         else:
             raise web.unauthorized()
 
@@ -603,6 +611,36 @@ class search_users:
                 raise web.unauthorized()
         except:
             raise web.badrequest()
+
+class confirm_relation:
+    '''confirm relation request from tenant'''
+    def GET(self):
+        if session.login == True and session.category == 'Landlord':
+            try:
+                reqs = [row for row in model.get_unconfirmed_requests(session.id) if row['to'] == session.username]
+                f = confirm_relation_form()
+                return render.confirm_relation(f, reqs)
+            except:
+                return sys.exc_info()
+                #raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+    @csrf_protected
+    def POST(self):
+        if session.login == True and session.category == 'Landlord':
+            try:
+                x=web.input()
+                ten_id=model.get_user_info(x.tenant, where='username', id=True)['id']
+                if model.confirm_relation_request(ten_id, session.id):
+                    return "confirmed"
+                else:
+                    raise "error"
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
 
 if __name__ == "__main__":
     app.run()
