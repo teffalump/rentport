@@ -1,6 +1,7 @@
 # The general functional model of the app
 
 import web, scrypt, random, magic, sendgrid, re, stripe, json
+from psycopg2 import Error as DBError
 import config
 
 # Connection to database
@@ -18,7 +19,7 @@ def get_documents(user):
                         ORDER BY id ASC",
                         vars={'user':user})
     except:
-        return None
+        return []
 
 def get_document(user,id):
     '''Get document info/data for dl; relative id'''
@@ -97,7 +98,11 @@ def update_user(id, **kw):
         if 'password' in kw:
             kw['password']=hash_password(kw['password'])
         if 'email' in kw:
-            #TODO gotta send another verification email/etc
+            #if send_verification_email(kw['email']) == True:
+                #save_sent_email(web.ctx.ip,kw['email'],'verify')
+                #kw['verified']=False
+            #else:
+                #return False
             pass
         a=db.update('users', where='id=$id', vars=locals(), **kw)
         if a>0:
@@ -107,41 +112,47 @@ def update_user(id, **kw):
     except:
         return False
 
-def get_user_info(identifier, **kwargs):
-    '''get info given email or id or username'''
-    #DEBUG FIX TODO This is a powerful function, restrict access
-    #TODO Maybe check if column exists?
+def get_user_info(identifier, where='username', **kw):
+    '''get user info given key and value, returning whatever is specified'''
+    #RISK This is a powerful, potentially dangerous function
     #TODO TUNING
     default=['category', 'username', 'email', 'verified', "to_char(joined, 'YYYY-MM-DD') as joined"]
     categories=[]
-    if len(kwargs) == 0:
+    if len(kw) == 0:
         categories = default
     else:
-        for key in kwargs.keys():
+        for key in kw.keys():
             if key == 'joined':
                 categories.append("to_char(joined, 'YYYY-MM-DD') as joined")
             else:
                 categories.append(key)
+
     what=web.db.SQLQuery.join(categories, sep=',')
+
+    if where == 'id':
+        try:
+            where_query=web.db.sqlwhere({'id': int(identifier)})
+        except ValueError:
+            #non-int passed
+            return None
+    else:
+        where_query=web.db.sqlwhere({where: str(identifier)})
+
     try:
-        where_dict={'id': int(identifier)}
-    except ValueError:
-        where_dict={'email': identifier,
-                    'username': identifier}
-    where=web.db.sqlwhere(where_dict, grouping=' OR ')
-    try:
-        return db.select('users', what=what, where=where, limit=1, vars=where_dict)[0]
-    except KeyError:
+        return db.select('users', what=what, where=where_query, limit=1)[0]
+    except DBError:
+        #column doesn't exist or other driver error
+        return 'no column'
+    except IndexError:
+        #no results
         return None
-    except:
-        return sys.exc_info()
 
 def search_users(user, **kw):
     '''search for similar usernames given constraints'''
-    #TODO FIX DEBUG CAN GIVE A LOT OF DANGEROUS INFO! Whitelist safe keys!!!
+    #RISK CAN GIVE A LOT OF DANGEROUS INFO! Whitelist safe keys!!!
     #TODO TUNING
     try:
-        like=web.db.SQLQuery(['username LIKE ', web.db.SQLParam("%" + user + "%")])
+        like=web.db.SQLQuery(['username LIKE ', web.db.SQLParam(''.join([user,"%"]))])
         allowed_keys=['accepts_cc', 'category']
 
         for key in kw.keys():
@@ -155,7 +166,7 @@ def search_users(user, **kw):
             where=web.SQLQuery.join([like, base], sep=' AND ')
         return db.select('users', what='username', where=where, limit=10, vars=kw)
     except:
-        return ''
+        return []
 
 def verify_password(password, login_id, maxtime=1):
     '''Verify pw/login_id combo and return user id, or False'''
@@ -227,10 +238,10 @@ def save_sent_email(ip, account, type):
     except:
         return False
 
-def is_verified(id):
+def is_verified(userid):
     '''is user's email verified?'''
     try:
-        if db.select('users', what='verified', where='id=$id', limit=1, vars=locals())[0]['verified']:
+        if db.select('users', what='verified', where='id=$userid', limit=1, vars=locals())[0]['verified']:
             return True
         else:
             return False
@@ -450,7 +461,7 @@ def get_payments(user):
                             WHERE from = $user OR to = $user",
                             vars={'user': user})
     except:
-        return None
+        return []
 
 def get_payment(user, id):
     '''get complete user related payment info; relative id'''
@@ -526,13 +537,24 @@ def get_user_sk(user_id):
     except:
         return False
 
+def get_unconfirmed_requests(userid):
+    '''retrieve unconfirmed requests related to given userid'''
+    try:
+        return db.query("SELECT k.username AS from,kk.username AS to,p.started AS sent \
+                        FROM relations AS p \
+                        INNER JOIN users k ON p.tenant = k.id \
+                        INNER JOIN users kk ON p.landlord = kk.id \
+                        WHERE p.confirmed = False \
+                        AND (p.landlord = $userid OR p.tenant = $userid) \
+                        ORDER BY p.started DESC",vars={'userid': userid})
+    except:
+        return False
+
 def make_relation_request(tenant, landlord):
     '''relation request, only tenant can'''
-    #UPSERT WOULD WORK, BUT DIFFICULT TO DO WELL
-    #TODO Send email reminder?
     try:
         num=db.query("INSERT INTO relations \
-                        (tenant, landlord) \
+                    (tenant, landlord) \
                     VALUES ($tenant, $landlord)",
                     vars={'tenant': tenant, 'landlord': landlord})
         if num > 0:
@@ -544,7 +566,6 @@ def make_relation_request(tenant, landlord):
 
 def confirm_relation_request(tenant, landlord):
     '''confirm relation request, only landlord can'''
-    #UPSERT WOULD WORK, BUT DIFFICULT TO DO WELL
     try:
         num=db.query("UPDATE relations \
                     SET confirmed = $confirmed \
@@ -560,7 +581,6 @@ def confirm_relation_request(tenant, landlord):
 
 def end_relation(tenant, landlord):
     '''end relation, only tenant can'''
-    #TODO No idea how to confirm this - only tenant can?
     try:
         num=db.query("UPDATE relations \
                     SET stopped = current_timestamp \
@@ -579,7 +599,7 @@ def get_relations(userid):
     #TODO FUCKING CLEAN THIS UP - SO SLOW I BET
     #TODO Add dates to relations?
     try:
-        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id,kk.username AS landlord,p.landlord AS landlord_id,p.started,p.stopped \
+        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id,kk.username AS landlord,p.started,p.stopped \
                         FROM relations as p \
                         INNER JOIN users k ON p.tenant = k.id \
                         INNER JOIN users kk ON p.landlord = kk.id \
@@ -607,4 +627,4 @@ def get_relations(userid):
                     relations.setdefault('tenants', []).append(row['tenant'])
         return relations
     except:
-        return None
+        return []

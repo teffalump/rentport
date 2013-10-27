@@ -17,8 +17,9 @@ urls = (
             '/reset/request/?', 'request_reset',
             '/landlord/search/?', 'search_landlord',
             '/landlord/(.+)', 'landlord_query',
-            '/pay/(.+)', 'pay_page',
-            '/pay/list/?', 'list_payments',
+            '/pay/(.+)', 'pay_user',
+            '/payment/list/?', 'list_payments',
+            '/payment/(.+)', 'payment_info',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
@@ -79,11 +80,14 @@ def set_session_values(userid):
     '''set the default session values'''
     session.login=True
     session.id = userid
-    info = model.get_user_info(userid)
+    info = model.get_user_info(userid,where='id')
     session.email = info['email']
     session.username = info['username']
     session.verified = info['verified']
     return True
+
+def is_string(object):
+    return isinstance(object, str)
 
 ##########################
 
@@ -230,7 +234,7 @@ class confirm_reset:
 
             try:
                 x=web.input()
-                user_info = model.get_user_info(x.email)
+                user_info = model.get_user_info(x.email,where='email')
                 if model.verify_code(user_info['id'], x.code, 'reset') == True:
                     set_session_values(user_id)
                     f = new_password_form()
@@ -266,7 +270,7 @@ class request_reset:
 
             x=web.input()
             try:
-                user_info = model.get_user_info(x.email, id=True)
+                user_info = model.get_user_info(x.email,where='email',id=True)
                 if user_info == False: 
                     #FIX I could lie, which prevents email harvesting...sort of
                     #timing attacks still possible but what if honest mistake?
@@ -405,9 +409,15 @@ class profile:
     def GET(self):
         if session.login:
             f = new_password_form()
-            user_info=model.get_user_info(session.id)
+            user_info=model.get_user_info(session.id,where='id')
             try:
-                info = dict(user_info.items() + model.get_relations(session.id).items())
+                #TODO Clean this up
+                relations=[]
+                for k,v in model.get_relations(session.id).items():
+                    if is_string(v): relations.append((k,v))
+                    else: relations.append((k,', '.join(v)))
+
+                info = dict(user_info.items() + relations)
                 return render.profile(info, f)
             except:
                 return render.profile(user_info, f)
@@ -448,68 +458,64 @@ class list_payments:
         '''list payments'''
         if session.login == True:
             payments_info = model.get_payments(session.id)
-            return render.pay(payments_info)
+            return render.payment_info(payments_info)
         else:
             raise web.unauthorized()
 
-class pay_page:
-    '''return payment info from id, or display pay username page'''
+class payment_info:
     def GET(self, arg):
         if session.login == True:
-            if arg.isdigit() == True:
-                '''return payment info from id'''
-                try:
-                    charge=model.get_payment(session.id, arg)
-                    return charge
-                except:
-                    return web.badrequest()
+            try:
+                charge=model.get_payment(session.id, arg)
+                return charge
+            except:
+                return web.badrequest()
+        else:
+            raise web.unauthorized()
 
-            else:
-                '''try to display pay_person page'''
-                #TODO FIX DEBUG THIS LEAKS USER (maybe email - fixed?) INFO
-                try:
-                    info=model.get_user_info(arg.replace('@', ''),id=True,accepts_cc=True)
-                    if info['accepts_cc'] == True:
-                        pk_key=model.get_user_pk(info['id'])
-                        if pk_key:
-                            #FIX urlencode arg (username)
-                            return render.pay_person(pk_key, arg)
-                        else:
-                            return "error"
+class pay_user:
+    '''display pay username page and pay user'''
+    def GET(self, arg):
+        if session.login == True:
+            #RISK Leaks user info (accepts_cc, name, etc)
+            try:
+                info=model.get_user_info(arg,where='username',id=True,accepts_cc=True)
+                if info['accepts_cc'] == True:
+                    pk_key=model.get_user_pk(info['id'])
+                    if pk_key:
+                        return render.pay_person(pk_key, arg)
                     else:
-                        #not accepts cc
-                        return "user"
-                except:
-                    #not a user
-                    return sys.exc_info()
+                        return "error"
+                else:
+                    #not accepts cc
+                    raise web.badrequest()
+            except:
+                #not a user
+                raise web.badrequest()
         else:
             raise web.unauthorized()
 
     @csrf_protected
     def POST(self, arg):
-        '''payment info'''
-        #TODO DEBUG FIX Worried about js injection/poisoning
+        #RISK Worried about js injection/poisoning
         if session.login == True:
             x=web.input()
             try:
-                info=model.get_user_info(arg.replace('@', ''),id=True)
-                if info:
-                    sk_key=model.get_user_sk(info['id'])
-                    if sk_key:
-                        charge = model.authorize_payment(x.stripeToken,
-                                                        x.amount,
-                                                        sk_key,
-                                                        session.username,
-                                                        session.id,
-                                                        info['id'])
-                        if charge:
-                            #if model.capture_payment(charge, sk_key) == True:
-                                #model.save_payment(session.id,,charge)
-                            #else
-                                #return "Payment error"
-                            pass
-                        else:
-                            return "Payment error"
+                info=model.get_user_info(arg,where='username',id=True)
+                sk_key=model.get_user_sk(info['id'])
+                if sk_key:
+                    charge = model.authorize_payment(x.stripeToken,
+                                                    x.amount,
+                                                    sk_key,
+                                                    session.username,
+                                                    session.id,
+                                                    info['id'])
+                    if charge:
+                        #if model.capture_payment(charge, sk_key) == True:
+                            #model.save_payment(session.id,,charge)
+                        #else
+                            #return "Payment error"
+                        pass
                     else:
                         return "Payment error"
                 else:
@@ -525,7 +531,7 @@ class search_landlord:
     '''landlord search'''
     def GET(self):
         if session.login == True:
-            if model.get_user_info(session.id, category=True)['category'] == 'Tenant':
+            if model.get_user_info(session.id,where='id',category=True)['category'] == 'Tenant':
                 return render.search_landlord()
             else:
                 raise web.seeother('/')
@@ -533,21 +539,22 @@ class search_landlord:
             raise web.unauthorized()
 
 class landlord_query:
-    '''get landlord info/make request'''
+    '''get landlord info/make request/end relation'''
     #TODO Shorten, and give more info on errors
     def GET(self, arg):
         if session.login == True:
-            if not arg.isdigit():
-                try:
-                    info=model.get_user_info(arg.replace('@',''))
-                    if info['category'] == 'Landlord':
-                        f = relation_request_form()
-                        return render.landlord_page(info, f)
-                    else:
-                        raise web.badrequest()
-                except:
+            try:
+                info=model.get_user_info(arg,
+                                        where='username',
+                                        category=True,
+                                        username=True,
+                                        email=True)
+                if info['category'] == 'Landlord':
+                    f = relation_request_form()
+                    return render.landlord_page(info, f)
+                else:
                     raise web.badrequest()
-            else:
+            except:
                 raise web.badrequest()
         else:
             raise web.unauthorized()
@@ -556,30 +563,32 @@ class landlord_query:
     def POST(self, name):
         x=web.input()
         if session.login == True:
-            if not name.isdigit() == True:
                 try:
                     x=web.input()
-                    lan=model.get_user_info(name.replace('@',''),id=True,category=True)
+                    lan=model.get_user_info(name,where='username',id=True,category=True)
                     if lan['category'] == 'Landlord':
                         if x.relation_type == 'request':
                             if model.make_relation_request(session.id,lan['id']):
                                 return 'made request'
                             else:
                                 return "no request"
+                        elif x.relation_type == 'end':
+                            if model.end_relation(session.id,land['id']):
+                                return 'ended relationship'
+                            else:
+                                return 'unknown relation'
                         else:
-                            return 'weird requst type'
+                            return 'weird request type'
                     else:
                         return 'not landlord'
                 except:
-                    return sys.exc_info()
-            else:
-                raise web.badrequest()
+                    raise web.badrequest()
         else:
             raise web.unauthorized()
 
 class search_users:
     '''grep similar username, given constrants'''
-    #FIX DEBUG TODO This is available to any user, be very careful of the keys allowed!
+    #RISK This is available to any user, be very careful of the keys allowed!
     def GET(self):
         allowed_keys=['accepts_cc', 'category']
         try:
