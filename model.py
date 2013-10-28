@@ -511,8 +511,8 @@ def get_charge_info(charge_id, api_key):
     '''Return charge info'''
     try:
         charge = stripe.Charge.retrieve(
-                id=charge_id,
-                api_key=api_key)
+                                id=charge_id,
+                                api_key=api_key)
         return json.loads(charge)
     except stripe.InvalidRequestError:
         return False
@@ -533,6 +533,21 @@ def get_user_sk(user_id):
                         WHERE user_id = $user_id \
                         LIMIT 1", vars={'user_id': user_id})[0]
         return row['sec_key']
+    except:
+        return False
+
+def save_user_keys(userid, pub_key, sec_key, refresh_token):
+    '''save keys of user from oauth2'''
+    try:
+        a=db.insert('users',
+                    user_id=userid,
+                    pub_key=pub_key,
+                    sec_key=sec_key,
+                    refresh_token=refresh_token)
+        if a>0:
+            return True
+        else:
+            return False
     except:
         return False
 

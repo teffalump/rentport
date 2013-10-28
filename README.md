@@ -10,10 +10,11 @@
 * sendgrid
     + python api
 * python libraries
-    + scrypt
-    + web.py
-    + magic
-* request tracker OR roundup
+    + scrypt (db encryption)
+    + web.py (web framework)
+    + magic (file ident)
+    + sanction (oauth2)
+* roundup
 * postgresql
 
 # Roadmap

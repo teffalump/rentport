@@ -59,6 +59,7 @@ CREATE TABLE user_keys (
     user_id         integer references users(id) NOT NULL UNIQUE,
     pub_key         text NOT NULL,
     sec_key         text NOT NULL,
+    refresh_token   text NOT NULL,
     retrieved       timestamp NOT NULL DEFAULT current_timestamp
 );
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from sanction.client import Client
 import web
 import model
 import config
@@ -8,6 +9,8 @@ from uuid import uuid4
 from web import form
 
 urls = (
+            '/oauth/authorize', 'authorize',
+            '/oauth/callback', 'callback',
             '/agreement/post/?', 'post_agreement',
             '/agreement/list/?', 'list_agreements',
             '/agreement/(.+)', 'agreements',
@@ -95,7 +98,9 @@ def is_string(object):
 ##########################
 
 #renderer
-render = web.template.render('templates', globals={'context': session, 'csrf_token': csrf_token})
+render = web.template.render('templates',
+                            globals={'context': session, 
+                                    'csrf_token': csrf_token})
 
 #upload form
 upload_form = form.Form(
@@ -256,6 +261,7 @@ class confirm_reset:
             raise web.seeother('/')
 
 class request_reset:
+    '''request reset code'''
     def GET(self):
         try:
             if not session.login:
@@ -377,6 +383,7 @@ class agreements:
                 return web.unauthorized()
 
 class post_agreement:
+    '''post rental agreement'''
     def GET(self):
         try:
             if session.login == True:
@@ -405,6 +412,7 @@ class post_agreement:
             return sys.exc_info()
 
 class list_agreements:
+    '''list agreements'''
     def GET(self):
         if session.login:
             info=model.get_documents(session.id)
@@ -462,6 +470,7 @@ class profile:
             raise web.unauthorized()
 
 class list_payments:
+    '''list payments'''
     def GET(self):
         '''list payments'''
         if session.login == True:
@@ -471,6 +480,7 @@ class list_payments:
             raise web.unauthorized()
 
 class payment_info:
+    '''get charge info'''
     def GET(self, arg):
         if session.login == True:
             try:
@@ -640,6 +650,44 @@ class confirm_relation:
         else:
             raise web.unauthorized()
 
+class authorize:
+    '''authorize stripe: oauth2'''
+    def GET(self):
+        #TODO CSRF protection with state variable
+        c = Client(auth_endpoint=config.stripe.oauth_site + config.stripe.authorize_uri,
+            client_id=config.stripe.client_id)
+
+        state=None
+        raise web.seeother(c.auth_uri(state=state,
+                                    scope='read_write',
+                                    response_type='code',
+                                    redirect_uri="https://www.rentport.com/oauth/callback"
+                                    ))
+
+class callback:
+    '''redirect uri from stripe: oauth2'''
+    def GET(self):
+        #TODO CSRF protection with state variable
+        x = web.input()
+        state, code=x.state, x.code
+        c = Client(token_endpoint=config.stripe.oauth_site + config.stripe.token_uri,
+            client_id=config.stripe.client_id,
+            client_secret=config.stripe.test_private_key)
+
+        c.request_token(
+                code=code,
+                grant_type='authorization_code')
+
+        #save keys
+        model.save_user_keys(session.id, 
+                            c.access_token, 
+                            c.stripe_publishable_key, 
+                            c.refresh_token)
+
+        #change to accept cc
+        model.update_user(session.id, accepts_cc=True)
+
+        return "Authorized and keys received!"
 
 if __name__ == "__main__":
     app.run()
