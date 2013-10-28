@@ -1,5 +1,7 @@
 # The general functional model of the app
 
+# Notes: user parameters are ids, unless otherwise indicated
+
 import web, scrypt, random, magic, sendgrid, re, stripe, json
 from psycopg2 import Error as DBError
 import config
@@ -93,7 +95,7 @@ def save_user(email, username, password, category):
         return False
 
 def update_user(id, **kw):
-    '''Update user; need user id'''
+    '''Update user'''
     try:
         if 'password' in kw:
             kw['password']=hash_password(kw['password'])
@@ -145,7 +147,7 @@ def get_user_info(identifier, where='username', **kw):
         return 'no column'
     except IndexError:
         #no results
-        return None
+        return {}
 
 def search_users(user, **kw):
     '''search for similar usernames given constraints'''
@@ -371,6 +373,7 @@ def add_failed_email(ip):
         return False
 
 def throttle_email_attempt(ip):
+    '''throttle after submitting bad email addresses'''
     try:
         time_delta=db.query("SELECT EXTRACT(EPOCH FROM now()-max(time)) as age \
                                 FROM failed_emails \
@@ -437,7 +440,7 @@ def accepts_cc(id):
         return False
 
 def save_payment(origin,to,charge_id):
-    '''save payment to db; to and origin are ids, not email'''
+    '''save payment to db'''
     try:
         num=db.query("INSERT INTO payments \
                         (from_user,to_user,time,stripe_id) \
@@ -451,7 +454,7 @@ def save_payment(origin,to,charge_id):
         return False
 
 def get_payments(user):
-    '''return all user related payments - NO amount info'''
+    '''return all user related payments'''
     try:
         return db.query("SELECT to_user as to,from_user as from,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
@@ -517,10 +520,9 @@ def get_charge_info(charge_id, api_key):
 def get_user_pk(user_id):
     '''retrieve user pk_key from db'''
     try:
-        row=db.query("SELECT pub_key FROM user_keys \
+        return db.query("SELECT pub_key FROM user_keys \
                         WHERE user_id = $user_id \
-                        LIMIT 1", vars={'user_id': user_id})[0]
-        return row['pub_key']
+                        LIMIT 1", vars={'user_id': user_id})[0]['pub_key']
     except:
         return False
 
@@ -624,4 +626,4 @@ def get_relations(userid):
                     relations.setdefault('tenants', []).append(row['tenant'])
         return relations
     except:
-        return []
+        return {} 

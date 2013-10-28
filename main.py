@@ -621,8 +621,7 @@ class confirm_relation:
                 f = confirm_relation_form()
                 return render.confirm_relation(f, reqs)
             except:
-                return sys.exc_info()
-                #raise web.badrequest()
+                raise web.badrequest()
         else:
             raise web.unauthorized()
 
