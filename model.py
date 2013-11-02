@@ -118,33 +118,27 @@ def get_user_info(identifier, where='username', **kw):
     '''get user info given key and value, returning whatever is specified'''
     #RISK This is a powerful, potentially dangerous function
     #TODO TUNING
-    default=['category', 'username', 'email', 'verified', 'id']
-    categories=[]
-    if len(kw) == 0:
-        categories = default
-    else:
-        for key in kw.keys():
-            if key == 'joined':
-                categories.append("to_char(joined, 'YYYY-MM-DD') as joined")
-            else:
-                categories.append(key)
+    default=['category', 'username', 'email', 'verified', 'id', "to_char(joined,'YYYY-MM-DD') as joined"]
+    categories=kw.keys() or default
+
+    categories = ["to_char(joined,'YYYY-MM-DD') as joined" if x == 'joined' else x for x in categories]
 
     what=web.db.SQLQuery.join(categories, sep=',')
 
-    if where == 'id':
-        try:
-            where_query=web.db.sqlwhere({'id': int(identifier)})
-        except ValueError:
-            #non-int passed
-            return None
-    else:
-        where_query=web.db.sqlwhere({where: str(identifier)})
+    try:
+        if identifier == 'id':
+            where_query=web.db.sqlwhere({where: int(identifier)})
+        else:
+            where_query=web.db.sqlwhere({where: str(identifier)})
+    except ValueError:
+        #bad identifier and where arguments
+        return {}
 
     try:
         return db.select('users', what=what, where=where_query, limit=1)[0]
     except DBError:
         #column doesn't exist or other driver error
-        return 'no column'
+        return {}
     except IndexError:
         #no results
         return {}
@@ -429,13 +423,10 @@ def allow_email(account, type, ip):
     else:
         return False
 
-def accepts_cc(id):
+def accepts_cc(userid):
     '''accepts cc --> t/f'''
     try:
-        if db.select('users', what='accepts_cc', where='id=$id', limit=1, vars=locals())[0]['accepts_cc']:
-            return True
-        else:
-            return False
+        return db.select('users', what='accepts_cc', where='id=$userid', limit=1, vars=locals())[0]['accepts_cc']
     except IndexError:
         return False
 
@@ -444,7 +435,7 @@ def save_payment(origin,to,charge_id):
     try:
         num=db.query("INSERT INTO payments \
                         (from_user,to_user,time,stripe_id) \
-                    VALUES ($origin, $to, now(), $charge_id)",
+                    VALUES ($origin, $to, current_timestamp, $charge_id)",
                     vars={'origin': origin, 'to': to, 'stripe_id': charge_id})
         if num == 1:
             return True
@@ -454,7 +445,7 @@ def save_payment(origin,to,charge_id):
         return False
 
 def get_payments(user):
-    '''return all user related payments'''
+    '''return all local info on user related payments'''
     try:
         return db.query("SELECT to_user as to,from_user as from,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
@@ -463,14 +454,14 @@ def get_payments(user):
     except:
         return []
 
-def get_payment(user, id):
-    '''get complete user related payment info; relative id'''
+def get_payment(user, num):
+    '''get complete user related payment info on payment num'''
     try:
         info = db.query("SELECT stripe_id,from_user as from,to_user as to,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
                             WHERE from_user=$user OR to_user=$user \
                             ORDER BY id ASC LIMIT 1 OFFSET $os",
-                            vars={'user': user, 'os': int(id)-1})[0]
+                            vars={'user': user, 'os': int(num)-1})[0]
         charge = get_charge_info(info['stripe_id'])
         info['amount']=charge['amount']
         return info
@@ -507,12 +498,12 @@ def capture_payment(charge_id, api_key):
     except:
         return False
 
-def get_charge_info(charge_id, api_key):
+def get_charge_info(charge_id, userid):
     '''Return charge info'''
     try:
         charge = stripe.Charge.retrieve(
                                 id=charge_id,
-                                api_key=api_key)
+                                api_key=get_user_sk(userid))
         return json.loads(charge)
     except stripe.InvalidRequestError:
         return False
@@ -529,10 +520,9 @@ def get_user_pk(user_id):
 def get_user_sk(user_id):
     '''retrieve user sk_key from db'''
     try:
-        row=db.query("SELECT sec_key FROM user_keys \
+        return db.query("SELECT sec_key FROM user_keys \
                         WHERE user_id = $user_id \
-                        LIMIT 1", vars={'user_id': user_id})[0]
-        return row['sec_key']
+                        LIMIT 1", vars={'user_id': user_id})[0]['sec_key']
     except:
         return False
 

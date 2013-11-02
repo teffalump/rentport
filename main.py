@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
-from sanction.client import Client
+from sanction import Client
+from json import dumps
 import web
 import model
 import config
@@ -9,8 +10,8 @@ from uuid import uuid4
 from web import form
 
 urls = (
-            '/oauth/authorize', 'authorize',
-            '/oauth/callback', 'callback',
+            '/oauth/authorize/stripe/?', 'authorize_stripe',
+            '/oauth/callback/stripe/?', 'callback_stripe',
             '/agreement/post/?', 'post_agreement',
             '/agreement/list/?', 'list_agreements',
             '/agreement/(.+)', 'agreements',
@@ -507,7 +508,7 @@ class pay_user:
                 else:
                     #not accepts cc
                     raise web.badrequest()
-            except:
+            except TypeError:
                 #not a user
                 raise web.badrequest()
         else:
@@ -522,15 +523,16 @@ class pay_user:
                 info=model.get_user_info(arg,where='username',id=True)
                 sk_key=model.get_user_sk(info['id'])
                 if sk_key:
-                    charge = model.authorize_payment(x.stripeToken,
+                    charge_id = model.authorize_payment(x.stripeToken,
                                                     x.amount,
                                                     sk_key,
                                                     session.username,
                                                     session.id,
                                                     info['id'])
-                    if charge:
+                    if charge_id:
                         #if model.capture_payment(charge, sk_key) == True:
-                            #model.save_payment(session.id,,charge)
+                            #model.save_payment(session.id,info['id'],charge_id)
+                            #return "Paid"
                         #else
                             #return "Payment error"
                         pass
@@ -561,18 +563,18 @@ class landlord_query:
     #TODO Shorten, and give more info on errors
     def GET(self, arg):
         if session.login == True:
+            info=model.get_user_info(arg,
+                                    where='username',
+                                    category=True,
+                                    username=True,
+                                    email=True)
             try:
-                info=model.get_user_info(arg,
-                                        where='username',
-                                        category=True,
-                                        username=True,
-                                        email=True)
                 if info['category'] == 'Landlord':
                     f = relation_request_form()
                     return render.landlord_page(info, f)
                 else:
                     raise web.badrequest()
-            except:
+            except TypeError:
                 raise web.badrequest()
         else:
             raise web.unauthorized()
@@ -609,18 +611,18 @@ class search_users:
     #RISK This is available to any user, be very careful of the keys allowed!
     def GET(self):
         allowed_keys=['accepts_cc', 'category']
-        try:
-            if session.login == True:
+        if session.login == True:
+            try:
                 x=web.input()
                 username=x.username
                 for key in x.keys():
                     if key not in allowed_keys:
                         del x[key]
-                return '<br />'.join([row['username'] for row in model.search_users(username, **x)])
-            else:
-                raise web.unauthorized()
-        except:
-            raise web.badrequest()
+                return dumps([row for row in model.search_users(username, **x)])
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
 
 class confirm_relation:
     '''confirm relation request from tenant'''
@@ -644,13 +646,13 @@ class confirm_relation:
                 if model.confirm_relation_request(ten_id, session.id):
                     return "confirmed"
                 else:
-                    raise "error"
+                    return "error"
             except:
                 raise web.badrequest()
         else:
             raise web.unauthorized()
 
-class authorize:
+class authorize_stripe:
     '''authorize stripe: oauth2'''
     def GET(self):
         #TODO CSRF protection with state variable
@@ -664,7 +666,7 @@ class authorize:
                                     redirect_uri="https://www.rentport.com/oauth/callback"
                                     ))
 
-class callback:
+class callback_stripe:
     '''redirect uri from stripe: oauth2'''
     def GET(self):
         #TODO CSRF protection with state variable
@@ -679,15 +681,18 @@ class callback:
                 grant_type='authorization_code')
 
         #save keys
-        model.save_user_keys(session.id, 
-                            c.access_token, 
-                            c.stripe_publishable_key, 
-                            c.refresh_token)
+        if model.save_user_keys(session.id,
+                            c.access_token,
+                            c.stripe_publishable_key,
+                            c.refresh_token) != True:
+            return "Error"
 
         #change to accept cc
-        model.update_user(session.id, accepts_cc=True)
+        if model.update_user(session.id, accepts_cc=True) != True:
+            return "Error"
 
         return "Authorized and keys received!"
 
+wsgi_app = app.wsgifunc()
 if __name__ == "__main__":
     app.run()
