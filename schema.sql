@@ -83,7 +83,7 @@ CREATE TABLE relations (
 );
 
 CREATE TABLE issues (
-    id              integer serial primary key,
+    id              serial primary key,
     owner           integer references users(id) NOT NULL,
     creator         integer references users(id) NOT NULL,
     description     text NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE issues (
 );
 
 CREATE TABLE comments (
-    id              integer serial primary key,
+    id              serial primary key,
     user_id         integer references users(id) NOT NULL,
     issue_id        integer references issues(id) NOT NULL,
     text            text NOT NULL,

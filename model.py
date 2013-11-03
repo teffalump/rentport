@@ -633,21 +633,55 @@ def get_relations(userid):
     except:
         return {} 
 
-def open_issue(user_id):
+def get_current_landlord_id(userid):
+    try:
+        return db.query("SELECT landlord \
+                            FROM relations \
+                            WHERE stopped IS NULL \
+                            AND tenant = $userid \
+                            LIMIT 1", vars={'userid'})[0]['landlord']
+    except:
+        return None
+
+def get_current_tenant_ids(userid):
+    try:
+        return db.query("SELECT tenant \
+                            FROM relations \
+                            WHERE stopped IS NULL \
+                            AND landlord = $userid",
+                            vars={'userid'})
+    except:
+        return []
+
+def open_issue(user_id, severity, description):
     '''open issue; only tenant'''
-    pass
+    try:
+        a=db.query("INSERT INTO issues (description, status, creator, severity, owner) \
+                    VALUES ($description, $status, $creator, $severity, \
+                    (SELECT landlord AS owner FROM relations WHERE stopped IS NULL AND tenant = $tenant LIMIT 1))",
+                    vars={'description': description,
+                            'status': 'Open',
+                            'creator': user_id,
+                            'severity': severity,
+                            'tenant': user_id})
+        if a>0:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 def close_issue(user_id, issue_id):
     '''issues is fixed, close issue; only landlord'''
     try:
         a=db.query('UPDATE issues \
-                    SET status = $status \
+                    SET status = $status, closed = current_timestamp \
                     FROM ( SELECT status FROM issues \
                             WHERE owner = $user_id \
-                            ORDER BY opened ASC LIMIT 1 \
+                            ORDER BY id ASC LIMIT 1 \
                             OFFSET $os ) AS t',
-                vars={'status': 'closed',
-                        'os': issue_id, 
+                vars={'status': 'Closed',
+                        'os': issue_id,
                         'user_id': user_id})
         if a>0:
             return True
@@ -658,11 +692,38 @@ def close_issue(user_id, issue_id):
 
 def get_issue(user_id, issue_id):
     '''retrieve issue info'''
-    pass
+    try:
+        return db.query("SELECT owner,description,creator,opened,status,severity \
+                            FROM issues \
+                            WHERE owner = $user_id \
+                            LIMIT 1 ORDER BY id ASC OFFSET $os",
+                            vars={'user_id': user_id, 'os': issue_id})[0]
+    except:
+        return {}
+
+def get_comments(issue_id):
+    '''get comments from issue'''
+    try:
+        return db.query("SELECT t.username,k.posted,k.text \
+                        FROM comments AS k \
+                        INNER JOIN users t ON k.user_id = t.username \
+                        WHERE k.issue_id = $issue_id \
+                        ORDER BY k.id ASC",
+                        vars={'issue_id': issue_id})
+    except:
+        return []
 
 def get_issues(user_id):
     '''retrieve issues'''
-    pass
+    try:
+        return db.query("SELECT owner,description,creator,opened,status,severity \
+                            FROM issues \
+                            WHERE owner = $user_id \
+                            OR creator = $user_id \
+                            ORDER BY id ASC",
+                            vars={'user_id': user_id})
+    except:
+        return []
 
 def update_issue(issue_id):
     '''update issue info'''

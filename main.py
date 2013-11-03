@@ -2,6 +2,7 @@
 
 from sanction import Client
 from json import dumps
+import issues
 import web
 import model
 import config
@@ -10,6 +11,7 @@ from uuid import uuid4
 from web import form
 
 urls = (
+            '/issues', issues.issues_app,
             '/oauth/authorize/stripe/?', 'authorize_stripe',
             '/oauth/callback/stripe/?', 'callback_stripe',
             '/agreement/post/?', 'post_agreement',
@@ -93,15 +95,19 @@ def set_session_values(userid):
     session.verified = info['verified']
     return True
 
+def session_hook():
+    web.ctx.session = session
+    web.template.Template.globals['context'] = session
+    web.template.Template.globals['csrf_token'] = csrf_token
+
 def is_string(object):
     return isinstance(object, str)
 
+app.add_processor(web.loadhook(session_hook))
 ##########################
 
 #renderer
-render = web.template.render('templates',
-                            globals={'context': session, 
-                                    'csrf_token': csrf_token})
+render = web.template.render('templates')
 
 #upload form
 upload_form = form.Form(
