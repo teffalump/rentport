@@ -14,7 +14,6 @@
     + web.py (web framework)
     + magic (file ident)
     + sanction (oauth2)
-* roundup
 * postgresql
 
 # Roadmap
@@ -31,6 +30,7 @@
     + stripe stuff - started; need to test
     + Should I include paypal? evil!
 4. issue tracking system
+    + write very simple issue tracker - in progress
 
 # Security TODOs
     + Prevent CSRF by protecting forms - done

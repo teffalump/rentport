@@ -632,3 +632,42 @@ def get_relations(userid):
         return relations
     except:
         return {} 
+
+def open_issue(user_id):
+    '''open issue; only tenant'''
+    pass
+
+def close_issue(user_id, issue_id):
+    '''issues is fixed, close issue; only landlord'''
+    try:
+        a=db.query('UPDATE issues \
+                    SET status = $status \
+                    FROM ( SELECT status FROM issues \
+                            WHERE owner = $user_id \
+                            ORDER BY opened ASC LIMIT 1 \
+                            OFFSET $os ) AS t',
+                vars={'status': 'closed',
+                        'os': issue_id, 
+                        'user_id': user_id})
+        if a>0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def get_issue(user_id, issue_id):
+    '''retrieve issue info'''
+    pass
+
+def get_issues(user_id):
+    '''retrieve issues'''
+    pass
+
+def update_issue(issue_id):
+    '''update issue info'''
+    pass
+
+def comment_on_issue(user_id, issue_id, comment):
+    '''comment on issue'''
+    pass

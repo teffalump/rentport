@@ -1,4 +1,7 @@
 CREATE TYPE user_class AS ENUM ('Tenant', 'Landlord', 'Both');
+CREATE TYPE issue_status AS ENUM ('Open', 'Closed', 'Pending');
+CREATE TYPE issue_severity AS ENUM ('Critical', 'Medium', 'Low', 'Future');
+
 CREATE TABLE users (
     id              serial primary key,
     username        text NOT NULL UNIQUE,
@@ -77,4 +80,23 @@ CREATE TABLE relations (
     confirmed       boolean NOT NULL DEFAULT FALSE,
     stopped         timestamp,
     unique (tenant, landlord)
+);
+
+CREATE TABLE issues (
+    id              integer serial primary key,
+    owner           integer references users(id) NOT NULL,
+    creator         integer references users(id) NOT NULL,
+    description     text NOT NULL,
+    severity        issue_severity NOT NULL,
+    status          issue_status NOT NULL,
+    opened          timestamp NOT NULL DEFAULT current_timestamp,
+    closed          timestamp
+);
+
+CREATE TABLE comments (
+    id              integer serial primary key,
+    user_id         integer references users(id) NOT NULL,
+    issue_id        integer references issues(id) NOT NULL,
+    text            text NOT NULL,
+    posted          timestamp NOT NULL DEFAULT current_timestamp
 );

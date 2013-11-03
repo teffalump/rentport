@@ -14,7 +14,7 @@ urls = (
             '/oauth/callback/stripe/?', 'callback_stripe',
             '/agreement/post/?', 'post_agreement',
             '/agreement/list/?', 'list_agreements',
-            '/agreement/(.+)', 'agreements',
+            '/agreement/(\d+)', 'agreements',
             '/verify/confirm/?', 'confirm_verify',
             '/verify/request/?', 'request_verify',
             '/reset/confirm/?', 'confirm_reset',
@@ -24,7 +24,7 @@ urls = (
             '/landlord/(.+)', 'landlord_query',
             '/pay/(.+)', 'pay_user',
             '/payment/list/?', 'list_payments',
-            '/payment/(.+)', 'payment_info',
+            '/payment/(\d+)', 'payment_info',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
@@ -693,6 +693,5 @@ class callback_stripe:
 
         return "Authorized and keys received!"
 
-wsgi_app = app.wsgifunc()
 if __name__ == "__main__":
     app.run()
