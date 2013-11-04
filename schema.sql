@@ -73,19 +73,28 @@ CREATE TABLE codes (
     created         timestamp NOT NULL DEFAULT current_timestamp
 );
 
+CREATE TABLE properties (
+    id              serial primary key,
+    location        text NOT NULL,
+    owner           integer references users(id) NOT NULL,
+    description     text
+);
+
 CREATE TABLE relations (
     tenant          integer references users(id) NOT NULL,
     landlord        integer references users(id) NOT NULL,
     started         timestamp NOT NULL DEFAULT current_timestamp,
+    location        integer references properties(id) NOT NULL,
     confirmed       boolean NOT NULL DEFAULT FALSE,
     stopped         timestamp,
-    unique (tenant, landlord)
+    unique (tenant, landlord, location)
 );
 
 CREATE TABLE issues (
     id              serial primary key,
     owner           integer references users(id) NOT NULL,
     creator         integer references users(id) NOT NULL,
+    location        integer references properties(id) NOT NULL,
     description     text NOT NULL,
     severity        issue_severity NOT NULL,
     status          issue_status NOT NULL,
