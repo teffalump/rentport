@@ -146,6 +146,33 @@ def get_user_info(identifier, where='username', **kw):
         #no results
         return {}
 
+def get_landlord_info(username):
+    '''return landlord info and properties'''
+    try:
+        return db.query("SELECT t.username,t.id,t.email,k.location FROM users t \
+                            INNER JOIN properties k ON t.id = k.owner \
+                            WHERE t.username = $username \
+                            AND t.category IN ('Landlord', 'Both')",
+                            vars={'username': username})
+    except:
+        return False
+
+def add_property(landlord_id, property_id, property_text):
+    '''add property'''
+    #RISK Ask them not to store an actual address, just an identifier
+    #dangerous to keep in db
+    try:
+        a=db.insert('properties',
+                        description=property_text,
+                        location=property_id,
+                        owner=landlord_id,vars=locals())
+        if a>0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
 def search_users(user, **kw):
     '''search for similar usernames given constraints'''
     #RISK CAN GIVE A LOT OF DANGEROUS INFO! Whitelist safe keys!!!
@@ -537,7 +564,7 @@ def save_user_keys(userid, pub_key, sec_key, refresh_token):
 def get_unconfirmed_requests(userid):
     '''retrieve unconfirmed requests related to given userid'''
     try:
-        return db.query("SELECT k.username AS from,kk.username AS to,p.started AS sent \
+        return db.query("SELECT k.username AS from,kk.username AS to,p.started AS sent,p.location as location \
                         FROM relations AS p \
                         INNER JOIN users k ON p.tenant = k.id \
                         INNER JOIN users kk ON p.landlord = kk.id \
@@ -547,13 +574,13 @@ def get_unconfirmed_requests(userid):
     except:
        return []
 
-def make_relation_request(tenant, landlord):
+def make_relation_request(tenant, landlord, location):
     '''relation request, only tenant can'''
     try:
         num=db.query("INSERT INTO relations \
-                    (tenant, landlord) \
-                    VALUES ($tenant, $landlord)",
-                    vars={'tenant': tenant, 'landlord': landlord})
+                    (tenant, landlord, location) \
+                    VALUES ($tenant, $landlord, $location)",
+                    vars={'tenant': tenant, 'landlord': landlord, 'location': location})
         if num > 0:
             return True
         else:
@@ -561,14 +588,19 @@ def make_relation_request(tenant, landlord):
     except:
         return False
 
-def confirm_relation_request(tenant, landlord):
+def confirm_relation_request(tenant, landlord, location):
     '''confirm relation request, only landlord can'''
     try:
         num=db.query("UPDATE relations \
                     SET confirmed = $confirmed \
                     WHERE tenant = $tenant \
-                    AND landlord = $landlord",
-                    vars={'confirmed': True, 'tenant': tenant, 'landlord': landlord})
+                    AND landlord = $landlord \
+                    AND location = $location \
+                    AND confirmed = FALSE",
+                    vars={'confirmed': True,
+                        'tenant': tenant,
+                        'landlord': landlord,
+                        'location': location})
         if num > 0:
             return True
         else:
@@ -582,6 +614,7 @@ def end_relation(tenant, landlord):
         num=db.query("UPDATE relations \
                     SET stopped = current_timestamp \
                     WHERE tenant = $tenant \
+                    AND stopped IS NULL \
                     AND landlord = $landlord",
                     vars={'tenant': tenant, 'landlord': landlord})
         if num > 0:
@@ -596,7 +629,7 @@ def get_relations(userid):
     #TODO FUCKING CLEAN THIS UP - SO SLOW I BET
     #TODO Add dates to relations?
     try:
-        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id,kk.username AS landlord,p.started,p.stopped \
+        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id,kk.username AS landlord,p.started,p.stopped,p.location \
                         FROM relations as p \
                         INNER JOIN users k ON p.tenant = k.id \
                         INNER JOIN users kk ON p.landlord = kk.id \
@@ -651,7 +684,7 @@ def open_issue(tenant_id, severity, description):
     try:
         a=db.query("INSERT INTO issues (description, status, creator, severity, owner, location) \
                     VALUES ($description, $status, $creator, $severity, \
-                    (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant LIMIT 1))",
+                    (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1))",
                     vars={'description': description,
                             'status': 'Open',
                             'creator': tenant_id,
@@ -684,6 +717,7 @@ def close_issue(landlord_id, issue_id):
 
 def get_open_issues(tenant_id, start=1, num=10):
     '''tenant function; get all open issues at current residence'''
+    #TODO retrieve number of comments, too
     try:
         return db.query("SELECT k.owner,k.description,k.creator,k.opened,k.status,k.severity FROM \
                 issues k \

@@ -157,6 +157,7 @@ new_password_form = form.Form(
 
 #make relation request form
 relation_request_form = form.Form(
+                        form.Textbox("location", id="location"),
                         form.Hidden("relation_type", value="request"),
                         form.Button("submit", type="submit", html="Request relation"))
 
@@ -566,22 +567,15 @@ class search_landlord:
 
 class landlord_query:
     '''get landlord info/make request/end relation'''
-    #TODO Shorten, and give more info on errors
+    #TODO Give more info on errors
     def GET(self, arg):
         if session.login == True:
-            info=model.get_user_info(arg,
-                                    where='username',
-                                    category=True,
-                                    username=True,
-                                    email=True)
-            try:
-                if info['category'] == 'Landlord':
-                    f = relation_request_form()
-                    return render.landlord_page(info, f)
-                else:
+            info=model.get_landlord_info(arg)
+            if info:
+                f = relation_request_form()
+                return render.landlord_page(info, f)
+            else:
                     raise web.badrequest()
-            except TypeError:
-                raise web.badrequest()
         else:
             raise web.unauthorized()
 
@@ -591,10 +585,10 @@ class landlord_query:
         if session.login == True:
             try:
                 x=web.input()
-                lan=model.get_user_info(name,where='username',id=True,category=True)
-                if lan['category'] == 'Landlord':
+                lan=model.get_landlord_info(name)
+                if lan:
                     if x.relation_type == 'request':
-                        if model.make_relation_request(session.id,lan['id']):
+                        if model.make_relation_request(session.id,lan['id'],x.location):
                             return 'made request'
                         else:
                             return "no request"
