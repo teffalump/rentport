@@ -1,8 +1,9 @@
 # The general functional model of the app
 
 # Notes: user parameters are ids, unless otherwise indicated
+# TODO Usually, I retrieve/update/delete, etc records oldest (id = 1) first, change?
 
-import web, scrypt, random, magic, sendgrid, re, stripe, json
+import web,sys, scrypt, random, magic, sendgrid, re, stripe, json
 from psycopg2 import Error as DBError
 import config
 
@@ -12,14 +13,16 @@ db = web.database(  dbn='postgres',
                     user=config.db.user, 
                     pw=config.db.pw)
 
-def get_documents(user):
+def get_documents(user, start=1, num=10):
     '''Retrieve relevant info from documents to display'''
     try:
         return db.query("SELECT title,description,landlord,to_char(posted_on, 'YYYY-MM-DD') AS posted_on \
                         FROM agreements \
                         WHERE user_id=$user \
-                        ORDER BY id ASC",
-                        vars={'user':user})
+                        ORDER BY id ASC OFFSET $os LIMIT $lim",
+                        vars={'user':user,
+                            'os': int(start)-1,
+                            'lim': int(num)})
     except:
         return []
 
@@ -444,29 +447,19 @@ def save_payment(origin,to,charge_id):
     except:
         return False
 
-def get_payments(user):
-    '''return all local info on user related payments'''
+def get_payments(user, start=1, num=10):
+    '''return user related payment info'''
+    #TODO Figure out amount retrieving
     try:
-        return db.query("SELECT to_user as to,from_user as from,to_char(time, 'YYYY-MM-DD') as date \
-                            FROM payments \
-                            WHERE from = $user OR to = $user",
-                            vars={'user': user})
-    except:
-        return []
-
-def get_payment(user, num):
-    '''get complete user related payment info on payment num'''
-    try:
-        info = db.query("SELECT stripe_id,from_user as from,to_user as to,to_char(time, 'YYYY-MM-DD') as date \
+        return db.query("SELECT stripe_id,from_user as from,to_user as to,to_char(time, 'YYYY-MM-DD') as date \
                             FROM payments \
                             WHERE from_user=$user OR to_user=$user \
-                            ORDER BY id ASC LIMIT 1 OFFSET $os",
-                            vars={'user': user, 'os': int(num)-1})[0]
-        charge = get_charge_info(info['stripe_id'])
-        info['amount']=charge['amount']
-        return info
-    except (IndexError, KeyError):
-        return None
+                            ORDER BY id ASC LIMIT $num OFFSET $os",
+                            vars={'user': user,
+                                    'os': int(start)-1,
+                                    'num': int(num)})
+    except:
+        return []
 
 def authorize_payment(token, amount, api_key, from_user, from_user_id, to_user_id):
     '''authorize payment, return charge id'''
@@ -653,17 +646,17 @@ def get_current_tenant_ids(userid):
     except:
         return []
 
-def open_issue(user_id, severity, description):
-    '''open issue; only tenant'''
+def open_issue(tenant_id, severity, description):
+    '''tenant function; open issue'''
     try:
-        a=db.query("INSERT INTO issues (description, status, creator, severity, owner) \
+        a=db.query("INSERT INTO issues (description, status, creator, severity, owner, location) \
                     VALUES ($description, $status, $creator, $severity, \
-                    (SELECT landlord AS owner FROM relations WHERE stopped IS NULL AND tenant = $tenant LIMIT 1))",
+                    (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant LIMIT 1))",
                     vars={'description': description,
                             'status': 'Open',
-                            'creator': user_id,
+                            'creator': tenant_id,
                             'severity': severity,
-                            'tenant': user_id})
+                            'tenant': tenant_id})
         if a>0:
             return True
         else:
@@ -671,18 +664,17 @@ def open_issue(user_id, severity, description):
     except:
         return False
 
-def close_issue(user_id, issue_id):
-    '''issues is fixed, close issue; only landlord'''
+def close_issue(landlord_id, issue_id):
+    '''landlord function;close issue'''
     try:
-        a=db.query('UPDATE issues \
+        a=db.query("UPDATE issues \
                     SET status = $status, closed = current_timestamp \
-                    FROM ( SELECT status FROM issues \
-                            WHERE owner = $user_id \
-                            ORDER BY id ASC LIMIT 1 \
-                            OFFSET $os ) AS t',
-                vars={'status': 'Closed',
-                        'os': issue_id,
-                        'user_id': user_id})
+                    WHERE id IN (SELECT id FROM issues WHERE owner = $landlord_id \
+                        AND status IN ('Open', 'Pending') \
+                        ORDER BY id ASC OFFSET $os LIMIT 1)",
+                    vars={'status': 'Closed',
+                            'os': int(issue_id)-1,
+                            'user_id': landlord_id})
         if a>0:
             return True
         else:
@@ -690,45 +682,69 @@ def close_issue(user_id, issue_id):
     except:
         return False
 
-def get_issue(user_id, issue_id):
-    '''retrieve issue info'''
+def get_open_issues(tenant_id, start=1, num=10):
+    '''tenant function; get all open issues at current residence'''
     try:
-        return db.query("SELECT owner,description,creator,opened,status,severity \
-                            FROM issues \
-                            WHERE owner = $user_id \
-                            LIMIT 1 ORDER BY id ASC OFFSET $os",
-                            vars={'user_id': user_id, 'os': issue_id})[0]
+        return db.query("SELECT k.owner,k.description,k.creator,k.opened,k.status,k.severity FROM \
+                issues k \
+                INNER JOIN relations t ON t.location = k.location \
+                AND t.landlord = k.owner \
+                WHERE status IN ('Open', 'Pending') \
+                ORDER BY id ASC OFFSET $os LIMIT $limit",
+                vars={'os': int(start)-1,
+                        'limit': int(num),
+                        'tenant': tenant_id})
     except:
-        return {}
+        return []
+
+def respond_to_issue(landlord_id, issue_id, comment):
+    '''landlord function; comment on issue; relative id'''
+    try:
+        a=db.query("INSERT INTO comments \
+                        (text, user_id, issue_id) VALUES \
+                        ($comment, $id, (SELECT id AS issue_id FROM issues k \
+                        WHERE status IN ('Open', 'Pending') \
+                        AND owner = $landlord \
+                        ORDER BY id ASC OFFSET $os LIMIT 1))",
+                vars={'comment': comment,
+                    'landlord': landlord_id,
+                    'id': landlord_id,
+                    'os': int(issue_id)-1})
+        if a>0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+def comment_on_issue(tenant_id, issue_id, comment):
+    '''tenant function; comment on issue; relative id'''
+    try:
+        a=db.query("INSERT INTO comments \
+                (text, user_id, issue_id) VALUES \
+                ($comment, $tenant, (SELECT id AS issue_id FROM issues k \
+                    INNER JOIN relations t ON t.location = k.location \
+                    AND t.landlord = k.owner \
+                    WHERE status IN ('Open', 'Pending') \
+                    ORDER BY id ASC OFFSET $os LIMIT 1))",
+                    vars={'comment': comment,
+                        'tenant': tenant_id,
+                        'os': int(issue_id)-1})
+        if a>0:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 def get_comments(issue_id):
-    '''get comments from issue'''
+    '''get comments from issue (absolute id)'''
     try:
         return db.query("SELECT t.username,k.posted,k.text \
-                        FROM comments AS k \
-                        INNER JOIN users t ON k.user_id = t.username \
-                        WHERE k.issue_id = $issue_id \
-                        ORDER BY k.id ASC",
+                            FROM comments AS k \
+                            INNER JOIN users t ON k.user_id = t.id \
+                            WHERE k.issue_id = $issue_id \
+                            ORDER BY k.id ASC",
                         vars={'issue_id': issue_id})
     except:
         return []
-
-def get_issues(user_id):
-    '''retrieve issues'''
-    try:
-        return db.query("SELECT owner,description,creator,opened,status,severity \
-                            FROM issues \
-                            WHERE owner = $user_id \
-                            OR creator = $user_id \
-                            ORDER BY id ASC",
-                            vars={'user_id': user_id})
-    except:
-        return []
-
-def update_issue(issue_id):
-    '''update issue info'''
-    pass
-
-def comment_on_issue(user_id, issue_id, comment):
-    '''comment on issue'''
-    pass
