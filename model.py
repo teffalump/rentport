@@ -165,7 +165,7 @@ def add_property(landlord_id, property_id, property_text):
         a=db.insert('properties',
                         description=property_text,
                         location=property_id,
-                        owner=landlord_id,vars=locals())
+                        owner=landlord_id)
         if a>0:
             return True
         else:
@@ -682,9 +682,7 @@ def get_current_tenant_ids(userid):
 def open_issue(tenant_id, severity, description):
     '''tenant function; open issue'''
     try:
-        a=db.query("INSERT INTO issues (description, status, creator, severity, owner, location) \
-                    VALUES ($description, $status, $creator, $severity, \
-                    (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1))",
+        a=db.query("WITH tb AS (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1) INSERT INTO issues (owner,location,description,status,creator,severity) SELECT *,$description AS description,$status AS status,$creator AS creator,$severity AS severity FROM tb",
                     vars={'description': description,
                             'status': 'Open',
                             'creator': tenant_id,
@@ -716,18 +714,11 @@ def close_issue(landlord_id, issue_id):
         return False
 
 def get_open_issues(tenant_id, start=1, num=10):
-    '''tenant function; get all open issues at current residence'''
-    #TODO retrieve number of comments, too
+    '''tenant function; get open issues at current residence'''
     try:
-        return db.query("SELECT k.owner,k.description,k.creator,k.opened,k.status,k.severity FROM \
-                issues k \
-                INNER JOIN relations t ON t.location = k.location \
-                AND t.landlord = k.owner \
-                WHERE status IN ('Open', 'Pending') \
-                ORDER BY id ASC OFFSET $os LIMIT $limit",
-                vars={'os': int(start)-1,
-                        'limit': int(num),
-                        'tenant': tenant_id})
+        return db.query("WITH tb AS (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1), iss AS (SELECT k.*,count(c.id) AS num_cms FROM issues k NATURAL INNER JOIN tb LEFT JOIN comments c ON c.issue_id = k.id WHERE k.status in ('Open','Pending') GROUP BY k.id ORDER BY k.id ASC OFFSET $os LIMIT $limit) SELECT p.username AS creator,k.status,k.severity,k.num_cms,k.status,k.description FROM iss k INNER JOIN users p ON p.id = k.creator", vars={'os': int(start)-1,
+                    'limit': int(num),
+                    'tenant': tenant_id})
     except:
         return []
 
@@ -736,10 +727,9 @@ def respond_to_issue(landlord_id, issue_id, comment):
     try:
         a=db.query("INSERT INTO comments \
                         (text, user_id, issue_id) VALUES \
-                        ($comment, $id, (SELECT id AS issue_id FROM issues k \
+                        ($comment, $id, (SELECT id FROM issues \
                         WHERE status IN ('Open', 'Pending') \
-                        AND owner = $landlord \
-                        ORDER BY id ASC OFFSET $os LIMIT 1))",
+                        AND owner = $landlord ORDER BY id ASC OFFSET $os LIMIT 1))",
                 vars={'comment': comment,
                     'landlord': landlord_id,
                     'id': landlord_id,
@@ -754,13 +744,7 @@ def respond_to_issue(landlord_id, issue_id, comment):
 def comment_on_issue(tenant_id, issue_id, comment):
     '''tenant function; comment on issue; relative id'''
     try:
-        a=db.query("INSERT INTO comments \
-                (text, user_id, issue_id) VALUES \
-                ($comment, $tenant, (SELECT id AS issue_id FROM issues k \
-                    INNER JOIN relations t ON t.location = k.location \
-                    AND t.landlord = k.owner \
-                    WHERE status IN ('Open', 'Pending') \
-                    ORDER BY id ASC OFFSET $os LIMIT 1))",
+        a=db.query("WITH tb AS (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1) INSERT INTO comments (text,user_id,issue_id) VALUES ($comment, $tenant, (SELECT k.id FROM issues k NATURAL INNER JOIN tb WHERE k.status in ('Open','Pending') ORDER BY k.id ASC OFFSET $os LIMIT 1))",
                     vars={'comment': comment,
                         'tenant': tenant_id,
                         'os': int(issue_id)-1})
