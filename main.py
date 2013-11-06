@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+#TODO Remove bloated session variables --> more robust model coding
+
 from sanction import Client
 from json import dumps
 import issues

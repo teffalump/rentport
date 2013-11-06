@@ -2,6 +2,9 @@
 
 # Notes: user parameters are ids, unless otherwise indicated
 # TODO Usually, I retrieve/update/delete, etc records oldest (id = 1) first, change?
+# TODO Implement PENDING status for issues? Way later
+# TODO Return posted info on success and similar adjustments
+# TODO Consolidate tenant and landlord functions!!!
 
 import web,sys, scrypt, random, magic, sendgrid, re, stripe, json
 from psycopg2 import Error as DBError
@@ -460,6 +463,12 @@ def accepts_cc(userid):
     except IndexError:
         return False
 
+def get_category(userid):
+    try:
+        return db.select('users', what='category', where='id=$userid', limit=1, vars=locals())[0]['category']
+    except:
+        return None
+
 def save_payment(origin,to,charge_id):
     '''save payment to db'''
     try:
@@ -629,13 +638,14 @@ def get_relations(userid):
     #TODO FUCKING CLEAN THIS UP - SO SLOW I BET
     #TODO Add dates to relations?
     try:
-        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id,kk.username AS landlord,p.started,p.stopped,p.location \
-                        FROM relations as p \
-                        INNER JOIN users k ON p.tenant = k.id \
-                        INNER JOIN users kk ON p.landlord = kk.id \
-                        WHERE p.confirmed = True \
-                        AND (p.tenant = $userid OR p.landlord = $userid) \
-                        ORDER BY started DESC",
+        opaque=db.query("SELECT k.username AS tenant,p.tenant AS tenant_id, \
+                kk.username AS landlord,p.started,p.stopped,p.location \
+            FROM relations as p \
+            INNER JOIN users k ON p.tenant = k.id \
+            INNER JOIN users kk ON p.landlord = kk.id \
+            WHERE p.confirmed = True \
+                AND (p.tenant = $userid OR p.landlord = $userid) \
+            ORDER BY started DESC",
                         vars={'userid': userid})
         relations={}
         for row in opaque:
@@ -681,13 +691,20 @@ def get_current_tenant_ids(userid):
 
 def open_issue(tenant_id, severity, description):
     '''tenant function; open issue'''
+    #TODO Send email?
     try:
-        a=db.query("WITH tb AS (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1) INSERT INTO issues (owner,location,description,status,creator,severity) SELECT *,$description AS description,$status AS status,$creator AS creator,$severity AS severity FROM tb",
-                    vars={'description': description,
-                            'status': 'Open',
-                            'creator': tenant_id,
-                            'severity': severity,
-                            'tenant': tenant_id})
+        a=db.query("WITH tb AS (SELECT landlord AS owner,location FROM \
+                    relations WHERE stopped IS NULL AND tenant = $tenant \
+                    AND confirmed = TRUE LIMIT 1) \
+            INSERT INTO issues \
+                (owner,location,description,status,creator,severity) \
+            SELECT *,$description AS description,$status AS status, \
+                $creator AS creator,$severity AS severity FROM tb",
+                vars={'description': description,
+                    'status': 'Open',
+                    'creator': tenant_id,
+                    'severity': severity,
+                    'tenant': tenant_id})
         if a>0:
             return True
         else:
@@ -695,17 +712,18 @@ def open_issue(tenant_id, severity, description):
     except:
         return False
 
-def close_issue(landlord_id, issue_id):
+def close_issue(landlord_id, issue_id, reason):
     '''landlord function;close issue'''
+    #TODO Send email?
+    #TODO Add reason for closing (make last comment?)
     try:
         a=db.query("UPDATE issues \
-                    SET status = $status, closed = current_timestamp \
+                    SET status = 'Closed', closed = current_timestamp \
                     WHERE id IN (SELECT id FROM issues WHERE owner = $landlord_id \
                         AND status IN ('Open', 'Pending') \
                         ORDER BY id ASC OFFSET $os LIMIT 1)",
-                    vars={'status': 'Closed',
-                            'os': int(issue_id)-1,
-                            'user_id': landlord_id})
+                    vars={'os': int(issue_id)-1,
+                            'landlord_id': landlord_id})
         if a>0:
             return True
         else:
@@ -713,23 +731,36 @@ def close_issue(landlord_id, issue_id):
     except:
         return False
 
-def get_open_issues(tenant_id, start=1, num=10):
-    '''tenant function; get open issues at current residence'''
+def tenant_get_issues(tenant_id, status='Open', start=1, num=10):
+    '''tenant function; get issues at current residence'''
     try:
-        return db.query("WITH tb AS (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1), iss AS (SELECT k.*,count(c.id) AS num_cms FROM issues k NATURAL INNER JOIN tb LEFT JOIN comments c ON c.issue_id = k.id WHERE k.status in ('Open','Pending') GROUP BY k.id ORDER BY k.id ASC OFFSET $os LIMIT $limit) SELECT p.username AS creator,k.status,k.severity,k.num_cms,k.status,k.description FROM iss k INNER JOIN users p ON p.id = k.creator", vars={'os': int(start)-1,
+        return db.query("WITH tb AS (SELECT landlord AS owner,location \
+                FROM relations WHERE stopped IS NULL AND tenant = $tenant \
+                AND confirmed = TRUE LIMIT 1), \
+            iss AS (SELECT k.*,count(c.id) AS num_cms FROM issues k \
+                NATURAL INNER JOIN tb LEFT JOIN comments c ON c.issue_id = k.id \
+                WHERE k.status = $status GROUP BY k.id \
+                ORDER BY k.id ASC OFFSET $os LIMIT $limit) \
+            SELECT p.username AS creator,pp.username AS owner,k.status, \
+                k.severity,k.num_cms,k.status,k.description FROM iss k \
+                INNER JOIN users pp ON pp.id = k.owner \
+                INNER JOIN users p ON p.id = k.creator",
+                vars={'os': int(start)-1,
                     'limit': int(num),
-                    'tenant': tenant_id})
+                    'tenant': tenant_id,
+                    'status': status})
     except:
         return []
 
-def respond_to_issue(landlord_id, issue_id, comment):
+def landlord_comment_on_issue(landlord_id, issue_id, comment):
     '''landlord function; comment on issue; relative id'''
+    #TODO Send email?
     try:
-        a=db.query("INSERT INTO comments \
-                        (text, user_id, issue_id) VALUES \
-                        ($comment, $id, (SELECT id FROM issues \
-                        WHERE status IN ('Open', 'Pending') \
-                        AND owner = $landlord ORDER BY id ASC OFFSET $os LIMIT 1))",
+        a=db.query("INSERT INTO comments (text, user_id, issue_id) \
+                    VALUES ($comment, $id, \
+                    (SELECT id FROM issues WHERE status IN \
+                        ('Open', 'Pending') AND owner = $landlord \
+                        ORDER BY id ASC OFFSET $os LIMIT 1))",
                 vars={'comment': comment,
                     'landlord': landlord_id,
                     'id': landlord_id,
@@ -741,10 +772,39 @@ def respond_to_issue(landlord_id, issue_id, comment):
     except:
         return False
 
-def comment_on_issue(tenant_id, issue_id, comment):
-    '''tenant function; comment on issue; relative id'''
+def landlord_get_issues(landlord_id, status='Open', start=1, num=10):
+    '''landlord function; get issues'''
     try:
-        a=db.query("WITH tb AS (SELECT landlord AS owner,location FROM relations WHERE stopped IS NULL AND tenant = $tenant AND confirmed = TRUE LIMIT 1) INSERT INTO comments (text,user_id,issue_id) VALUES ($comment, $tenant, (SELECT k.id FROM issues k NATURAL INNER JOIN tb WHERE k.status in ('Open','Pending') ORDER BY k.id ASC OFFSET $os LIMIT 1))",
+        return db.query("WITH iss AS \
+            (SELECT k.*,count(c.id) AS num_cms FROM issues k \
+                LEFT JOIN comments c ON c.issue_id = k.id \
+                WHERE k.status = $status AND k.owner = $landlord \
+                GROUP BY k.id ORDER BY k.id ASC OFFSET $os LIMIT $limit) \
+            SELECT p.username AS creator,k.status,k.severity, \
+                k.num_cms,k.status,k.description, \
+                pp.username AS owner FROM iss k \
+            INNER JOIN users p ON p.id = k.creator \
+            INNER JOIN users pp ON pp.id = k.owner",
+            vars={'os': int(start)-1,
+                'limit': int(num),
+                'landlord': landlord_id,
+                'status': status})
+    except:
+        return []
+
+def tenant_comment_on_issue(tenant_id, issue_id, comment):
+    '''tenant function; comment on issue; relative id'''
+    #TODO Send email?
+    try:
+        a=db.query("WITH tb AS \
+            (SELECT landlord AS owner,location FROM relations \
+                WHERE stopped IS NULL AND tenant = $tenant \
+                AND confirmed = TRUE LIMIT 1) \
+            INSERT INTO comments (text,user_id,issue_id) \
+            VALUES ($comment, $tenant, \
+                (SELECT k.id FROM issues k NATURAL INNER JOIN tb \
+                    WHERE k.status in ('Open','Pending') \
+                    ORDER BY k.id ASC OFFSET $os LIMIT 1))",
                     vars={'comment': comment,
                         'tenant': tenant_id,
                         'os': int(issue_id)-1})
@@ -755,14 +815,69 @@ def comment_on_issue(tenant_id, issue_id, comment):
     except:
         return False
 
-def get_comments(issue_id):
-    '''get comments from issue (absolute id)'''
+def tenant_get_comments(tenant_id, issue_id, start=1, num=10):
+    '''tenant function; get comments from issue'''
     try:
-        return db.query("SELECT t.username,k.posted,k.text \
-                            FROM comments AS k \
-                            INNER JOIN users t ON k.user_id = t.id \
-                            WHERE k.issue_id = $issue_id \
-                            ORDER BY k.id ASC",
-                        vars={'issue_id': issue_id})
+        return db.query("WITH tb AS (SELECT landlord AS owner,location \
+                FROM relations WHERE stopped IS NULL AND tenant = $tenant \
+                AND confirmed = TRUE LIMIT 1) \
+            SELECT t.username,k.text,k.posted FROM comments k \
+                INNER JOIN users t ON k.user_id = t.id \
+                WHERE k.issue_id IN (SELECT l.id FROM issues l \
+                    NATURAL INNER JOIN tb WHERE l.status IN ('Open', 'Pending') \
+                    ORDER BY l.id ASC OFFSET $issue_id LIMIT 1) \
+                ORDER BY k.id ASC OFFSET $os LIMIT $lim",
+                        vars={'issue_id': int(issue_id)-1,
+                            'os': int(start)-1,
+                            'tenant': int(tenant_id),
+                            'lim': int(num)})
+    except:
+        return []
+
+def landlord_get_comments(landlord_id, issue_id, start=1, num=10):
+    '''landlord function; get comments from issue'''
+    try:
+        return db.query("SELECT t.username,k.text,k.posted FROM comments k \
+                INNER JOIN users t ON k.user_id = t.id \
+                WHERE k.issue_id IN (SELECT id FROM issues p \
+                    WHERE p.status IN ('Open', 'Pending') \
+                    AND p.owner = $landlord ORDER BY p.id ASC \
+                    OFFSET $issue_id LIMIT 1) \
+                ORDER BY k.id ASC OFFSET $os LIMIT $lim",
+                vars={'issue_id': int(issue_id)-1,
+                    'os': int(start)-1,
+                    'landlord': int(landlord_id),
+                    'lim': int(num)})
+    except:
+        return sys.exc_info()
+        return []
+
+def get_issues(userid, **kw):
+    '''wrapper for getting issues'''
+    try:
+        if get_category(userid) == 'Tenant':
+            return tenant_get_issues(userid, **kw)
+        else:
+            return landlord_get_issues(userid, **kw)
+    except:
+        return []
+
+def comment_on_issue(userid, issue_id, comment):
+    '''wrapper for posting comments'''
+    try:
+        if get_category(userid) == 'Tenant':
+            return tenant_comment_on_issue(userid, issue_id, comment)
+        else:
+            return landlord_comment_on_issue(userid, issue_id, comment)
+    except:
+        return None
+
+def get_comments(userid, issue_id, **kw):
+    '''wrapper for listing comments'''
+    try:
+        if get_category(userid) == 'Tenant':
+            return tenant_get_comments(userid, issue_id, **kw)
+        else:
+            return landlord_get_comments(userid, issue_id, **kw)
     except:
         return []
