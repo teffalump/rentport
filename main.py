@@ -16,9 +16,10 @@ urls = (
             '/issues', issues.issues_app,
             '/oauth/authorize/stripe/?', 'authorize_stripe',
             '/oauth/callback/stripe/?', 'callback_stripe',
-            '/agreement/post/?', 'post_agreement',
-            '/agreement/list/?', 'list_agreements',
-            '/agreement/(\d+)', 'agreements',
+            '/agreements/post/?', 'post_agreement',
+            '/agreements/list/?', 'list_agreements',
+            '/agreements/(\d+)', 'agreements',
+            '/agreements/?', 'agreements_home',
             '/verify/confirm/?', 'confirm_verify',
             '/verify/request/?', 'request_verify',
             '/reset/confirm/?', 'confirm_reset',
@@ -27,8 +28,8 @@ urls = (
             '/landlord/confirm/?', 'confirm_relation',
             '/landlord/(.+)', 'landlord_query',
             '/pay/(.+)', 'pay_user',
-            '/payment/list/?', 'list_payments',
-            '/payment/(\d+)', 'payment_info',
+            '/payments/list/?', 'list_payments',
+            '/payments/(\d+)', 'payment_info',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
@@ -49,18 +50,16 @@ web.config.session_parameters['expired_message']='Session expired'
 #web.config.session_parameters['secure']=True
 
 #using session store with database
-db = web.database(  dbn='postgres', 
-                    db=config.db.name, 
-                    user=config.db.user, 
+db = web.database(  dbn='postgres',
+                    db=config.db.name,
+                    user=config.db.user,
                     pw=config.db.pw
                 )
 store = web.session.DBStore(db, 'sessions')
 session = web.session.Session(app, store, initializer={ 'login': False,
-                                                        'id': -1, 
-                                                        'verified': False, 
-                                                        'email': None, 
+                                                        'id': -1,
                                                         'username': None,
-                                                        'category': None})
+                                                        'verified': False})
 
 
 #form validators
@@ -72,15 +71,13 @@ vpass = form.regexp(r"^.{12,}$", 'must be at least 12 characters')
 
 #### prevent csrf
 def csrf_token():
-    if not session.has_key('csrf_token'):
-        session.csrf_token=uuid4().hex
-    return session.csrf_token
+    return session.setdefault('csrf_token', uuid4().hex)
 
 def csrf_protected(f):
     def decorated(*args,**kwargs):
         inp = web.input()
         if not (inp.has_key('csrf_token') and inp.csrf_token==session.pop('csrf_token',None)):
-            raise web.HTTPError("400 Bad Request", 
+            raise web.HTTPError("400 Bad Request",
                                 {'content-type': 'text/html'},
                                 'Sorry for the inconvenience, but this could be an CSRF attempt, so we blocked it. Fail safely')
         return f(*args,**kwargs)
@@ -90,11 +87,9 @@ def set_session_values(userid):
     '''set the default session values'''
     session.login=True
     session.id = userid
-    info = model.get_user_info(userid,where='id')
-    session.category = info['category']
-    session.email = info['email']
-    session.username = info['username']
-    session.verified = info['verified']
+    a = model.get_user_info(userid,where='id')
+    session.verified = a['verified']
+    session.username = a['username']
     return True
 
 def session_hook():
@@ -116,7 +111,7 @@ upload_form = form.Form(
                     form.File("agreement"),
                     form.Textbox("title"),
                     form.Textbox("description"),
-                    form.Button("submit", type="submit", html="Upload"))
+                    form.Button("submit", type="submit", html="Upload", onclick="return sendForm(this.form, this.files)"))
 
 #register form
 register_form = form.Form(
@@ -131,6 +126,7 @@ login_form = form.Form(
                     form.Textbox("login_id"),
                     form.Password("password", vpass),
                     form.Button("submit", type="submit", html="Confirm"))
+
 #confirm verify form
 confirm_verify_form = form.Form(
                     form.Textbox("code"),
@@ -174,6 +170,7 @@ class default:
 
 class login:
     def GET(self):
+        #login form
         if session.login == True:
             raise web.seeother('/')
         else:
@@ -182,12 +179,10 @@ class login:
 
     @csrf_protected
     def POST(self):
-        '''REMEMBER: User can use email or username'''
         ip = web.ctx.ip
         x = web.input()
         if not model.allow_login(x.login_id, ip):
             return 'throttled'
-            #raise web.seeother('/login')
 
         userid = model.verify_password(x.password, x.login_id)
         if userid:
@@ -200,8 +195,7 @@ class login:
 
 class logout:
     def GET(self):
-        if session.login == True:
-            session.kill()
+        if session.login == True: session.kill()
         raise web.seeother('/')
 
 class register:
@@ -370,15 +364,27 @@ class request_verify:
         else:
             raise web.seeother('/')
 
+class agreements_home:
+    def GET(self):
+        if session.login == True:
+            try:
+                a=model.get_documents(session.id)
+                return render.agreements(a)
+            except:
+                return sys.exc_info()
+                return 'Error'
+        else:
+            raise web.unauthorized()
+
 class agreements:
     def GET(self, num):
-        if session.login:
+        if session.login == True:
             try:
-                model.get_document(session.id, num)
+                return model.get_document(session.id, num)
             except ValueError:
-                return web.badrequest()
+                raise web.badrequest()
         else:
-            return web.unauthorized()
+            raise web.unauthorized()
 
     def DELETE(self, num):
             if session.login:
@@ -395,36 +401,36 @@ class agreements:
 class post_agreement:
     '''post rental agreement'''
     def GET(self):
-        try:
-            if session.login == True:
+        #the actual form
+        if session.login == True:
+            try:
                 f=upload_form()
                 return render.post_agreement(f)
-
-            else:
-                raise web.unauthorized()
-        except:
-            return sys.exc_info()
+            except:
+                return "Error"
+        else:
+            raise web.unauthorized()
 
     @csrf_protected
     def POST(self):
+        #save agreement, return info
         x = web.input(agreement={})
         try:
-            model.save_document(
+            return dumps(model.save_document(
                                 user=session.id,
                                 title=x.title,
                                 description=x.description,
                                 data_type=model.get_file_type(x.agreement.file),
                                 filename=x.agreement.filename,
                                 data=x.agreement.value
-                                )
-            raise web.seeother('/agreement/list')
-        except: 
-            return sys.exc_info()
+                                ))
+        except:
+            return "Error uploading"
 
 class list_agreements:
     '''list agreements'''
     def GET(self):
-        if session.login:
+        if session.login == True:
             info=model.get_documents(session.id)
             return render.list_agreements(info)
         else:
@@ -631,7 +637,7 @@ class confirm_relation:
     def GET(self):
         if session.login == True and session.category == 'Landlord':
             try:
-                reqs = [row for row in model.get_unconfirmed_requests(session.id) if row['to'] == session.username]
+                reqs=[row for row in model.get_unconfirmed_requests(session.id) if row['to'] == session.username]
                 f = confirm_relation_form()
                 return render.confirm_relation(f, reqs)
             except:

@@ -7,7 +7,7 @@
 * lighttpd
 * stripe
     + python api
-* sendgrid
+* sendgrid (replace?)
     + python api
 * python libraries
     + scrypt (db encryption)
@@ -37,3 +37,8 @@
     + Any DoS/spam/bruteforce-possible attack surfaces need throttling
         + throttle logins - done (some testing)
         + throttle emails - done (untested)
+        + go through owasp top ten
+        + Do I import js plugins (e.g, jQuery)? Security considerations
+
+# Other thoughts
++ Return json? Or valid html? Like tables, etc.
