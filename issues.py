@@ -1,7 +1,5 @@
 #!/usr/bin/env python2
 
-#TODO RISK How to figure out csrf token
-
 import model
 import config
 import web
@@ -142,12 +140,13 @@ class close_issue:
 
     returns:    issue, status, closed (time)'''
     #TODO maybe return more things to update
+    #TODO Add reason parameter, when that is figured out
     @csrf_protected
     def POST(self):
         if web.ctx.session.login == True:
             x = web.input()
             try:
-                return dumps(model.close_issue(web.ctx.session.id, x.id, x.reason))
+                return dumps(dict(model.close_issue(web.ctx.session.id, x.id)))
             except:
                 raise web.badrequest()
         else:

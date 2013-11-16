@@ -17,19 +17,20 @@ urls = (
             '/oauth/authorize/stripe/?', 'authorize_stripe',
             '/oauth/callback/stripe/?', 'callback_stripe',
             '/agreements/post/?', 'post_agreement',
-            '/agreements/list/?', 'list_agreements',
-            '/agreements/(\d+)', 'agreements',
-            '/agreements/?', 'agreements_home',
+            '/agreements/show/?', 'show_agreements',
+            '/agreements/delete/?', 'delete_agreements',
+            '/agreements/?', 'agreements',
             '/verify/confirm/?', 'confirm_verify',
             '/verify/request/?', 'request_verify',
             '/reset/confirm/?', 'confirm_reset',
             '/reset/request/?', 'request_reset',
             '/landlord/search/?', 'search_landlord',
             '/landlord/confirm/?', 'confirm_relation',
-            '/landlord/(.+)', 'landlord_query',
-            '/pay/(.+)', 'pay_user',
-            '/payments/list/?', 'list_payments',
-            '/payments/(\d+)', 'payment_info',
+            '/landlord/request/?', 'request_relation',
+            '/landlord/end/?', 'end_relation',
+            '/payments/show/?', 'show_payments',
+            '/payments/pay/?', 'pay_user',
+            '/payments/?', 'payments',
             '/login/?', 'login',
             '/logout/?', 'logout',
             '/register/?', 'register',
@@ -156,13 +157,18 @@ new_password_form = form.Form(
 #make relation request form
 relation_request_form = form.Form(
                         form.Textbox("location", id="location"),
-                        form.Hidden("relation_type", value="request"),
+                        form.Textbox("user", id="username"),
                         form.Button("submit", type="submit", html="Request relation"))
 
 #confirm relation request form
 confirm_relation_form = form.Form(
                         form.Textbox("tenant"),
                         form.Button("submit", type="submit", html="Confirm relation"))
+
+#end relation form
+end_relation_form = form.Form(
+                    form.Hidden("end", value="true"),
+                    form.Button("submit", type="submit", html="End current relation"))
 
 class default:
     def GET(self):
@@ -364,39 +370,34 @@ class request_verify:
         else:
             raise web.seeother('/')
 
-class agreements_home:
+class agreements:
+    '''main agreements page'''
     def GET(self):
         if session.login == True:
             try:
                 a=model.get_documents(session.id)
                 return render.agreements(a)
             except:
-                return sys.exc_info()
-                return 'Error'
-        else:
-            raise web.unauthorized()
-
-class agreements:
-    def GET(self, num):
-        if session.login == True:
-            try:
-                return model.get_document(session.id, num)
-            except ValueError:
                 raise web.badrequest()
         else:
             raise web.unauthorized()
 
-    def DELETE(self, num):
-            if session.login:
-                try:
-                    if model.delete_document(session.id, num) == True:
-                        return '<verb>Deleted</verb><object>{0}</object>'.format(id)
-                    else:
-                        return web.notfound()
-                except ValueError:
-                    return web.badrequest()
-            else:
-                return web.unauthorized()
+class delete_agreements:
+    '''delete agreement'''
+    def POST(self):
+        x=web.input()
+        if session.login:
+            try:
+                if model.delete_document(session.id, x.id) == True:
+                    return '<verb>Deleted</verb><object>{0}</object>'.format(x.id)
+                else:
+                    return web.notfound()
+            except AttributeError:
+                raise web.badrequest()
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
 
 class post_agreement:
     '''post rental agreement'''
@@ -427,14 +428,20 @@ class post_agreement:
         except:
             return "Error uploading"
 
-class list_agreements:
-    '''list agreements'''
+class show_agreements:
+    '''show or dl agreements'''
     def GET(self):
+        x=web.input()
         if session.login == True:
-            info=model.get_documents(session.id)
-            return render.list_agreements(info)
+            try:
+                return model.get_document(session.id, x.id)
+            except AttributeError:
+                info=model.get_documents(session.id)
+                return render.list_agreements(info)
+            except:
+                raise web.badrequest
         else:
-            return web.unauthorized()
+            raise web.unauthorized()
 
 class profile:
     '''View and change info on profile'''
@@ -485,25 +492,26 @@ class profile:
         else:
             raise web.unauthorized()
 
-class list_payments:
-    '''list payments'''
+class payments:
+    '''main payments page'''
     def GET(self):
-        '''list payments'''
         if session.login == True:
-            payments_info = model.get_payments(session.id)
-            return render.payment_info(payments_info)
+            return render.payments_home()
         else:
             raise web.unauthorized()
 
-class payment_info:
-    '''get charge info'''
-    def GET(self, arg):
+class show_payments:
+    '''show payments'''
+    def GET(self):
+        x=web.input()
         if session.login == True:
             try:
-                charge=model.get_payment(session.id, arg)
-                return charge
+                return model.get_payment(session.id, x.id)
+            except AttributeError:
+                payments_info = model.get_payments(session.id)
+                return render.payment_info(payments_info)
             except:
-                return web.badrequest()
+                raise web.badrequest
         else:
             raise web.unauthorized()
 
@@ -573,60 +581,28 @@ class search_landlord:
         else:
             raise web.unauthorized()
 
-class landlord_query:
-    '''get landlord info/make request/end relation'''
+class request_relation:
+    '''make relation request'''
     #TODO Give more info on errors
-    def GET(self, arg):
-        if session.login == True:
-            info=model.get_landlord_info(arg)
-            if info:
-                f = relation_request_form()
-                return render.landlord_page(info, f)
-            else:
-                    raise web.badrequest()
-        else:
-            raise web.unauthorized()
-
-    @csrf_protected
-    def POST(self, name):
-        x=web.input()
+    def GET(self):
         if session.login == True:
             try:
-                x=web.input()
-                lan=model.get_landlord_info(name)
-                if lan:
-                    if x.relation_type == 'request':
-                        if model.make_relation_request(session.id,lan['id'],x.location):
-                            return 'made request'
-                        else:
-                            return "no request"
-                    elif x.relation_type == 'end':
-                        if model.end_relation(session.id,lan['id']):
-                            return 'ended relationship'
-                        else:
-                            return 'unknown relation'
-                    else:
-                        return 'weird request type'
-                else:
-                    return 'not landlord'
+                f = relation_request_form()
+                return render.landlord_page(f)
             except:
                 raise web.badrequest()
         else:
             raise web.unauthorized()
 
-class search_users:
-    '''grep similar username, given constrants'''
-    #RISK This is available to any user, be very careful of the keys allowed!
-    def GET(self):
-        allowed_keys=['accepts_cc', 'category']
+    @csrf_protected
+    def POST(self):
+        x=web.input()
         if session.login == True:
             try:
-                x=web.input()
-                username=x.username
-                for key in x.keys():
-                    if key not in allowed_keys:
-                        del x[key]
-                return dumps([row for row in model.search_users(username, **x)])
+                if model.make_relation_request(session.id,x.user,x.location):
+                    return 'made request'
+                else:
+                    return "no request"
             except:
                 raise web.badrequest()
         else:
@@ -635,11 +611,10 @@ class search_users:
 class confirm_relation:
     '''confirm relation request from tenant'''
     def GET(self):
-        if session.login == True and session.category == 'Landlord':
+        if session.login == True:
             try:
-                reqs=[row for row in model.get_unconfirmed_requests(session.id) if row['to'] == session.username]
                 f = confirm_relation_form()
-                return render.confirm_relation(f, reqs)
+                return render.confirm_relation_form(f)
             except:
                 raise web.badrequest()
         else:
@@ -647,14 +622,52 @@ class confirm_relation:
 
     @csrf_protected
     def POST(self):
-        if session.login == True and session.category == 'Landlord':
+        x=web.input()
+        if session.login == True:
             try:
-                x=web.input()
-                ten_id=model.get_user_info(x.tenant, where='username', id=True)['id']
-                if model.confirm_relation_request(ten_id, session.id):
+                if model.confirm_relation_request(x.user, session.id):
                     return "confirmed"
                 else:
                     return "error"
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+class end_relation:
+    '''end relation'''
+    def GET(self):
+        if session.login == True:
+            try:
+                f = end_relation_form()
+                return render.end_relation_form(f)
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+    def POST(self):
+        x = web.input()
+        if session.login == True:
+            try:
+                if x.end == 'true':
+                    return model.end_relation(session.id)
+                else:
+                    raise web.badrequest()
+            except AttributeError:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+class search_users:
+    '''grep similar username, given constrants'''
+    #RISK This is available to any user, be very careful of the keys allowed!
+    #RISK do on backend to insure security
+    def GET(self):
+        x=web.input()
+        if session.login == True:
+            try:
+                return dumps(list(model.search_users(x.username, **x)))
             except:
                 raise web.badrequest()
         else:

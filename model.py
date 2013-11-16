@@ -5,6 +5,7 @@
 # TODO Implement PENDING status for issues? Way later
 # TODO Consolidate comments and issue retrieving
 # TODO Do better error report and handling
+# TODO Add better landlord/tenant handling
 
 import web,sys, scrypt, random, magic, sendgrid, re, stripe, json
 from psycopg2 import Error as DBError
@@ -27,7 +28,7 @@ def get_documents(user, start=1, num=10):
                             'os': int(start)-1,
                             'lim': int(num)})
     except:
-        return []
+        return [{'error': 'Error retrieving documents'}]
 
 def get_document(user,id):
     '''Get document info/data for dl; relative id'''
@@ -61,21 +62,24 @@ def save_document(user, data_type, filename, data, landlord=None, title=None, de
                         'title': title,
                         'description': description})[0]
     except:
-        return "Not uploaded"
+        return {'error': "Error uploading"}
 
 def delete_document(user, id):
     '''Delete document, relative id'''
     try:
-        a=db.query("DELETE FROM agreements \
+        return db.query("DELETE FROM agreements \
                     WHERE id IN \
-                    (SELECT id FROM agreements WHERE user_id=$user ORDER BY id ASC LIMIT 1 OFFSET $os)", 
-                    vars={'user': user, 'os': int(id)-1})
-        if a > 0:
-            return True
-        else:
-            return False
+                        (SELECT id FROM agreements WHERE user_id=$user \
+                        ORDER BY id ASC LIMIT 1 OFFSET $os) \
+                    RETURNING $id AS id,$status AS status", 
+                    vars={'user': user,
+                            'os': int(id)-1,
+                            'id': int(id),
+                            'status': 'Deleted'})[0]
+    except IndexError:
+        return {'error': 'No document to delete'}
     except:
-        return False
+        return {'error': ' document'}
 
 def hash_password(password, maxtime=0.5, datalength=128):
     '''Scrypt, use password to encrypt random data'''
@@ -192,7 +196,7 @@ def search_users(user, **kw):
             where=web.SQLQuery.join([like, base], sep=' AND ')
         return db.select('users', what='username', where=where, limit=10, vars=kw)
     except:
-        return []
+        return [{'error': 'Error retrieving users'}]
 
 def verify_password(password, login_id, maxtime=1):
     '''Verify pw/login_id combo and return user id, or False'''
@@ -271,17 +275,17 @@ def is_verified(userid):
     except IndexError:
         return False
 
-def get_email_code(userid, type):
+def get_email_code(userid, code_type):
     '''generate random id for verify or reset email'''
     try:
         uuid=web.to36(random.SystemRandom().getrandbits(256))
-        db.query("INSERT INTO codes \
+        return db.query("INSERT INTO codes \
                 (user_id, type, value) \
-                VALUES ($user_id, $type, $uuid)", 
-                vars = {'user_id': userid, 'uuid': uuid, 'type': type})
-        return id
+                VALUES ($user_id, $type, $uuid) \
+                RETURNING value", 
+                vars = {'user_id': userid, 'uuid': uuid, 'type': code_type})[0]['value']
     except:
-        return False
+        return None
 
 def get_file_type(fobject, mime=True):
     '''file object, retrieve type'''
@@ -581,55 +585,53 @@ def get_unconfirmed_requests(userid):
     except:
        return []
 
-def make_relation_request(tenant, landlord, location):
+def make_relation_request(tenant_id, landlord_username, location):
     '''relation request, only tenant can'''
     try:
-        num=db.query("INSERT INTO relations \
-                    (tenant, landlord, location) \
-                    VALUES ($tenant, $landlord, $location)",
-                    vars={'tenant': tenant, 'landlord': landlord, 'location': location})
-        if num > 0:
-            return True
-        else:
-            return False
+        return db.query("INSERT INTO relations \
+                    (tenant, location, landlord) \
+                    VALUES ($tenant, $location, \
+                        (SELECT id FROM users WHERE username = $landlord \
+                        AND category = 'Landlord')) \
+                    RETURNING $landlord AS landlord,location,confirmed",
+                    vars={'tenant': tenant_id,
+                            'landlord': landlord_username,
+                            'location': location})[0]
     except:
-        return False
+        return {'error': 'Error making request'}
 
-def confirm_relation_request(tenant, landlord, location):
+def confirm_relation_request(tenant_username, landlord):
     '''confirm relation request, only landlord can'''
     try:
-        num=db.query("UPDATE relations \
+        return db.query("UPDATE relations \
                     SET confirmed = $confirmed \
-                    WHERE tenant = $tenant \
+                    WHERE tenant IN \
+                        (SELECT id FROM users WHERE username = $tenant \
+                        AND category = 'Tenant') \
                     AND landlord = $landlord \
-                    AND location = $location \
-                    AND confirmed = FALSE",
+                    AND confirmed = FALSE \
+                    RETURNING confirmed,$tenant AS tenant",
                     vars={'confirmed': True,
-                        'tenant': tenant,
-                        'landlord': landlord,
-                        'location': location})
-        if num > 0:
-            return True
-        else:
-            return False
+                        'tenant': tenant_username,
+                        'landlord': landlord})[0]
+    except IndexError:
+        return {'error' : 'No request to confirm'}
     except:
-        return False
+        return {'error': 'Bad request'}
 
-def end_relation(tenant, landlord):
-    '''end relation, only tenant can'''
+def end_relation(tenant):
+    '''end current relation; only tenant can'''
     try:
-        num=db.query("UPDATE relations \
+        return db.query("UPDATE relations \
                     SET stopped = current_timestamp \
                     WHERE tenant = $tenant \
-                    AND stopped IS NULL \
-                    AND landlord = $landlord",
-                    vars={'tenant': tenant, 'landlord': landlord})
-        if num > 0:
-            return True
-        else:
-            return False
+                    AND stopped IS NULL AND confirmed = True \
+                    RETURNING $end AS end, \
+                        to_char(stopped, 'YYYY-MM-DD HH24:MI:SS') AS stopped",
+                    vars={'tenant': tenant,
+                            'end': True})[0]
     except:
-        return False
+        return {'error': 'Error completing request'}
 
 def get_relations(userid):
     '''return confirmed tenant-landlord relations in readable and accessible manner'''
@@ -679,7 +681,7 @@ def get_current_landlord_info(userid):
     except:
         return None
 
-def get_current_tenant_ids(userid):
+def get_current_tenant_info(userid):
     try:
         return db.query("SELECT k.tenant AS tenant_id,p.username,kk.location \
                             FROM relations k \
@@ -712,26 +714,25 @@ def open_issue(tenant_id, severity, description):
     except:
         return "Error opening issue"
 
-def close_issue(landlord_id, issue_id, reason):
-    '''landlord function;close issue'''
+def close_issue(landlord_id, issue_id, reason=None):
+    '''landlord function;close issue (only owner can)'''
     #TODO Send email?
     #TODO Add reason for closing (make last comment?)
     try:
-        a=db.query("UPDATE issues \
+        return db.query("UPDATE issues \
                     SET status = 'Closed', closed = current_timestamp \
                     WHERE id IN (SELECT id FROM issues WHERE owner = $landlord_id \
                         AND status IN ('Open', 'Pending') \
                         ORDER BY id ASC OFFSET $os LIMIT 1) \
-                    RETURNING id AS issue,status, \
+                    RETURNING $issue AS issue,status, \
                         to_char(closed, 'YYYY-MM-DD HH24:MI:SS') AS closed",
                     vars={'os': int(issue_id)-1,
-                            'landlord_id': landlord_id})
-        if a>0:
-            return {'status': 'Closed'}
-        else:
-            return "No issue closed"
+                            'landlord_id': landlord_id,
+                            'issue': int(issue_id)})[0]
+    except IndexError:
+        return {'issue': int(issue_id), 'error': "No issue"}
     except:
-        return "Error closing issue"
+        return {'error': "Error closing issue", 'issue': int(issue_id)}
 
 def tenant_get_issues(tenant_id, status='Open', start=1, num=None):
     '''tenant function; get issues at current residence'''
