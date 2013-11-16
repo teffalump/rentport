@@ -1,7 +1,5 @@
 #!/usr/bin/env python2
 
-#TODO Remove bloated session variables --> more robust model coding
-
 from sanction import Client
 from json import dumps
 import issues
@@ -64,9 +62,9 @@ session = web.session.Session(app, store, initializer={ 'login': False,
 
 
 #form validators
-vemail = form.regexp(r"^.+@.+$", "must be a valid email address")
-vname= form.regexp(r"^[A-Za-z0-9._+-]{3,}$", "must be a valid username (numbers, letters, and . _ - +)")
-vpass = form.regexp(r"^.{12,}$", 'must be at least 12 characters')
+vemail = model.vemail
+vname= model.vname
+vpass = model.vpass
 
 ### UTILITY FUNCTIONS ###
 
@@ -84,13 +82,9 @@ def csrf_protected(f):
         return f(*args,**kwargs)
     return decorated
 
-def set_session_values(userid):
-    '''set the default session values'''
-    session.login=True
-    session.id = userid
-    a = model.get_user_info(userid,where='id')
-    session.verified = a['verified']
-    session.username = a['username']
+def set_session_values(**kw):
+    '''set session values'''
+    session.update(kw)
     return True
 
 def session_hook():
@@ -99,7 +93,8 @@ def session_hook():
     web.template.Template.globals['csrf_token'] = csrf_token
 
 def is_string(object):
-    return isinstance(object, str)
+    #TODO when port to py3 basestring --> str
+    return isinstance(object, basestring)
 
 app.add_processor(web.loadhook(session_hook))
 ##########################
@@ -190,10 +185,10 @@ class login:
         if not model.allow_login(x.login_id, ip):
             return 'throttled'
 
-        userid = model.verify_password(x.password, x.login_id)
-        if userid:
+        user_info = model.verify_password(x.password, x.login_id)
+        if user_info['login'] == True:
             model.clear_failed_logins(x.login_id, ip)
-            set_session_values(userid)
+            set_session_values(**user_info)
             raise web.seeother('/')
         else:
             model.add_failed_login(x.login_id, ip)
@@ -259,7 +254,8 @@ class confirm_reset:
                 x=web.input()
                 user_info = model.get_user_info(x.email,where='email')
                 if model.verify_code(user_info['id'], x.code, 'reset') == True:
-                    set_session_values(user_id)
+                    user_info['login']=True
+                    set_session_values(**user_info)
                     f = new_password_form()
                     return render.password_reset(f)
                 else:
@@ -312,7 +308,7 @@ class request_reset:
                     return "Email throttled, wait 1 min"
 
             except:
-                raise "Error"
+                return "Error"
         else:
             raise web.unauthorized()
 
@@ -446,49 +442,26 @@ class show_agreements:
 class profile:
     '''View and change info on profile'''
     def GET(self):
-        if session.login:
-            f = new_password_form()
-            user_info=model.get_user_info(session.id,where='id')
+        if session.login == True:
             try:
-                #TODO Clean this up
-                relations=[]
-                for k,v in model.get_relations(session.id).items():
-                    if is_string(v): relations.append((k,v))
-                    else: relations.append((k,', '.join(v)))
-
-                info = dict(user_info.items() + relations)
-                return render.profile(info, f)
-            except:
+                f = new_password_form()
+                user_info=model.get_user_info(session.id,where='id')
+                user_info.update(model.get_relations(session.id))
                 return render.profile(user_info, f)
+            except:
+                raise web.badrequest()
         else:
             raise web.unauthorized()
 
     @csrf_protected
     def POST(self):
         #TODO Show what errors there were
-        #TODO This section is getting too big, simplify or push to backend
         if session.login == True:
-            allowed_changes=['email', 'password']
             x=web.input()
-            for key in x.keys():
-                if key not in allowed_changes:
-                    del x[key]
-                elif key == 'password':
-                    if not vpass.valid(x['password']): raise web.seeother('/profile')
-                elif key == 'email':
-                    if not vemail.valid(x[key]): raise web.seeother('/profile')
-                else:
-                    pass
-
             try:
-                if model.update_user(id=session.id, **x) == True:
-                    raise web.seeother('/')
-                else:
-                    raise web.badrequest()
-            except AttributeError:
+                return model.update_user(session.id, **x)
+            except:
                 raise web.badrequest()
-            else:
-                return sys.exc_info()
         else:
             raise web.unauthorized()
 

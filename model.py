@@ -8,6 +8,7 @@
 # TODO Add better landlord/tenant handling
 
 import web,sys, scrypt, random, magic, sendgrid, re, stripe, json
+from web import form
 from psycopg2 import Error as DBError
 import config
 
@@ -16,6 +17,11 @@ db = web.database(  dbn='postgres',
                     db=config.db.name, 
                     user=config.db.user, 
                     pw=config.db.pw)
+
+#form validators
+vemail = form.regexp(r"^.+@.+$", "must be a valid email address")
+vname= form.regexp(r"^[A-Za-z0-9._+-]{3,}$", "must be a valid username (numbers, letters, and . _ - +)")
+vpass = form.regexp(r"^.{12,}$", 'must be at least 12 characters')
 
 def get_documents(user, start=1, num=10):
     '''Retrieve relevant info from documents to display'''
@@ -103,29 +109,38 @@ def save_user(email, username, password, category):
 
 def update_user(id, **kw):
     '''Update user'''
+    #RISK This is a dangerous function, properly secure it
+    #TODO Clean up
     try:
-        if 'password' in kw:
-            kw['password']=hash_password(kw['password'])
-        if 'email' in kw:
-            #if send_verification_email(kw['email']) == True:
-                #save_sent_email(web.ctx.ip,kw['email'],'verify')
-                #kw['verified']=False
-            #else:
-                #return False
-            pass
+        allowed_changes=['email', 'password']
+        for key in kw.keys():
+            if key not in allowed_changes:
+                del kw[key]
+            elif key == 'password':
+                if not vpass.valid(kw['password']): return {'error': 'Invalid password'}
+                kw['password']=hash_password(kw['password'])
+            elif key == 'email':
+                if not vemail.valid(kw[key]): return {'error': 'Invalid email'}
+                #if send_verification_email(kw['email']) == True:
+                    #save_sent_email(web.ctx.ip,kw['email'],'verify')
+                    #kw['verified']=False
+                #else:
+                    #return False
+            else:
+                pass
         a=db.update('users', where='id=$id', vars=locals(), **kw)
         if a>0:
-            return True
+            return dict([(k,'Updated') for k in kw])
         else:
-            return False
+            return {'error': 'No updated info'}
     except:
-        return False
+        return {'error': 'Error updating info'}
 
 def get_user_info(identifier, where='username', **kw):
     '''get user info given key and value, returning whatever is specified'''
     #RISK This is a powerful, potentially dangerous function
     #TODO TUNING
-    default=['category', 'username', 'email', 'verified', 'id', "to_char(joined,'YYYY-MM-DD') as joined"]
+    default=['category', 'username', 'email', 'verified', "to_char(joined,'YYYY-MM-DD') as joined"]
     categories=kw.keys() or default
 
     categories = ["to_char(joined,'YYYY-MM-DD') as joined" if x == 'joined' else x for x in categories]
@@ -199,17 +214,18 @@ def search_users(user, **kw):
         return [{'error': 'Error retrieving users'}]
 
 def verify_password(password, login_id, maxtime=1):
-    '''Verify pw/login_id combo and return user id, or False'''
+    '''Verify pw/login_id combo'''
     try:
-        user = db.query("SELECT password,id \
+        user = db.query("SELECT password,id,username \
                             FROM users \
                             WHERE email=$login_id OR username=$login_id \
                             LIMIT 1", vars={'login_id': login_id})[0]
-        hpw=user['password'].decode('base64')
+        hpw=user.pop('password').decode('base64')
         scrypt.decrypt(hpw, str(password), maxtime=maxtime)
-        return user['id']
+        user['login']=True
+        return user
     except (scrypt.error, IndexError):
-        return False
+        return {'login': False}
 
 def verify_code(user_id, code, type):
     '''verify code from reset or register process'''

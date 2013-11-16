@@ -1,6 +1,13 @@
 CREATE TYPE user_class AS ENUM ('Tenant', 'Landlord', 'Both');
 CREATE TYPE issue_status AS ENUM ('Open', 'Closed', 'Pending');
 CREATE TYPE issue_severity AS ENUM ('Critical', 'Medium', 'Low', 'Future');
+CREATE TYPE code_types AS ENUM ('verify', 'reset')
+CREATE TYPE email_types AS ENUM ('verify',
+                                'reset',
+                                'issue',
+                                'comment',
+                                'relation',
+                                'payment')
 
 CREATE TABLE users (
     id              serial primary key,
@@ -45,7 +52,7 @@ CREATE TABLE failed_emails (
 CREATE TABLE sent_emails (
     account         integer references users (id) NOT NULL,
     ip              inet NOT NULL,
-    type            text NOT NULL,
+    type            email_types NOT NULL,
     time            timestamp NOT NULL DEFAULT current_timestamp
 );
 
@@ -68,8 +75,8 @@ CREATE TABLE user_keys (
 
 CREATE TABLE codes (
     user_id         integer references users(id) NOT NULL,
-    type            text,
-    value           text,
+    type            code_types NOT NULL,
+    value           text NOT NULL,
     created         timestamp NOT NULL DEFAULT current_timestamp
 );
 
