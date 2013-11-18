@@ -87,8 +87,8 @@ def delete_document(user, id):
     except:
         return {'error': ' document'}
 
-def hash_password(password, maxtime=0.5, datalength=128):
-    '''Scrypt, use password to encrypt random data'''
+def hash_password(password, maxtime=1, datalength=256):
+    '''return derived key'''
     r = lambda x: [chr(random.SystemRandom().randint(0,255)) for i in range(x)]
     return scrypt.encrypt(''.join(r(datalength)), str(password), maxtime=maxtime).encode('base64')
 
@@ -213,7 +213,7 @@ def search_users(user, **kw):
     except:
         return [{'error': 'Error retrieving users'}]
 
-def verify_password(password, login_id, maxtime=1):
+def verify_password(password, login_id, maxtime=1.1):
     '''Verify pw/login_id combo'''
     try:
         user = db.query("SELECT password,id,username \

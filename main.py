@@ -68,7 +68,6 @@ vpass = model.vpass
 
 ### UTILITY FUNCTIONS ###
 
-#### prevent csrf
 def csrf_token():
     return session.setdefault('csrf_token', uuid4().hex)
 
@@ -384,12 +383,7 @@ class delete_agreements:
         x=web.input()
         if session.login:
             try:
-                if model.delete_document(session.id, x.id) == True:
-                    return '<verb>Deleted</verb><object>{0}</object>'.format(x.id)
-                else:
-                    return web.notfound()
-            except AttributeError:
-                raise web.badrequest()
+                return dumps(dict(model.delete_document(session.id, x.id)))
             except:
                 raise web.badrequest()
         else:
@@ -411,18 +405,21 @@ class post_agreement:
     @csrf_protected
     def POST(self):
         #save agreement, return info
-        x = web.input(agreement={})
-        try:
-            return dumps(model.save_document(
-                                user=session.id,
-                                title=x.title,
-                                description=x.description,
-                                data_type=model.get_file_type(x.agreement.file),
-                                filename=x.agreement.filename,
-                                data=x.agreement.value
-                                ))
-        except:
-            return "Error uploading"
+        if session.login == True:
+            x = web.input(agreement={})
+            try:
+                return dumps(model.save_document(
+                                    user=session.id,
+                                    title=x.title,
+                                    description=x.description,
+                                    data_type=model.get_file_type(x.agreement.file),
+                                    filename=x.agreement.filename,
+                                    data=x.agreement.value
+                                    ))
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
 
 class show_agreements:
     '''show or dl agreements'''
@@ -459,7 +456,7 @@ class profile:
         if session.login == True:
             x=web.input()
             try:
-                return model.update_user(session.id, **x)
+                return dumps(dict(model.update_user(session.id, **x)))
             except:
                 raise web.badrequest()
         else:
@@ -490,33 +487,37 @@ class show_payments:
 
 class pay_user:
     '''display pay username page and pay user'''
-    def GET(self, arg):
+    def GET(self):
+        x=web.input()
         if session.login == True:
             #RISK Leaks user info (accepts_cc, name, etc)
+            #RISK XSS? escape user?
+            #Need accepts_cc? Maybe just search for keys
             try:
-                info=model.get_user_info(arg,where='username',id=True,accepts_cc=True)
+                info=model.get_user_info(x.user,where='username',id=True,accepts_cc=True,username=True)
                 if info['accepts_cc'] == True:
                     pk_key=model.get_user_pk(info['id'])
                     if pk_key:
-                        return render.pay_person(pk_key, arg)
+                        return render.pay_person(pk_key, info['username'])
                     else:
-                        return "error"
+                        return "Can't find key"
                 else:
                     #not accepts cc
                     raise web.badrequest()
-            except TypeError:
-                #not a user
+            except (KeyError,TypeError,AttributeError):
+                #not a user or bad parameters
                 raise web.badrequest()
         else:
             raise web.unauthorized()
 
     @csrf_protected
-    def POST(self, arg):
+    def POST(self):
         #RISK Worried about js injection/poisoning
+        x=web.input()
         if session.login == True:
             x=web.input()
             try:
-                info=model.get_user_info(arg,where='username',id=True)
+                info=model.get_user_info(x.user,where='username',id=True)
                 sk_key=model.get_user_sk(info['id'])
                 if sk_key:
                     charge_id = model.authorize_payment(x.stripeToken,
@@ -572,10 +573,7 @@ class request_relation:
         x=web.input()
         if session.login == True:
             try:
-                if model.make_relation_request(session.id,x.user,x.location):
-                    return 'made request'
-                else:
-                    return "no request"
+                return dumps(dict(model.make_relation_request(session.id,x.user,x.location)))
             except:
                 raise web.badrequest()
         else:
@@ -598,10 +596,7 @@ class confirm_relation:
         x=web.input()
         if session.login == True:
             try:
-                if model.confirm_relation_request(x.user, session.id):
-                    return "confirmed"
-                else:
-                    return "error"
+                return dumps(dict(model.confirm_relation_request(x.user, session.id)))
             except:
                 raise web.badrequest()
         else:
@@ -619,12 +614,13 @@ class end_relation:
         else:
             raise web.unauthorized()
 
+    @csrf_protected
     def POST(self):
         x = web.input()
         if session.login == True:
             try:
                 if x.end == 'true':
-                    return model.end_relation(session.id)
+                    return dumps(dict(model.end_relation(session.id)))
                 else:
                     raise web.badrequest()
             except AttributeError:

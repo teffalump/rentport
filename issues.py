@@ -15,7 +15,7 @@ urls = (
     '/show/?', "show_issues",
     '/comments/?', "get_comments",
     '/respond/?', "post_comment",
-    '/?', "issues_home"
+    '/?', "issues"
     )
 
 def csrf_protected(f):
@@ -40,7 +40,7 @@ post_comment_form = form.Form(form.Textbox("comment"),
 
 render = web.template.render('templates')
 
-class issues_home:
+class issues:
     '''display main issues page'''
     def GET(self):
         if web.ctx.session.login == True:
