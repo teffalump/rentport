@@ -631,7 +631,7 @@ class end_relation:
 class search_users:
     '''grep similar username, given constrants'''
     #RISK This is available to any user, be very careful of the keys allowed!
-    #RISK do on backend to insure security
+    #RISK do on backend to insure rigor
     def GET(self):
         x=web.input()
         if session.login == True:

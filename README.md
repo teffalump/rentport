@@ -42,3 +42,4 @@
 
 # Other thoughts
 + Return json? Or valid html? Like tables, etc.
++ Going to switch to flask (as web framework in the future)
