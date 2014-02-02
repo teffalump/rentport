@@ -7,15 +7,13 @@
 * lighttpd
 * stripe
     + python api
-* sendgrid (replace?)
-    + python api
 * python libraries
-    + scrypt (db encryption)
-    + web.py (web framework)
+    + scrypt/bcrypt (db encryption)
+    + flask (web framework)
     + magic (file ident)
-    + sanction (oauth2)
 * postgresql
 
+### NEED TO CONVERT ALL THE FOLLOWING TO FLASK
 # Roadmap
 1. Serve document
     + implement basic (!) CRUD - DONE
@@ -42,4 +40,3 @@
 
 # Other thoughts
 + Return json? Or valid html? Like tables, etc.
-+ Going to switch to flask (as web framework in the future)
