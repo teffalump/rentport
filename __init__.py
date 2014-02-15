@@ -1,28 +1,27 @@
 from flask import Flask
-from flask.ext.kvsession import KVSessionExtension
-
-import redis
-store = RedisStore(redis.StrictRedis())
+from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.security import Security, SQLAlchemyUserDatastore, \
+    UserMixin, RoleMixin, login_required
+#import redis
+#from flask.ext.kvsession import KVSessionExtension
+#from simplekv.memory.redisstore import RedisStore
+#store = RedisStore(redis.StrictRedis())
 
 app = Flask(__name__)
 
-KVSessionExtension(store, app)
+#KVSessionExtension(store, app)
+
+db = SQLAlchemy(app)
 
 import rentport.views
+import rentport.model
 import issues
-import model
 import config
 
-urls = ('/issues', issues.issues_app)
+user_datastore = SQLAlchemyUserDatastore(db, User, Role)
+security = Security(app, user_datastore)
 
-#session settings
-web.config.session_parameters['cookie_name']='rentport'
-web.config.session_parameters['cookie_path']='/'
-web.config.session_parameters['timeout']=900
-web.config.session_parameters['ignore_expiry']=False
-web.config.session_parameters['ignore_change_ip']=False
-web.config.session_parameters['expired_message']='Session expired'
-#web.config.session_parameters['secure']=True
+urls = ('/issues', issues.issues_app)
 
 #upload form
 upload_form = form.Form(
@@ -86,6 +85,16 @@ confirm_relation_form = form.Form(
 end_relation_form = form.Form(
                     form.Hidden("end", value="true"),
                     form.Button("submit", type="submit", html="End current relation"))
+#open issue form
+open_issue_form = form.Form(form.Textbox("description"),
+                            form.Dropdown("severity",
+                                args=['Critical', 'Medium', 'Low', 'Future'],
+                                value='Critical'),
+                            form.Button("submit", type="submit", html="Open"))
+
+#post comment form
+post_comment_form = form.Form(form.Textbox("comment"),
+                            form.Button("submit", type="submit", html="Submit"))
 
 if __name__ == "__main__":
     app.run()

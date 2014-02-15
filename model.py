@@ -925,3 +925,135 @@ def get_comments(userid, issue_id, **kw):
             return landlord_get_comments(userid, issue_id, **kw)
     except:
         return []
+
+
+### DB MODEL NEED TO INTEGRATE TOP FUNCS #####
+from rentport import db
+from flask.ext.security import UserMixin, RoleMixin
+from sqlalchemy.dialects import postgresql
+
+roles_users = db.Table('roles_users',
+        db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
+        db.Column('role_id', db.Integer(), db.ForeignKey('role.id')))
+
+class Role(db.Model, RoleMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=True)
+    description = db.Column(db.String(255))
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.Text, unique=True, nullable=False)
+    email = db.Column(db.Text, unique=True, nullable=False)
+    password = db.Column(db.Text, nullable=False)
+    category = db.Column(db.Enum('Tenant', 'Landlord', name='user_types'), nullable=False)
+    accepts_cc = db.Column(db.Boolean, nullable=False, default=False)
+    joined = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    confirmed_at = db.Column(db.DateTime)
+    roles = db.relationship('Role',secondary=roles_users,backref=db.backref('users', lazy='dynamic'))
+
+    def __init__(self, username, email, password, category):
+        self.username = username
+        self.email = email
+        self.password = password
+        self.category = category
+
+class Agreement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    file_name = db.Column(db.Text, nullable=False)
+    data_type = db.Column(db.Text, nullable=False)
+    data = db.Column(db.Text, nullable=False)
+    title = db.Column(db.Text)
+    description = db.Column(db.Text)
+    posted_on = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    landlord=db.relationship("User", backref='agreements', order_by=id, foreign_keys="Agreement.landlord_id")
+    tenant=db.relationship("User", backref='agreements', order_by=id, foreign_keys="Agreement.user_id")
+
+    def __init__(self, file_name, data_type, data):
+        self.file_name=file_name
+
+class Failed_login(db.Model):
+    account = db.Column(db.Text, nullable=False)
+    ip = db.Column(postgresql.INET, nullable=False)
+    time = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+
+class Failed_email(db.Model):
+    ip = db.Column(postgresql.INET, nullable=False)
+    time = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+
+class Sent_email(db.Model):
+    account_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ip = db.Column(postgresql.INET, nullable=False)
+    type = db.Column(db.Enum('verify', 'reset', 'issue', 'comment', 'relation', 'payment', name='email_types'), nullable=False)
+    time = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    account = db.relationship("User", backref='sent_emails')
+
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    stripe_id = db.Column(db.Text, nullable=False)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    time = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    from_user = db.relationship("User", backref='payments', order_by=id, foreign_keys="Payment.from_user_id")
+    to_user = db.relationship("User", backref='payments', order_by=id, foreign_keys="Payment.to_user_id")
+
+class User_key(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    pub_key = db.Column(db.Text, nullable=False)
+    sec_key = db.Column(db.Text, nullable=False)
+    refresh_token = db.Column(db.Text, nullable=False)
+    retrieved = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    user = db.relationship("User", backref='user_keys', order_by=id)
+
+class Code(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type = db.Column(db.Enum('verify', 'reset', name='code_types'), nullable=False)
+    value = db.Column(db.Text, nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    user = db.relationship("User", backrefs='codes')
+
+class Property(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.Text, nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    description = db.Column(db.Text)
+    owner=db.relationship("User", backref='properties', order_by=id)
+
+class Association(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    started = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    confirmed = db.Column(db.Boolean, nullable=False, default=False)
+    stopped = db.Column(db.DateTime)
+    tenant = db.relationship("User", backref="relations", order_by=id, foreign_keys="Association.tenant_id")
+    landlord = db.relationship("User", backref="relations", order_by=id, foreign_keys="Association.landlord_id")
+    location = db.relationship("Property", backref="relations", order_by=id, foreign_keys="Association.location_id")
+    __table_args__= (db.UniqueConstraint('tenant_id','landlord_id','location_id'))
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    posted = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    user = db.relationship("User", backref='comments', order_by=id, foreign_keys="Comment.user_id")
+    issue = db.relationship("Issue", backref='comments', order_by=id, foreign_keys="Comment.issue_id")
+
+class Issue(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    severity = db.Column(db.Enum('Critical', 'Medium', 'Low', 'Future', name='issue_severity'), nullable=False)
+    status = db.Column(db.Enum('Open', 'Closed', 'Pending', name='issue_status'), nullable=False)
+    opened = db.Column(db.DateTime, nullable=False, default=func.utc_timestamp())
+    closed = db.Column(db.DateTime)
+    creator = db.relationship("User", backref='issues_opened', order_by=id, foreign_keys="Issue.creator_id")
+    landlord = db.relationship("User", backref='issues', order_by=id, foreign_keys="Issue.landlord_id")
+    location = db.relationship("Property", backref='issues', order_by=id, foreign_keys="Issue.location_id")

@@ -498,3 +498,152 @@ def callback_stripe():
         return "Error"
 
     return "Authorized and keys received!"
+
+@app.route('/issues', methods=['GET'])
+def issues():
+    '''display main issues page'''
+    def GET(self):
+        if web.ctx.session.login == True:
+            issues = model.get_issues(web.ctx.session.id)
+            return render.issues(issues)
+        else:
+            raise web.unauthorized()
+
+@app.route('/issues/show', methods=['GET'])
+def show_issues():
+    '''get issues (no comments), except for querying one issue
+
+    param:      id = relative issue id (optional)
+                status = issue status (optional, default = Open)
+                start = offset to start at (optional, default = 1)
+                num = number of issues to return (optional, default = all)
+
+    returns:    no id:
+                    creator, owner, description,
+                    num of cms, severity, status,
+                    location
+                w/ id:
+                    all the above and comments'''
+    def GET(self):
+        x=web.input()
+        if web.ctx.session.login == True:
+            try:
+                issue={'general': dict(model.get_issues(web.ctx.session.id, start=x.id, num=1)[0]),
+                        'comments': list(model.get_comments(web.ctx.session.id, x.id))}
+                return dumps(issue)
+            except AttributeError:
+                return dumps(list(model.get_issues(web.ctx.session.id, **x)))
+            except IndexError:
+                return {'error': 'No Issue'}
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+@app.route('/issues/comments', methods=['GET'])
+def get_comments():
+    '''get comments
+
+    param:      id = relative issue id
+                start = offset to start at (optional, default = 1)
+                num = number of comments to return (optional, default = all)
+                status = issue status to query by (optional, default = 'Open')
+
+    returns:    text, username, posted (time)'''
+    def GET(self):
+        if web.ctx.session.login == True:
+            x = web.input()
+            try:
+                return dumps(list(model.get_comments(web.ctx.session.id, x.pop('id'), **x)))
+            except KeyError:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+@app.route('/issues/respond', methods=['POST', 'GET'])
+def post_comment():
+    '''post comment
+
+    get params:     id = relative issue id
+    post params:    id = relative issue id
+                    comment = the comment text
+
+    get returns:    form to upload comment
+    post returns:   text, username, issue, posted (time)'''
+    if request.method == 'POST':
+        if web.ctx.session.login == True:
+            x = web.input()
+            try:
+                a=model.comment_on_issue(web.ctx.session.id, x.id, x.comment)
+                a['username']=web.ctx.session.username
+                a['issue']=x.id
+                return dumps(a)
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+    else:
+        if web.ctx.session.login == True:
+            x=web.input()
+            try:
+                f = post_comment_form()
+                return render.post_comment(f, x.id)
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+
+@app.route('/issues/close', methods=['POST'])
+def close_issue():
+    '''close issue
+
+    params:     id = relative issue id
+                reason = reason to close issue
+
+    returns:    issue, status, closed (time)'''
+    #TODO maybe return more things to update
+    #TODO Add reason parameter, when that is figured out
+    if web.ctx.session.login == True:
+        x = web.input()
+        try:
+            return dumps(dict(model.close_issue(web.ctx.session.id, x.id)))
+        except:
+            raise web.badrequest()
+    else:
+        raise web.seeother(config.site.base)
+
+@app.route('/issues/open', methods=['POST', 'GET'])
+def open_issue():
+    '''open new issue
+
+    post params:    severity = issue severity
+                    description = issue description
+
+    get returns:    form to upload issue
+    post returns:   issue (owner, creator, location, description,
+                    date opened, severity, status)'''
+    if request.method == 'POST':
+        if web.ctx.session.login == True:
+            x = web.input()
+            try:
+                #have the info but need to substitute ids for strings
+                #maybe possible in one func, but w/e
+                a=model.open_issue(web.ctx.session.id, x.severity, x.description)
+                b=model.get_current_landlord_info(web.ctx.session.id)
+                a['creator']=web.ctx.session.username
+                a['location']=b['location']
+                a['owner']=b['username']
+                return dumps(a)
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
+    else:
+        if web.ctx.session.login == True:
+            try:
+                f = open_issue_form()
+                return render.open_issue(f)
+            except:
+                raise web.badrequest()
+        else:
+            raise web.unauthorized()
