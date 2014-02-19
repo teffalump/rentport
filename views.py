@@ -1,8 +1,9 @@
 from rentport import app
+from flask import render_template
 
 @app.route('/')
-def default():
-    return default()
+def home():
+    return render_template('home.html')
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -27,7 +28,6 @@ def login():
         else:
             f = login_form()
             return render.login(f)
-
 
 @app.route('/logout')
 def logout():
@@ -281,7 +281,6 @@ def profile():
                 raise web.badrequest()
         else:
             raise web.unauthorized()
-
 
 @app.route('/payments')
 def payments():
