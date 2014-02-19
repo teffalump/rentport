@@ -39,13 +39,13 @@ class User(db.Model, UserMixin):
         self.password = password
 
     def __repr__(self):
-        return '<User %r %r %r>' % (self.username, self.email, self.password)
+        return '<User %r %r >' % (self.username, self.email)
 
-#TODO Add event listener to update stopped when current is turned to false
+#TODO Add event listener to update stopped when current is turned to false?
 class LandlordTenant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     current = db.Column(db.Boolean, default=True, nullable=False)
 
     confirmed = db.Column(db.Boolean, default=False, nullable=False)
@@ -56,7 +56,12 @@ class LandlordTenant(db.Model):
     location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     location = db.relationship("Property", backref="assocs", foreign_keys="LandlordTenant.location_id")
 
-    __table_args__ = (db.UniqueConstraint('current', 'location_id', 'landlord_id', 'tenant_id'),)
+
+    __table_args__=(db.Index('only_one_current_landlord',
+            landlord_id,
+            tenant_id,
+            postgresql_where=current,
+            unique=True),)
 
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
