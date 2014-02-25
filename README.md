@@ -4,37 +4,41 @@
 * issues
 
 # Software
-* lighttpd
+* lighttpd (maybe)
+* tornado
+* dwolla
+    + api
 * stripe
     + python api
 * python libraries
-    + scrypt/bcrypt (db encryption)
+    + redis
+    + sqlalchemy
     + flask (web framework)
-    + magic (file ident)
+        + limiter
+        + security
+        + kvsession (when py3 compat)
+        + sqlalchemy
 * postgresql
 
-### NEED TO CONVERT ALL THE FOLLOWING TO FLASK
 # Roadmap
-1. Serve document
-    + implement basic (!) CRUD - DONE
-    + Display old rental agreements, etc with interface
-        + Done fugly, polish? But otherwise DONE
+1. Serve document - TODO
 2. User system
-    + Basic func, no email - DONE
-    + Verify system - Sorta done
-    + Reset system - Sorta done
-    + Need email system - use sendgrid - untested code
+    + Using Flask-Security...already implemented
+        + Configure email through Flask-Security
 3. Payment system
-    + stripe stuff - started; need to test
-    + Should I include paypal? evil!
-4. issue tracking system
-    + write very simple issue tracker - in progress
+    + Stripe - TODO
+    + Dwolla - TODO
+4. Issue tracking system
+    + Simple issue tracker - IN PROGRESS
+5. Prettify
+    + Ajax-ify
+    + Good templates
+    + Works on Mobile, etc
 
 # Security TODOs
-    + Prevent CSRF by protecting forms - done
+    + Prevent CSRF by protecting forms - INCLUDED IN WTFORMS
     + Any DoS/spam/bruteforce-possible attack surfaces need throttling
-        + throttle logins - done (some testing)
-        + throttle emails - done (untested)
+        + throttle logins/emails - Use Flask-Limiter for endpoints
         + go through owasp top ten
         + Do I import js plugins (e.g, jQuery)? Security considerations
 
