@@ -32,13 +32,6 @@ from rentport.model import *
 
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
-class OpenIssueForm(Form):
-    severity=SelectField('Severity', choices=[('Critical', 'Need fix now!'),
-                                                ('Medium', 'Important'),
-                                                ('Low', 'Can wait'),
-                                                ('Future', 'Would be cool to have')])
-    description=TextField('Description', [DataRequired()])
-
 class ExtendedRegisterForm(RegisterForm):
     username=TextField('Username', [DataRequired(), Length(min=3, max=20)])
 
@@ -87,40 +80,6 @@ def create_user():
     l.tenants.append(lt2)
     l2.tenants.append(lt3)
     db.session.commit()
-
-
-#upload form
-#upload_form = form.Form(
-                    #form.File("agreement"),
-                    #form.Textbox("title"),
-                    #form.Textbox("description"),
-                    #form.Button("submit", type="submit", html="Upload", onclick="return sendForm(this.form, this.files)"))
-
-##make relation request form
-#relation_request_form = form.Form(
-                        #form.Textbox("location", id="location"),
-                        #form.Textbox("user", id="username"),
-                        #form.Button("submit", type="submit", html="Request relation"))
-
-##confirm relation request form
-#confirm_relation_form = form.Form(
-                        #form.Textbox("tenant"),
-                        #form.Button("submit", type="submit", html="Confirm relation"))
-
-##end relation form
-#end_relation_form = form.Form(
-                    #form.Hidden("end", value="true"),
-                    #form.Button("submit", type="submit", html="End current relation"))
-##open issue form
-#open_issue_form = form.Form(form.Textbox("description"),
-                            #form.Dropdown("severity",
-                                #args=['Critical', 'Medium', 'Low', 'Future'],
-                                #value='Critical'),
-                            #form.Button("submit", type="submit", html="Open"))
-
-##post comment form
-#post_comment_form = form.Form(form.Textbox("comment"),
-                            #form.Button("submit", type="submit", html="Submit"))
 
 if __name__ == "__main__":
     app.run()

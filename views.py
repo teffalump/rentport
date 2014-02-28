@@ -5,13 +5,39 @@ from flask.ext.wtf import Form
 from wtforms import SelectField, TextField, SubmitField, TextAreaField
 from wtforms.validators import Length, DataRequired
 
+#upload form
+#upload_form = form.Form(
+                    #form.File("agreement"),
+                    #form.Textbox("title"),
+                    #form.Textbox("description"),
+                    #form.Button("submit", type="submit", html="Upload", onclick="return sendForm(this.form, this.files)"))
+
+##make relation request form
+#relation_request_form = form.Form(
+                        #form.Textbox("user", id="username"),
+                        #form.Button("submit", type="submit", html="Request relation"))
+
+##confirm relation request form
+#confirm_relation_form = form.Form(
+                        #form.Textbox("tenant"),
+                        #form.Button("submit", type="submit", html="Confirm relation"))
+
+##end relation form
+#end_relation_form = form.Form(
+                    #form.Hidden("end", value="true"),
+                    #form.Button("submit", type="submit", html="End current relation"))
+
 class OpenIssueForm(Form):
-    severity=SelectField('Severity', choices=[('Critical', 'Need fix now!'),
-                                                ('Medium', 'Important'),
-                                                ('Low', 'Can wait'),
-                                                ('Future', 'Would be cool to have')])
+    severity=SelectField('Severity', choices=[('Critical', 'Critical'),
+                                                ('Medium', 'Medium'),
+                                                ('Low', 'Low'),
+                                                ('Future', 'Future')])
     description=TextAreaField('Description', [DataRequired()])
     submit=SubmitField('Open')
+
+class PostCommentForm(Form):
+    text=TextAreaField('Comment', [DataRequired()])
+    submit=SubmitField('Respond')
 
 
 @app.route('/')
@@ -48,26 +74,25 @@ def open_issue():
         return redirect(url_for('issues'))
     return render_template('open_issue.html', form=form)
 
-@app.route('/issues/close/<int:id>', methods=['POST', 'GET'])
+@app.route('/issues/close/<int:ident>', methods=['POST', 'GET'])
 @login_required
-def close_issue():
+def close_issue(ident):
     '''close issue - only opener or landlord can
 
     post params:     reason = reason to close issue
 
     returns:    issue, status, closed (time)'''
-    if request.method == 'POST':
-
-        ident=request.form['id']
+    form=CloseIssueForm()
+    i=g.user.current_open_issues()[ident]
+    if form.validate_on_submit():
         reason=request.form['reason']
         i.status='Closed'
         i.closed_because=reason
         db.session.add(i)
         db.session.commit()
         flash('Issue closed')
-        redirect(url_for('issues'))
-    else:
-        return render_template('close_issue.html')
+        return redirect(url_for('issues'))
+    return render_template('close_issue.html', form=form, issue=i)
 
 @app.route('/agreements')
 @login_required

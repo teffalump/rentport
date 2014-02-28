@@ -55,19 +55,22 @@ class User(db.Model, UserMixin):
     def current_landlord(self):
         return getattr(self.landlords.filter(LandlordTenant.current==True).first(), 'landlord', None)
 
-    def current_open_issues(self):
-        return self.issues_opened.union(Issue.query.\
-                join(self.properties, (self.properties.id==Issue.location_id))).\
-                filter(Issue.status=='Open').order_by(Issue.id.desc())
+    def owner_issues(self):
+        return Issue.query.join(Property.issues).filter(Property.owner_id==self.id).\
+                order_by(Issue.id.desc())
 
+    def property_issues(self):
+        return Issue.query.join(Property.issues).\
+                filter(Property.id == getattr(self.current_location(),'id',-1)).\
+                order_by(Issue.id.desc())
 
     def current_tenants(self):
-        return User.query.join(LandlordTenant, LandlordTenant.tenant_id==User.id).\
+        return User.query.join(User.landlords).\
                 filter(LandlordTenant.landlord_id==self.id, LandlordTenant.current == True).all()
 
     def fellow_tenants(self):
         return User.query.join(LandlordTenant, LandlordTenant.tenant_id==User.id).\
-                filter(LandlordTenant.landlord_id==self.current_landlord().id,
+                filter(LandlordTenant.landlord_id==getattr(self.current_landlord(),'id',-1),
                         LandlordTenant.current==True, User.id != self.id).all()
 
 class LandlordTenant(db.Model):
@@ -103,7 +106,7 @@ class Property(db.Model):
     location = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
 
-    owner = db.relationship("User", backref=db.backref('properties', order_by=id))
+    owner = db.relationship("User", backref=db.backref('properties', order_by=id, lazy='dynamic'))
 
     def __init__(self, location, description):
         self.location=location
@@ -201,7 +204,7 @@ class Issue(db.Model):
     closed_because = db.Column(db.Text)
 
     creator = db.relationship("User", backref='issues_opened', order_by=id, foreign_keys="Issue.creator_id")
-    location = db.relationship("Property", backref='issues', order_by=id, foreign_keys="Issue.location_id")
+    location = db.relationship("Property", backref=db.backref('issues', lazy='dynamic'), foreign_keys="Issue.location_id")
 
     def __repr__(self):
         return '<Issue %r %r >' % (self.status, self.severity)
