@@ -1,6 +1,7 @@
+import os
 from flask import Flask, render_template, g
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.limiter import Limiter
+#from flask.ext.limiter import Limiter
 from flask.ext.security import Security, SQLAlchemyUserDatastore, \
     UserMixin, RoleMixin, login_required, current_user
 from flask.ext.security.utils import encrypt_password
@@ -8,24 +9,25 @@ from flask.ext.security.forms import RegisterForm, LoginForm
 from flask.ext.wtf import Form
 from wtforms import SelectField, TextField
 from wtforms.validators import Length, DataRequired
-
+from flask.ext.kvsession import KVSessionExtension
+from simplekv.memory.redisstore import RedisStore
 import redis
-r=redis.StrictRedis(host='localhost', port=43413, db=0)
 
-#from flask.ext.kvsession import KVSessionExtension
-#from simplekv.memory.redisstore import RedisStore
-#store = RedisStore(redis.StrictRedis())
+store = RedisStore(redis.StrictRedis())
 
 app = Flask(__name__)
 app.config.from_object('rentport.config')
 app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = 'username,email'
-app.config['RATELIMIT_STORE_URL']='redis://localhost:43413'
+app.config['RATELIMIT_STORE_URL']='redis://localhost:6379/0'
 app.config['RATELIMIT_STRATEGY']='moving-window'
-
+app.config['WTF_CSRF_ENABLED']=False
 #KVSessionExtension(store, app)
 
+os.environ['DEBUG']="1"
+
 db = SQLAlchemy(app)
-limiter = Limiter(app, global_limits=['60 per minute'])
+#limiter = Limiter(app, global_limits=['15 per minute'])
+
 
 from rentport.views import *
 from rentport.model import *
@@ -43,6 +45,7 @@ security = Security(app, user_datastore,
             register_form=ExtendedRegisterForm,
             login_form=ExtendedLoginForm)
 
+
 @app.before_request
 def before_request():
     g.user = current_user
@@ -50,6 +53,7 @@ def before_request():
 @app.before_first_request
 def create_user():
     db.create_all()
+    user_datastore.create_user(email='t4@example.net', password=encrypt_password('password'), username='t4')
     user_datastore.create_user(email='t@example.net', password=encrypt_password('password'), username='t')
     user_datastore.create_user(email='t2@example.net', password=encrypt_password('password'), username='t2')
     user_datastore.create_user(email='t3@example.net', password=encrypt_password('password'), username='t3')
@@ -82,4 +86,4 @@ def create_user():
     db.session.commit()
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

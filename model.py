@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import g
 from flask.ext.security import UserMixin, RoleMixin
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import or_
 
 roles_users = db.Table('roles_users',
         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
@@ -44,39 +44,57 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return '<User %r %r>' % (self.username, self.email)
 
+    def all_issues(self):
+        '''Return all relevant issues'''
+        #TODO Return previous residence issues?
+        return Issue.query.join(Property.issues).\
+            filter(or_(Property.owner_id==self.id,
+                Property.id==\
+                        getattr(self.current_location(),'id', -1))).\
+                order_by(Issue.id.desc())
+
     def open_issue(self):
+        '''Open an issue with pre-filled fields'''
         if self.current_location != None:
             return Issue(creator_id=self.id,
                         location_id=self.current_location().id)
 
     def current_location(self):
+        '''Return user's current location else None'''
         return getattr(self.landlords.filter(LandlordTenant.current==True).first(), 'location', None)
  
     def current_landlord(self):
+        '''Return user's current landlord else None'''
         return getattr(self.landlords.filter(LandlordTenant.current==True).first(), 'landlord', None)
 
     def owner_issues(self):
+        '''Return issues at user's property(ies)'''
         return Issue.query.join(Property.issues).filter(Property.owner_id==self.id).\
                 order_by(Issue.id.desc())
 
-    def property_issues(self):
+    def current_location_issues(self):
+        '''Return issues at user's current rental location'''
         return Issue.query.join(Property.issues).\
                 filter(Property.id == getattr(self.current_location(),'id',-1)).\
                 order_by(Issue.id.desc())
 
     def current_tenants(self):
+        '''Return user's current tenants'''
         return User.query.join(User.landlords).\
-                filter(LandlordTenant.landlord_id==self.id, LandlordTenant.current == True).all()
+                filter(LandlordTenant.landlord_id==self.id, LandlordTenant.current == True)
 
     def fellow_tenants(self):
+        '''Return user's fellow renters'''
         return User.query.join(LandlordTenant, LandlordTenant.tenant_id==User.id).\
                 filter(LandlordTenant.landlord_id==getattr(self.current_landlord(),'id',-1),
-                        LandlordTenant.current==True, User.id != self.id).all()
+                        LandlordTenant.current==True, User.id != self.id)
 
 class LandlordTenant(db.Model):
+    '''Class to model Landlord-Tenant relationships'''
     id = db.Column(db.Integer, primary_key=True)
     landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     tenant_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     current = db.Column(db.Boolean, default=True, nullable=False)
 
     confirmed = db.Column(db.Boolean, default=False, nullable=False)
@@ -84,7 +102,6 @@ class LandlordTenant(db.Model):
     started = db.Column(db.DateTime, default=datetime.utcnow())
     stopped = db.Column(db.DateTime)
 
-    location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     location = db.relationship("Property", backref="assocs", foreign_keys="LandlordTenant.location_id")
 
     __table_args__=(db.Index('only_one_current_landlord',
@@ -97,6 +114,8 @@ class LandlordTenant(db.Model):
 
 @db.event.listens_for(LandlordTenant.current, 'set')
 def set_stopped_value(target, value, old_value, initiator):
+    '''This listener will update the stopped column;
+    when current set to False, stopped set to now'''
     if value == False:
         target.stopped = datetime.utcnow()
 
@@ -171,14 +190,6 @@ class UserKey(db.Model):
     retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     user = db.relationship("User", backref='user_keys', order_by=id)
 
-class Code(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    type = db.Column(db.Enum('verify', 'reset', name='code_types'), nullable=False)
-    value = db.Column(db.Text, nullable=False)
-    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    user = db.relationship("User", backref='codes')
-
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -186,8 +197,8 @@ class Comment(db.Model):
     text = db.Column(db.Text, nullable=False)
     posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
 
-    user = db.relationship("User", backref='comments', order_by=id, foreign_keys="Comment.user_id")
-    issue = db.relationship("Issue", backref='comments', order_by=id, foreign_keys="Comment.issue_id")
+    user = db.relationship("User", backref=db.backref('comments', lazy='dynamic'),  foreign_keys="Comment.user_id")
+    issue = db.relationship("Issue", backref=db.backref('comments', lazy='dynamic'), foreign_keys="Comment.issue_id")
 
     def __repr__(self):
         return '<Comment %r %r >' % (self.text, self.posted)
@@ -203,13 +214,18 @@ class Issue(db.Model):
     closed_at = db.Column(db.DateTime)
     closed_because = db.Column(db.Text)
 
-    creator = db.relationship("User", backref='issues_opened', order_by=id, foreign_keys="Issue.creator_id")
+    creator = db.relationship("User", backref=db.backref('issues_opened', lazy='dynamic'), foreign_keys="Issue.creator_id")
     location = db.relationship("Property", backref=db.backref('issues', lazy='dynamic'), foreign_keys="Issue.location_id")
+
+    def num_of_comments(self):
+        return self.comments.count()
 
     def __repr__(self):
         return '<Issue %r %r >' % (self.status, self.severity)
 
 @db.event.listens_for(Issue.status, 'set')
 def set_stopped_value(target, value, old_value, initiator):
+    '''This listener will update the closed_at column;
+    when status set to False; closed_at set to now'''
     if value == 'Closed':
         target.closed_at = datetime.utcnow()
