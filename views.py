@@ -232,6 +232,7 @@ def add_property():
         return redirect(url_for('/landlord/property'))
     return render_template('add_property.html', form=form)
 
+
 @app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
 def modify_property(prop_id):
