@@ -10,6 +10,9 @@ from sqlalchemy import or_
 from werkzeug.security import gen_salt
 
 
+ISSUES_PER_PAGE=10
+PAYMENTS_PER_PAGE=10
+
 class stripe:
         redirect_uri='https://www.rentport.com/oauth/authorized'
         base_url='https://api.stripe.com'
@@ -56,9 +59,20 @@ class CommentForm(Form):
     comment=TextAreaField('Comment', [DataRequired()])
     submit=SubmitField('Add Comment')
 
-class PayFeeForm(Form):
+class PayForm(Form):
     #TODO
-    pass
+    cc=None
+    submit=SubmitField('Submit')
+
+class AddPropertyForm(Form):
+    location=TextField('Location:', [DataRequired()])
+    description=TextAreaField('Description:', [DataRequired()])
+    submit=SubmitField('Add Property')
+
+class ModifyPropertyForm(Form):
+    location=TextField('Location:', [DataRequired()])
+    description=TextAreaField('Description:', [DataRequired()])
+    submit=SubmitField('Modify Property')
 
 @app.route('/')
 @login_required
@@ -66,9 +80,10 @@ def home():
     return render_template('home.html')
 
 @app.route('/issues', methods=['GET'])
-@app.route('/issues/<int(min=1):start>/<int(min=1):stop>/<int(min=1):page>', methods=['GET'])
+@app.route('/issues/<int(min=1):page>', methods=['GET'])
+@app.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def issues(start=1, stop=10, page=1):
+def issues(page=1, per_page=ISSUES_PER_PAGE):
     '''display main issues page'''
     #TODO Do the pagination stuff
     #TODO What issues to retrieve?
@@ -79,12 +94,12 @@ def issues(start=1, stop=10, page=1):
 @login_required
 def open_issue():
     '''open new issue
-
-    post params:    severity = issue severity
-                    description = issue description
-
-    get returns:    form to upload issue
+        params:     POST: <severity> issue severity
+                        <description> issue description
+        returns:    POST: Redirect for main issues
+                    GET: Open issue form
     '''
+    #TODO Email when opened
     g.user.current_location() or abort(403)
     form=OpenIssueForm()
     if form.validate_on_submit():
@@ -100,6 +115,13 @@ def open_issue():
 @app.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
 @login_required
 def comment(ident):
+    '''comment on issue
+        params:     POST: <comment> comment text
+                    GET/POST: <ident> offset id
+        returns:    POST: Redirect to main issues page
+                    GET: Comment form
+    '''
+    #TODO Email when there is a comment?
     form = CommentForm()
     issue=g.user.all_issues().filter(Issue.status=='Open').\
             offset(ident-1).first_or_404()
@@ -112,9 +134,13 @@ def comment(ident):
         return redirect(url_for('issues'))
     return render_template('comment.html', form=form, issue=issue)
 
-@app.route('/issues/<int(min=1):ident>/show')
+@app.route('/issues/<int(min=1):ident>/show', methods=['GET'])
 @login_required
 def show_issue(ident):
+    '''show issue
+        params:     GET: <ident> offset id
+        returns:    detailed issue page
+    '''
     issue=g.user.all_issues().filter(Issue.status=='Open').\
             offset(ident-1).first_or_404()
     return render_template('show_issue.html', issue=issue)
@@ -123,8 +149,10 @@ def show_issue(ident):
 @login_required
 def close_issue(ident):
     '''close issue - only opener or landlord can
-
-    post params:     reason = reason to close issue
+        params:     POST: <reason> reason (to close issue)
+                    GET/POST: <ident> offset id
+        returns:    GET: Form to close issue
+                    POST: Redirect to main issues page
     '''
     #TODO Error handling
     form=CloseIssueForm()
@@ -147,9 +175,10 @@ def close_issue(ident):
 def profile():
     return render_template('profile.html', user=g.user)
 
-@app.route('/landlord/add/<landlord>', methods=['GET', 'POST'])
+@app.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
 @login_required
 def add_landlord(landlord):
+    #TODO Email when added?
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
@@ -183,6 +212,50 @@ def end_relation():
         return redirect(url_for('home'))
     return render_template('end_relation.html', form=form)
 
+@app.route('/landlord/property', methods=['GET'])
+@login_required
+def properties():
+    return render_template('properties.html', user=g.user)
+
+@app.route('/landlord/property/add', methods=['GET', 'POST'])
+@login_required
+def add_property():
+    form=AddPropertyForm()
+    if form.validate_on_submit():
+        location=request.form['location']
+        description=request.form['description']
+        p=Property(location=location, description=description)
+        g.user.properties.append(p)
+        db.session.add(p)
+        db.session.commit()
+        flash("Property added")
+        return redirect(url_for('/landlord/property'))
+    return render_template('add_property.html', form=form)
+
+@app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
+@login_required
+def modify_property(prop_id):
+    prop=g.user.properties.offset(prop_id - 1).first_or_404()
+    form=ModifyLocationForm()
+    form.location.default=prop.location
+    form.description.default=prop.description
+    if form.validate_on_submit():
+        location=request.form['location']
+        description=request.form['description']
+        prop.location=location
+        prop.description=description
+        db.session.add(prop)
+        db.session.commit()
+        flash("Property modified")
+        return redirect(url_for('/landlord/property'))
+    return render_template('modify_location.html', form=form, location=prop)
+
+@app.route('/landlord/property/<int(min=1):prop_id>/show', methods=['GET'])
+@login_required
+def show_property(prop_id):
+    prop=g.user.properties.offset(prop_id - 1).first_or_404()
+    return render_template('show_property.html', location=prop)
+
 @app.route('/tenant/confirm', methods=['GET'])
 @app.route('/tenant/confirm/<tenant>', methods=['POST', 'GET'])
 @login_required
@@ -208,17 +281,7 @@ def confirm_relation(tenant=None):
         return redirect(url_for('home'))
     return render_template('confirm_relation.html', form=form)
 
-@app.route('/agreements/upload')
-@login_required
-def agreements():
-    #TODO Add Flask-Uploads
-    '''main agreements page'''
-    form=FileUploadForm()
-    if form.validate_on_submit():
-        pass
-    return 'p'
-
-@app.route('/oauth/authorize')
+@app.route('/oauth/authorize', methods=['GET'])
 @login_required
 def authorize():
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'], 
@@ -228,25 +291,25 @@ def authorize():
     return str(auth_url)
     return redirect(auth_url)
 
-@app.route('/oauth/authorized')
+@app.route('/oauth/authorized', methods=['GET'])
 @login_required
 def authorized():
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'], state=session['state'])
     token=oauth.fetch_token(stripe.access_token_url, app.config['STRIPE_CONSUMER_SECRET'], authorization_response=request.url)
     return 'blar'
 
-@app.route('/dump')
+@app.route('/session/dump')
 @login_required
 def dump():
     return str(session['add'])
 
-@app.route('/add')
+@app.route('/session/add')
 @login_required
 def add():
     session['add']='aoteuhsaoneuhasnoetuhasnetuhasoenuthaesnuthaeasotneuhasnetuhasoenuthasoentuhaoesthaoaoeustahoesutnhousntahoeusnthuaohuaotnehuaoetnuhaetnuhaentuheosantuheastuhoth.c.c.c.c.c.c.c.c.ccseuthaesnthaoesueuoueouoeuttttahosentuhaoestnhaoesnuthaoesntuhaoesnuthaoesnuthaoesuthaoesunthaetahosenut'
     return redirect(url_for('dump'))
 
-@app.route('/remove')
+@app.route('/session/remove')
 @login_required
 def remove():
     session['add']=None
@@ -256,34 +319,28 @@ def remove():
 @login_required
 def pay_rent():
     landlord=g.user.current_landlord() or abort(404)
+    form=PayForm()
+    if form.validate_on_submit():
+        pass
     return render_template('pay_landlord.html', landlord=landlord)
 
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
-    form=PayFeeForm()
+    form=PayForm()
     if form.validate_on_submit():
         pass
     return render_template('pay_service_fee.html', form=form)
 
-@app.route('/payments')
-def payments():
+@app.route('/payments', methods='GET')
+@app.route('/payments/<int(min=1):page>', methods=['GET'])
+@app.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+def payments(page=1, per_page=PAYMENTS_PER_PAGE):
     '''main payments page'''
     #TODO Figure out how to show tenant payments
-    pass
     return render_template('payments.html')
 
-#@app.route('/payments/show/<int:pay_id>')
-#def show_payments(pay_id):
-    #'''show payments'''
-    #x=web.input()
-    #if session.login == True:
-        #try:
-            #return model.get_payment(session.id, x.id)
-        #except AttributeError:
-            #payments_info = model.get_payments(session.id)
-            #return render.payment_info(payments_info)
-        #except:
-            #raise web.badrequest
-    #else:
-        #raise web.unauthorized()
+@app.route('/payments/<int:pay_id>/show', methods=['GET'])
+def show_payments(pay_id):
+    '''show payments'''
+    pass
