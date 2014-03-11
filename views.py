@@ -9,7 +9,7 @@ from wtforms.validators import Length, DataRequired, AnyOf
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
 
-
+FEE_AMOUNT=1000 #in cents
 ISSUES_PER_PAGE=10
 PAYMENTS_PER_PAGE=10
 
@@ -69,9 +69,7 @@ class AddPropertyForm(Form):
     description=TextAreaField('Description:', [DataRequired()])
     submit=SubmitField('Add Property')
 
-class ModifyPropertyForm(Form):
-    location=TextField('Location:', [DataRequired()])
-    description=TextAreaField('Description:', [DataRequired()])
+class ModifyPropertyForm(AddPropertyForm):
     submit=SubmitField('Modify Property')
 
 @app.route('/')
@@ -87,8 +85,8 @@ def issues(page=1, per_page=ISSUES_PER_PAGE):
     '''display main issues page'''
     #TODO Do the pagination stuff
     #TODO What issues to retrieve?
-    issues=g.user.all_issues().all()
-    return render_template('issues.html', issues=issues, page=page)
+    issues=g.user.all_issues().paginate(page, per_page, False)
+    return render_template('issues.html', issues=issues)
 
 @app.route('/issues/open', methods=['POST', 'GET'])
 @login_required
@@ -200,11 +198,11 @@ def add_landlord(landlord):
 def end_relation():
     '''end relation'''
     form=EndLandlordForm()
+    lt=LandlordTenant.query.\
+            filter(LandlordTenant.tenant_id==g.user.id,
+                    LandlordTenant.current==True).\
+            first_or_404()
     if form.validate_on_submit():
-        lt=LandlordTenant.query.\
-                filter(LandlordTenant.tenant_id==g.user.id,
-                        LandlordTenant.current==True).\
-                first_or_404()
         lt.current=False
         db.session.add(lt)
         db.session.commit()
@@ -237,9 +235,7 @@ def add_property():
 @login_required
 def modify_property(prop_id):
     prop=g.user.properties.offset(prop_id - 1).first_or_404()
-    form=ModifyLocationForm()
-    form.location.default=prop.location
-    form.description.default=prop.description
+    form=ModifyPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
         description=request.form['description']
@@ -249,6 +245,8 @@ def modify_property(prop_id):
         db.session.commit()
         flash("Property modified")
         return redirect(url_for('/landlord/property'))
+    form.location.data=prop.location
+    form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
 
 @app.route('/landlord/property/<int(min=1):prop_id>/show', methods=['GET'])
@@ -290,7 +288,7 @@ def authorize():
     auth_url, state=oauth.authorization_url(stripe.authorize_url)
     session['state']=state
     return str(auth_url)
-    return redirect(auth_url)
+    #return redirect(auth_url)
 
 @app.route('/oauth/authorized', methods=['GET'])
 @login_required
@@ -316,32 +314,71 @@ def remove():
     session['add']=None
     return redirect(url_for('dump'))
 
-@app.route('/pay/landlord', methods=['POST', 'GET'])
+@app.route('/pay/landlord/<int(min=100):amount>', methods=['POST', 'GET'])
 @login_required
-def pay_rent():
+def pay_rent(amount):
     landlord=g.user.current_landlord() or abort(404)
-    form=PayForm()
-    if form.validate_on_submit():
-        pass
-    return render_template('pay_landlord.html', landlord=landlord)
+    if request.method == 'POST':
+        token = request.form['stripeToken']
+        try:
+            charge = stripe.Charge.create(
+                  amount=amount*100,
+                  currency="usd",
+                  card=token,
+                  description=':'.join([g.user.id, g.user.username])
+                  )
+        except stripe.CardError:
+            flash('Card error')
+            abort(400)
+        except Exception:
+            flash('Error occurred')
+            abort(400)
+        else:
+            flash('Payment processed')
+            redirect(url_for('/payments'))
+    else:
+        return render_template('pay_landlord.html', landlord=landlord, amount=amount*100)
 
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
-    form=PayForm()
-    if form.validate_on_submit():
-        pass
-    return render_template('pay_service_fee.html', form=form)
+    #TODO
+    if request.method == 'POST':
+        token = request.form['stripeToken']
+        try:
+            charge = stripe.Charge.create(
+                  amount=FEE_AMOUNT,
+                  currency="usd",
+                  card=token,
+                  description=':'.join([g.user.id, g.user.username])
+                  )
+        except stripe.CardError:
+            flash('Card error')
+            abort(400)
+        except Exception:
+            flash('Error occurred')
+            abort(400)
+        else:
+            flash('Payment processed')
+            redirect(url_for('/payments'))
 
-@app.route('/payments', methods='GET')
+    else:
+        return render_template('pay_service_fee.html',
+                                amount=FEE_AMOUNT,
+                                key=app.config['STRIPE_CONSUMER_KEY'])
+
+@app.route('/payments', methods=['GET'])
 @app.route('/payments/<int(min=1):page>', methods=['GET'])
 @app.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 def payments(page=1, per_page=PAYMENTS_PER_PAGE):
     '''main payments page'''
-    #TODO Figure out how to show tenant payments
-    return render_template('payments.html')
+    #TODO
+    payments=[]
+    return render_template('payments.html', payments=payments)
 
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 def show_payments(pay_id):
     '''show payments'''
-    pass
+    #TODO
+    payment=None
+    return render_template('show_payment.html', payment=payment)
