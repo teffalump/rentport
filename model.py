@@ -1,4 +1,3 @@
-### DB MODEL NEED TO INTEGRATE FUNCS #####
 from rentport import db
 from datetime import datetime
 from flask import g
@@ -20,11 +19,9 @@ class User(db.Model, UserMixin):
     username = db.Column(db.Text, unique=True, nullable=False)
     email = db.Column(db.Text, unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
-    accepts_cc = db.Column(db.Boolean, nullable=False, default=False)
     joined = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     confirmed_at = db.Column(db.DateTime)
     active = db.Column(db.Boolean)
-    roles = db.relationship('Role',secondary=roles_users,backref=db.backref('users', lazy='dynamic'))
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
@@ -32,6 +29,7 @@ class User(db.Model, UserMixin):
     current_login_ip=db.Column(postgresql.INET)
     login_count=db.Column(db.Integer)
 
+    roles = db.relationship('Role',secondary=roles_users,backref=db.backref('users', lazy='dynamic'))
     tenants = db.relationship('LandlordTenant',
                                 backref=db.backref('landlord', lazy='joined'),
                                 primaryjoin='LandlordTenant.landlord_id==User.id',
@@ -110,15 +108,6 @@ class LandlordTenant(db.Model):
             postgresql_where=current,
             unique=True),)
 
-#TODO Add another listener to update previous relationship to false? Or write func to handle?
-
-@db.event.listens_for(LandlordTenant.current, 'set')
-def set_stopped_value(target, value, old_value, initiator):
-    '''This listener will update the stopped column;
-    when current set to False, stopped set to now'''
-    if value == False:
-        target.stopped = datetime.utcnow()
-
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -134,44 +123,6 @@ class Property(db.Model):
     def __repr__(self):
         return '<Property %r %r >' % (self.location, self.description)
 
-class Agreement(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    #uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    #uploader = db.relationship("User", backref=db.backref('agreements', order_by=id), foreign_keys="agreement.uploader_id")
-
-    #assoc_id = db.Column(db.Integer, db.ForeignKey('landlord_tenant.id'), nullable=True)
-    #assoc = db.relationship("LandlordTenant", backref=db.backref('agreements', order_by=id), foreign_keys="agreement.assoc_id")
-
-    file_name = db.Column(db.Text, nullable=False)
-    data_type = db.Column(db.Text, nullable=False)
-    data = db.Column(db.Text, nullable=False)
-    title = db.Column(db.Text)
-    description = db.Column(db.Text)
-    posted_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-
-    def __init__(self, file_name, data_type, data):
-        self.file_name=file_name
-
-class FailedLogin(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    account = db.Column(db.Text, nullable=False)
-    ip = db.Column(postgresql.INET, nullable=False)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-
-class FailedEmail(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    account = db.Column(db.Text, nullable=False)
-    ip = db.Column(postgresql.INET, nullable=False)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-
-class SentEmail(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    account_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    ip = db.Column(postgresql.INET, nullable=False)
-    type = db.Column(db.Enum('verify', 'reset', 'issue', 'comment', 'relation', 'payment', name='email_types'), nullable=False)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    account = db.relationship("User", backref='sent_emails')
-
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     stripe_id = db.Column(db.Text, nullable=False)
@@ -181,14 +132,15 @@ class Payment(db.Model):
     from_user = db.relationship("User", backref='sent_payments', order_by=id, foreign_keys="Payment.from_user_id")
     to_user = db.relationship("User", backref='rec_payments', order_by=id, foreign_keys="Payment.to_user_id")
 
-class UserKey(db.Model):
+class StripeUserInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
-    pub_key = db.Column(db.Text, nullable=False)
-    sec_key = db.Column(db.Text, nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
     refresh_token = db.Column(db.Text, nullable=False)
+    user_acct = db.Column(db.Text, nullable=False)
+    pub_key = db.Column(db.Text, nullable=False)
     retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    user = db.relationship("User", backref='user_keys', order_by=id)
+    user = db.relationship("User", backref='stripe_info', order_by=id)
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -229,3 +181,11 @@ def set_stopped_value(target, value, old_value, initiator):
     when status set to False; closed_at set to now'''
     if value == 'Closed':
         target.closed_at = datetime.utcnow()
+
+#TODO Add another listener to update previous relationship to false? Or write func to handle?
+@db.event.listens_for(LandlordTenant.current, 'set')
+def set_stopped_value(target, value, old_value, initiator):
+    '''This listener will update the stopped column;
+    when current set to False, stopped set to now'''
+    if value == False:
+        target.stopped = datetime.utcnow()
