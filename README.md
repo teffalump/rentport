@@ -39,10 +39,27 @@
         + Use Flask-Limiter for endpoints - TODO
     + go through owasp top ten
     + Do I import js plugins (e.g, jQuery)? Security considerations
-    + I'v decided to store NO payment history/info, query stripe for everything
-        + Store customer stripe/dwolla id, that's it
-        + Data issues, but fuck that
+    + Payment history? How to display that. Either:
+        1. Store the payment history locally
+            Pros:
+                + User experience (pagination, etc)
+            Cons:
+                + Security; DB leak = payment history (creepy)
+                + Need to update it with hooks from stripe --> more code
+        2. Query Stripe for the info (only access token/customer id from oauth)
+            Pros:
+                + Minimal info server-side = stronger security, privacy, etc
+            Cons:
+                + Minimal info
+                + User experience degradation
+            + For now, let's do 2 b/c it is simpler
 
 # Other thoughts
 + Return json? Or valid html? Like tables, etc.
 + rental agreements? seems security issues too big for me... at the moment
++ Add Dwolla after Stripe (but Stripe is the minimum)
+
+# Service fee - TODO
++ One level subscription for one year
++ What do you get? payments, issues
++ If not paid? No activity allowed
