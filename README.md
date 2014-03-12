@@ -40,7 +40,7 @@
     + go through owasp top ten
     + Do I import js plugins (e.g, jQuery)? Security considerations
     + Payment history? How to display that. Either:
-        1. Store the payment history locally
+        1. Store the payment history locally 
             Pros:
                 + User experience (pagination, etc)
             Cons:
@@ -53,6 +53,11 @@
                 + Minimal info
                 + User experience degradation
             + For now, let's do 2 b/c it is simpler
+            + I think I need to store some info locally b/c...
+                + Without, can't assign tenant to payment without doing lots of
+                  weird querying (like, iterating prev landlord with stripe)
+            + How to mitigate info? Simply save the charge id, from, to info
+              from the webhook but only that!
 
 # Other thoughts
 + Return json? Or valid html? Like tables, etc.
