@@ -100,7 +100,7 @@ class LandlordTenant(db.Model):
     started = db.Column(db.DateTime, default=datetime.utcnow())
     stopped = db.Column(db.DateTime)
 
-    location = db.relationship("Property", backref="assocs", foreign_keys="LandlordTenant.location_id")
+    location = db.relationship("Property", backref=db.backref("assocs", lazy='dynamic'), foreign_keys="LandlordTenant.location_id")
 
     __table_args__=(db.Index('only_one_current_landlord',
             landlord_id,
@@ -115,6 +115,11 @@ class Property(db.Model):
     description = db.Column(db.Text)
 
     owner = db.relationship("User", backref=db.backref('properties', order_by=id, lazy='dynamic'))
+
+    def current_tenants(self):
+        return User.query.join(User.landlords).\
+                filter(LandlordTenant.current == True,
+                        LandlordTenant.location_id == self.id)
 
     def __init__(self, location, description):
         self.location=location
@@ -141,6 +146,16 @@ class StripeUserInfo(db.Model):
     pub_key = db.Column(db.Text, nullable=False)
     retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     user = db.relationship("User", backref='stripe_info', order_by=id)
+
+class StripeArchivedPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    stripe_charge_id = db.Column(db.Text, nullable=False, unique=True)
+
+    from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.from_user_id")
+    to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.to_user_id")
+
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
