@@ -5,6 +5,7 @@ from flask.ext.security import UserMixin, RoleMixin
 from sqlalchemy.dialects import postgresql
 from sqlalchemy import or_
 
+#### MODELS ####
 roles_users = db.Table('roles_users',
         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
         db.Column('role_id', db.Integer(), db.ForeignKey('role.id')))
@@ -87,6 +88,9 @@ class User(db.Model, UserMixin):
                 filter(LandlordTenant.landlord_id==getattr(self.current_landlord(),'id',-1),
                         LandlordTenant.current==True, User.id != self.id)
 
+    def payments(self):
+        return self.rec_payments.union(self.sent_payments).order_by(StripeArchivedPayment.id.desc())
+
 class LandlordTenant(db.Model):
     '''Class to model Landlord-Tenant relationships'''
     id = db.Column(db.Integer, primary_key=True)
@@ -152,10 +156,9 @@ class StripeArchivedPayment(db.Model):
     from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
     stripe_charge_id = db.Column(db.Text, nullable=False, unique=True)
-
+    status = db.Columnt(db.Enum('Pending', 'Confirmed', 'Refunded', name=payment_status), nullable=False, default='Pending')
     from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.from_user_id")
     to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.to_user_id")
-
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -190,6 +193,7 @@ class Issue(db.Model):
     def __repr__(self):
         return '<Issue %r %r >' % (self.status, self.severity)
 
+#### LISTENERS ####
 @db.event.listens_for(Issue.status, 'set')
 def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the closed_at column;
@@ -197,7 +201,8 @@ def set_stopped_value(target, value, old_value, initiator):
     if value == 'Closed':
         target.closed_at = datetime.utcnow()
 
-#TODO Add another listener to update previous relationship to false? Or write func to handle?
+#TODO Add another listener to update previous relationship to false
+# when a colliding row is added? Or write func to handle?
 @db.event.listens_for(LandlordTenant.current, 'set')
 def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the stopped column;
