@@ -1,7 +1,7 @@
 from rentport import app, db
 from requests_oauthlib import OAuth2Session
 from rentport.model import Issue, Property, User, LandlordTenant, Comment
-from flask import render_template, request, g, redirect, url_for, abort, flash, session
+from flask import render_template, request, g, redirect, url_for, abort, flash, session, json
 from flask.ext.security import login_required
 from flask.ext.wtf import Form
 from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField
@@ -58,11 +58,6 @@ class ConfirmTenantForm(Form):
 class CommentForm(Form):
     comment=TextAreaField('Comment', [DataRequired()])
     submit=SubmitField('Add Comment')
-
-class PayForm(Form):
-    #TODO
-    cc=None
-    submit=SubmitField('Submit')
 
 class AddPropertyForm(Form):
     location=TextField('Location:', [DataRequired()])
@@ -230,7 +225,6 @@ def add_property():
         return redirect(url_for('/landlord/property'))
     return render_template('add_property.html', form=form)
 
-
 @app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
 def modify_property(prop_id):
@@ -314,15 +308,16 @@ def remove():
     session['add']=None
     return redirect(url_for('dump'))
 
-@app.route('/pay/landlord/<int(min=100):amount>', methods=['POST', 'GET'])
+@app.route('/pay/landlord/<int(min=100):amt>', methods=['POST', 'GET'])
 @login_required
-def pay_rent(amount):
+def pay_rent(amt):
     landlord=g.user.current_landlord() or abort(404)
+    cents=amt*100
     if request.method == 'POST':
         token = request.form['stripeToken']
         try:
             charge = stripe.Charge.create(
-                  amount=amount*100,
+                  amount=cents,
                   currency="usd",
                   card=token,
                   description=':'.join([g.user.id, g.user.username])
@@ -337,7 +332,7 @@ def pay_rent(amount):
             flash('Payment processed')
             redirect(url_for('/payments'))
     else:
-        return render_template('pay_landlord.html', landlord=landlord, amount=amount*100)
+        return render_template('pay_landlord.html', landlord=landlord, amount=cents)
 
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
@@ -370,15 +365,20 @@ def pay_fee():
 @app.route('/payments', methods=['GET'])
 @app.route('/payments/<int(min=1):page>', methods=['GET'])
 @app.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@login_required
 def payments(page=1, per_page=PAYMENTS_PER_PAGE):
     '''main payments page'''
-    #TODO
-    payments=[]
-    return render_template('payments.html', payments=payments)
+    payments=self.payments().paginate(page, per_page, False)
+    return render_template('payments.html', payments=payments, user=g.user)
 
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 def show_payments(pay_id):
     '''show payments'''
-    #TODO
-    payment=None
+    payment=self.payments().offset(pay_id-1).first_or_404()
     return render_template('show_payment.html', payment=payment)
+
+@app.route('/hook/valid_charge', methods=['POST'])
+def charge_hook():
+    #TODO
+    charge=json.loads(request.data)
+    return 'got it'
