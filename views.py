@@ -4,7 +4,7 @@ from rentport.model import Issue, Property, User, LandlordTenant, Comment
 from flask import render_template, request, g, redirect, url_for, abort, flash, session, json
 from flask.ext.security import login_required
 from flask.ext.wtf import Form
-from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField
+from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField, RadioField
 from wtforms.validators import Length, DataRequired, AnyOf
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
@@ -52,8 +52,9 @@ class EndLandlordForm(Form):
     submit=SubmitField('End')
 
 class ConfirmTenantForm(Form):
-    confirm=HiddenField(default='True', validators=[AnyOf('True')])
-    submit=SubmitField('Confirm')
+    confirm=RadioField('Confirm?', choices=[('True', 'Confirm'),
+                                        ('False', 'Disallow')])
+    submit=SubmitField('Submit')
 
 class CommentForm(Form):
     comment=TextAreaField('Comment', [DataRequired()])
@@ -249,7 +250,7 @@ def show_property(prop_id):
     return render_template('show_property.html', location=prop)
 
 @app.route('/tenant/confirm', methods=['GET'])
-@app.route('/tenant/confirm/<tenant>', methods=['POST', 'GET'])
+@app.route('/tenant/<tenant>/confirm', methods=['POST', 'GET'])
 @login_required
 def confirm_relation(tenant=None):
     if tenant == None:
@@ -266,10 +267,15 @@ def confirm_relation(tenant=None):
                         LandlordTenant.confirmed==False,
                         User.username==tenant).\
                 first_or_404()
-        lt.confirmed=True
-        db.session.add(lt)
-        db.session.commit()
-        flash('Confirmed tenant')
+        if request.form['confirm']=='True':
+            lt.confirmed=True
+            db.session.add(lt)
+            db.session.commit()
+            flash('Confirmed tenant')
+        else:
+            db.session.delete(lt)
+            db.session.commit()
+            flash('Disallowed tenant')
         return redirect(url_for('home'))
     return render_template('confirm_relation.html', form=form)
 
