@@ -133,15 +133,6 @@ class Property(db.Model):
     def __repr__(self):
         return '<Property %r %r >' % (self.location, self.description)
 
-class Payment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    stripe_id = db.Column(db.Text, nullable=False)
-    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    from_user = db.relationship("User", backref='sent_payments', order_by=id, foreign_keys="Payment.from_user_id")
-    to_user = db.relationship("User", backref='rec_payments', order_by=id, foreign_keys="Payment.to_user_id")
-
 class StripeUserInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
@@ -156,8 +147,9 @@ class StripeArchivedPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     stripe_charge_id = db.Column(db.Text, nullable=False, unique=True)
-    status = db.Columnt(db.Enum('Pending', 'Confirmed', 'Refunded', name=payment_status), nullable=False, default='Pending')
+    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', name='payment_status'), nullable=False, default='Pending')
     from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.from_user_id")
     to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.to_user_id")
 

@@ -370,7 +370,7 @@ def pay_fee():
 @login_required
 def payments(page=1, per_page=PAYMENTS_PER_PAGE):
     '''main payments page'''
-    payments=self.payments().paginate(page, per_page, False)
+    payments=g.user.payments().paginate(page, per_page, False)
     return render_template('payments.html', payments=payments, user=g.user)
 
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
