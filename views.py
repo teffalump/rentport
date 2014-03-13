@@ -110,14 +110,14 @@ def open_issue():
 def comment(ident):
     '''comment on issue
         params:     POST: <comment> comment text
-                    GET/POST: <ident> offset id
+                    GET/POST: <ident> absolute id
         returns:    POST: Redirect to main issues page
                     GET: Comment form
     '''
     #TODO Email when there is a comment?
     form = CommentForm()
-    issue=g.user.all_issues().filter(Issue.status=='Open').\
-            offset(ident-1).first_or_404()
+    issue=g.user.all_issues().filter(Issue.status=='Open',
+            Issue.id==ident).first_or_404()
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
@@ -131,11 +131,11 @@ def comment(ident):
 @login_required
 def show_issue(ident):
     '''show issue
-        params:     GET: <ident> offset id
+        params:     GET: <ident> absolute id
         returns:    detailed issue page
     '''
-    issue=g.user.all_issues().filter(Issue.status=='Open').\
-            offset(ident-1).first_or_404()
+    issue=g.user.all_issues().filter(Issue.status=='Open',
+            Issue.id==ident).first_or_404()
     return render_template('show_issue.html', issue=issue)
 
 @app.route('/issues/<int(min=1):ident>/close', methods=['POST', 'GET'])
@@ -143,16 +143,15 @@ def show_issue(ident):
 def close_issue(ident):
     '''close issue - only opener or landlord can
         params:     POST: <reason> reason (to close issue)
-                    GET/POST: <ident> offset id
+                    GET/POST: <ident> absolute id
         returns:    GET: Form to close issue
                     POST: Redirect to main issues page
     '''
-    #TODO Error handling
     form=CloseIssueForm()
-    issue=Issue.query.join(Property.issues).\
-            filter(or_(Property.owner_id==g.user.id,
-                Issue.creator_id==g.user.id)).\
-            filter(Issue.status=='Open').offset(ident-1).first_or_404()
+    issue=Issue.query.filter(or_(Issue.landlord_id==g.user.id,
+                Issue.creator_id==g.user.id),
+                Issue.status == 'Open',
+                Issue.id == ident).first_or_404()
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
@@ -228,7 +227,7 @@ def add_property():
 @app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
 def modify_property(prop_id):
-    prop=g.user.properties.offset(prop_id - 1).first_or_404()
+    prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
     form=ModifyPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -246,7 +245,7 @@ def modify_property(prop_id):
 @app.route('/landlord/property/<int(min=1):prop_id>/show', methods=['GET'])
 @login_required
 def show_property(prop_id):
-    prop=g.user.properties.offset(prop_id - 1).first_or_404()
+    prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
     return render_template('show_property.html', location=prop)
 
 @app.route('/tenant/confirm', methods=['GET'])
@@ -287,8 +286,11 @@ def authorize():
 @app.route('/oauth/authorized', methods=['GET'])
 @login_required
 def authorized():
-    oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'], state=session['state'])
-    token=oauth.fetch_token(stripe.access_token_url, app.config['STRIPE_CONSUMER_SECRET'], authorization_response=request.url)
+    oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
+                    state=session['state'])
+    token=oauth.fetch_token(stripe.access_token_url,
+                    app.config['STRIPE_CONSUMER_SECRET'],
+                    authorization_response=request.url)
     return 'blar'
 
 @app.route('/session/dump')
@@ -311,7 +313,7 @@ def remove():
 @app.route('/pay/landlord/<int(min=100):amt>', methods=['POST', 'GET'])
 @login_required
 def pay_rent(amt):
-    landlord=g.user.current_landlord() or abort(404)
+    landlord=g.user.current_landlord() or abort(403)
     cents=amt*100
     if request.method == 'POST':
         token = request.form['stripeToken']
@@ -374,7 +376,7 @@ def payments(page=1, per_page=PAYMENTS_PER_PAGE):
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 def show_payments(pay_id):
     '''show payments'''
-    payment=self.payments().offset(pay_id-1).first_or_404()
+    payment=self.payments().filter(Payment.id==pay_id).first_or_404()
     return render_template('show_payment.html', payment=payment)
 
 @app.route('/hook/valid_charge', methods=['POST'])
