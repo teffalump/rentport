@@ -21,6 +21,7 @@ class stripe:
         scope=['read_write']
         access_token_method='POST',
 
+#### FORMS ####
 class FileUploadForm(Form):
     upload=FileField('File', [DataRequired()])
     title=TextField('Title')
@@ -67,12 +68,16 @@ class AddPropertyForm(Form):
 
 class ModifyPropertyForm(AddPropertyForm):
     submit=SubmitField('Modify Property')
+#### /FORMS ####
 
+#### DEFAULT ####
 @app.route('/')
 @login_required
 def home():
     return render_template('home.html')
+#### /DEFAULT ####
 
+#### ISSUES ####
 @app.route('/issues', methods=['GET'])
 @app.route('/issues/<int(min=1):page>', methods=['GET'])
 @app.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
@@ -162,12 +167,16 @@ def close_issue(ident):
         flash('Issue closed')
         return redirect(url_for('issues'))
     return render_template('close_issue.html', form=form, issue=issue)
+#### /ISSUES ####
 
+#### PROFILE ####
 @app.route('/profile', methods=['GET'])
 @login_required
 def profile():
     return render_template('profile.html', user=g.user)
+#### /PROFILE ####
 
+#### LANDLORD ####
 @app.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
 @login_required
 def add_landlord(landlord):
@@ -204,7 +213,9 @@ def end_relation():
         flash('Ended landlord relationship')
         return redirect(url_for('home'))
     return render_template('end_relation.html', form=form)
+#### /LANDLORD ####
 
+##### PROPERTIES #####
 @app.route('/landlord/property', methods=['GET'])
 @login_required
 def properties():
@@ -248,7 +259,9 @@ def modify_property(prop_id):
 def show_property(prop_id):
     prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
     return render_template('show_property.html', location=prop)
+#### /PROPERTIES ####
 
+#### TENANTS ####
 @app.route('/tenant/confirm', methods=['GET'])
 @app.route('/tenant/<tenant>/confirm', methods=['POST', 'GET'])
 @login_required
@@ -278,7 +291,9 @@ def confirm_relation(tenant=None):
             flash('Disallowed tenant')
         return redirect(url_for('home'))
     return render_template('confirm_relation.html', form=form)
+#### /TENANTS ####
 
+#### PAYMENTS ####
 @app.route('/oauth/authorize', methods=['GET'])
 @login_required
 def authorize():
@@ -299,53 +314,43 @@ def authorized():
                     authorization_response=request.url)
     return 'blar'
 
-@app.route('/session/dump')
-@login_required
-def dump():
-    return str(session['add'])
-
-@app.route('/session/add')
-@login_required
-def add():
-    session['add']='aoteuhsaoneuhasnoetuhasnetuhasoenuthaesnuthaeasotneuhasnetuhasoenuthasoentuhaoesthaoaoeustahoesutnhousntahoeusnthuaohuaotnehuaoetnuhaetnuhaentuheosantuheastuhoth.c.c.c.c.c.c.c.c.ccseuthaesnthaoesueuoueouoeuttttahosentuhaoestnhaoesnuthaoesntuhaoesnuthaoesnuthaoesuthaoesunthaetahosenut'
-    return redirect(url_for('dump'))
-
-@app.route('/session/remove')
-@login_required
-def remove():
-    session['add']=None
-    return redirect(url_for('dump'))
-
+#RISK
+@app.route('/pay/landlord', methods=['GET'])
 @app.route('/pay/landlord/<int(min=100):amt>', methods=['POST', 'GET'])
 @login_required
-def pay_rent(amt):
+def pay_rent(amt=None):
+    #TODO Add dynamic payment amount
     landlord=g.user.current_landlord() or abort(403)
-    cents=amt*100
-    if request.method == 'POST':
-        token = request.form['stripeToken']
-        try:
-            charge = stripe.Charge.create(
-                  amount=cents,
-                  currency="usd",
-                  card=token,
-                  description=':'.join([g.user.id, g.user.username])
-                  )
-        except stripe.CardError:
-            flash('Card error')
-            abort(400)
-        except Exception:
-            flash('Error occurred')
-            abort(400)
+    if amt != None:
+        cents=amt*100
+        if request.method == 'POST':
+            token = request.form['stripeToken']
+            try:
+                charge = stripe.Charge.create(
+                      amount=cents,
+                      currency="usd",
+                      card=token,
+                      description=':'.join([g.user.id, g.user.username])
+                      )
+            except stripe.CardError:
+                flash('Card error')
+                abort(400)
+            except Exception:
+                flash('Error occurred')
+                abort(400)
+            else:
+                flash('Payment processed')
+                redirect(url_for('/payments'))
         else:
-            flash('Payment processed')
-            redirect(url_for('/payments'))
+            return render_template('pay_landlord.html', landlord=landlord, amount=cents)
     else:
-        return render_template('pay_landlord.html', landlord=landlord, amount=cents)
+        return 'Need amt'
 
+#RISK
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
-    #TODO
+    #TODO Store charge
     if request.method == 'POST':
         token = request.form['stripeToken']
         try:
@@ -390,3 +395,23 @@ def charge_hook():
     #TODO
     charge=json.loads(request.data)
     return 'got it'
+#### /PAYMENTS ####
+
+#### SESSION TESTING ####
+@app.route('/session/dump')
+@login_required
+def dump():
+    return str(session['add'])
+
+@app.route('/session/add')
+@login_required
+def add():
+    session['add']='aoteuhsaoneuhasnoetuhasnetuhasoenuthaesnuthaeasotneuhasnetuhasoenuthasoentuhaoesthaoaoeustahoesutnhousntahoeusnthuaohuaotnehuaoetnuhaetnuhaentuheosantuheastuhoth.c.c.c.c.c.c.c.c.ccseuthaesnthaoesueuoueouoeuttttahosentuhaoestnhaoesnuthaoesntuhaoesnuthaoesnuthaoesuthaoesunthaetahosenut'
+    return redirect(url_for('dump'))
+
+@app.route('/session/remove')
+@login_required
+def remove():
+    session['add']=None
+    return redirect(url_for('dump'))
+#### /SESSION TESTING ####
