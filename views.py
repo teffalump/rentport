@@ -89,6 +89,18 @@ def issues(page=1, per_page=ISSUES_PER_PAGE):
     issues=g.user.all_issues().paginate(page, per_page, False)
     return render_template('issues.html', issues=issues)
 
+@app.route('/issues/<int(min=1):ident>/show', methods=['GET'])
+@login_required
+def show_issue(ident):
+    '''show issue
+        params:     GET: <ident> absolute id
+        returns:    detailed issue page
+    '''
+    issue=g.user.all_issues().filter(Issue.status=='Open',
+            Issue.id==ident).first_or_404()
+    return render_template('show_issue.html', issue=issue)
+
+# PAID ENDPOINT
 @app.route('/issues/open', methods=['POST', 'GET'])
 @login_required
 def open_issue():
@@ -98,8 +110,9 @@ def open_issue():
         returns:    POST: Redirect for main issues
                     GET: Open issue form
     '''
-    #TODO Email when opened
-    g.user.current_location() or abort(403)
+    #TODO Email/text when opened
+    if g.user.current_location() == None: abort(403)
+    if not g.user.current_landlord().fee_paid: abort(403)
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -132,17 +145,6 @@ def comment(ident):
         db.session.commit()
         return redirect(url_for('issues'))
     return render_template('comment.html', form=form, issue=issue)
-
-@app.route('/issues/<int(min=1):ident>/show', methods=['GET'])
-@login_required
-def show_issue(ident):
-    '''show issue
-        params:     GET: <ident> absolute id
-        returns:    detailed issue page
-    '''
-    issue=g.user.all_issues().filter(Issue.status=='Open',
-            Issue.id==ident).first_or_404()
-    return render_template('show_issue.html', issue=issue)
 
 @app.route('/issues/<int(min=1):ident>/close', methods=['POST', 'GET'])
 @login_required
@@ -221,9 +223,11 @@ def end_relation():
 def properties():
     return render_template('properties.html', user=g.user)
 
+# PAID ENDPOINT
 @app.route('/landlord/property/add', methods=['GET', 'POST'])
 @login_required
 def add_property():
+    if not g.user.fee_paid: abort(403)
     form=AddPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -291,6 +295,7 @@ def confirm_relation(tenant=None):
             flash('Disallowed tenant')
         return redirect(url_for('home'))
     return render_template('confirm_relation.html', form=form)
+
 #### /TENANTS ####
 
 #### PAYMENTS ####
@@ -307,6 +312,7 @@ def authorize():
 @app.route('/oauth/authorized', methods=['GET'])
 @login_required
 def authorized():
+    #TODO Save token
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
     token=oauth.fetch_token(stripe.access_token_url,
@@ -315,14 +321,16 @@ def authorized():
     return 'blar'
 
 #RISK
+#PAID ENDPOINT
 @app.route('/pay/landlord', methods=['GET'])
-@app.route('/pay/landlord/<int(min=100):amt>', methods=['POST', 'GET'])
+@app.route('/pay/landlord/<int(min=100):amount>', methods=['POST', 'GET'])
 @login_required
-def pay_rent(amt=None):
+def pay_rent(amount=None):
     #TODO Add dynamic payment amount
     landlord=g.user.current_landlord() or abort(403)
-    if amt != None:
-        cents=amt*100
+    if not landlord.fee_paid: abort(403)
+    if amount != None:
+        cents=amount*100
         if request.method == 'POST':
             token = request.form['stripeToken']
             try:
@@ -344,7 +352,7 @@ def pay_rent(amt=None):
         else:
             return render_template('pay_landlord.html', landlord=landlord, amount=cents)
     else:
-        return 'Need amt'
+        return 'Need amount'
 
 #RISK
 @app.route('/pay/fee', methods=['POST', 'GET'])
@@ -406,7 +414,7 @@ def dump():
 @app.route('/session/add')
 @login_required
 def add():
-    session['add']='aoteuhsaoneuhasnoetuhasnetuhasoenuthaesnuthaeasotneuhasnetuhasoenuthasoentuhaoesthaoaoeustahoesutnhousntahoeusnthuaohuaotnehuaoetnuhaetnuhaentuheosantuheastuhoth.c.c.c.c.c.c.c.c.ccseuthaesnthaoesueuoueouoeuttttahosentuhaoestnhaoesnuthaoesntuhaoesnuthaoesnuthaoesuthaoesunthaetahosenut'
+    session['add']=gen_salt(1000)
     return redirect(url_for('dump'))
 
 @app.route('/session/remove')

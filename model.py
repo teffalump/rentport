@@ -23,6 +23,7 @@ class User(db.Model, UserMixin):
     joined = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     confirmed_at = db.Column(db.DateTime)
     active = db.Column(db.Boolean)
+    fee_paid = db.Column(db.Boolean, default=False, nullable=False)
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
