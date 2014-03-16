@@ -18,6 +18,8 @@
         + kvsession (when fixed)
         + sqlalchemy
 * postgresql
+* sendgrid
+* nexmo/twilio
 
 # Roadmap
 1. User system
@@ -60,11 +62,17 @@
               from the webhook but only that!
 
 # Other thoughts
-+ Return json? Or valid html? Like tables, etc.
 + rental agreements? seems security issues too big for me... at the moment
 + Add Dwolla after Stripe (but Stripe is the minimum)
 
-# Service fee - TODO
+# Service fee info
 + One level subscription for one year
-+ What do you get? payments, issues
-+ If not paid? No activity allowed
++ If not paid?
+    + Can't:
+        1. Open new issues
+        2. Add new properties
+        3. Receive payments
+    + But can:
+        1. Comment on and close current issues
+        2. Modify existing properties
+
