@@ -83,8 +83,11 @@ def home():
 @app.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
 def issues(page=1, per_page=ISSUES_PER_PAGE):
-    '''display main issues page'''
-    #TODO Do the pagination stuff
+    '''display main issues page
+        params:     GET: <page> page number (optional)
+                    GET: <per_page> # of issues per page (optional)
+        returns:    list of issues
+    '''
     #TODO What issues to retrieve?
     issues=g.user.all_issues().paginate(page, per_page, False)
     return render_template('issues.html', issues=issues)
@@ -105,10 +108,10 @@ def show_issue(ident):
 @login_required
 def open_issue():
     '''open new issue
-        params:     POST: <severity> issue severity
-                        <description> issue description
-        returns:    POST: Redirect for main issues
-                    GET: Open issue form
+        params:     POST:   <severity> issue severity
+                    POST:   <description> issue description
+        returns:    POST:   Redirect for main issues
+                    GET:    Open issue form
     '''
     #TODO Email/text when opened
     if g.user.current_location() == None: abort(403)
@@ -182,6 +185,12 @@ def profile():
 @app.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
 @login_required
 def add_landlord(landlord):
+    '''make landlord request
+        params:     POST:       <location> location id
+                    GET/POST:   <landlord> landlord username
+        returns:    POST:       Redirect
+                    GET:        Request form
+    '''
     #TODO Email when added?
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
@@ -202,7 +211,11 @@ def add_landlord(landlord):
 @app.route('/landlord/end', methods=['POST', 'GET'])
 @login_required
 def end_relation():
-    '''end relation'''
+    '''end landlord relation
+        params:     POST: <end> = True
+        returns:    POST: Redirect
+                    GET: End relation form
+    '''
     form=EndLandlordForm()
     lt=LandlordTenant.query.\
             filter(LandlordTenant.tenant_id==g.user.id,
@@ -221,12 +234,22 @@ def end_relation():
 @app.route('/landlord/property', methods=['GET'])
 @login_required
 def properties():
+    '''show properties
+        params:     NONE
+        returns:    GET: List of properties
+    '''
     return render_template('properties.html', user=g.user)
 
 # PAID ENDPOINT
 @app.route('/landlord/property/add', methods=['GET', 'POST'])
 @login_required
 def add_property():
+    '''add property
+        params:     POST: <location> location id
+                    POST: <description> property description
+        returns:    POST: Redirect
+                    GET: Add property form
+    '''
     if not g.user.fee_paid: abort(403)
     form=AddPropertyForm()
     if form.validate_on_submit():
@@ -243,6 +266,13 @@ def add_property():
 @app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
 def modify_property(prop_id):
+    '''modify existing property
+        params:     POST: <description> new property description
+                    POST: <location> new location id
+                    GET/POST: <prop_id> absolute location id
+        returns:    POST: Redirect
+                    GET: Modify property form
+    '''
     prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
     form=ModifyPropertyForm()
     if form.validate_on_submit():
@@ -261,6 +291,10 @@ def modify_property(prop_id):
 @app.route('/landlord/property/<int(min=1):prop_id>/show', methods=['GET'])
 @login_required
 def show_property(prop_id):
+    '''show detailed info on property
+        params:     GET: <prop_id> absolute property id
+        returns:    GET: Detaild property info
+    '''
     prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
     return render_template('show_property.html', location=prop)
 #### /PROPERTIES ####
@@ -270,6 +304,7 @@ def show_property(prop_id):
 @app.route('/tenant/<tenant>/confirm', methods=['POST', 'GET'])
 @login_required
 def confirm_relation(tenant=None):
+    '''confirm tenant request'''
     if tenant == None:
         tenants=User.query.join(User.landlords).\
                 filter(LandlordTenant.landlord_id==g.user.id,
@@ -398,11 +433,11 @@ def show_payments(pay_id):
     payment=self.payments().filter(Payment.id==pay_id).first_or_404()
     return render_template('show_payment.html', payment=payment)
 
-@app.route('/hook/valid_charge', methods=['POST'])
+@app.route('/hook/charge', methods=['POST'])
 def charge_hook():
     #TODO
     charge=json.loads(request.data)
-    return 'got it'
+    return 'got charge hook'
 #### /PAYMENTS ####
 
 #### SESSION TESTING ####
