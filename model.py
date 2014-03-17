@@ -23,7 +23,6 @@ class User(db.Model, UserMixin):
     joined = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     confirmed_at = db.Column(db.DateTime)
     active = db.Column(db.Boolean)
-    fee_paid = db.Column(db.Boolean, default=False, nullable=False)
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
@@ -144,15 +143,26 @@ class StripeUserInfo(db.Model):
     retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     user = db.relationship("User", backref='stripe_info', order_by=id)
 
-class StripeArchivedPayment(db.Model):
+class Fee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
-    to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    stripe_charge_id = db.Column(db.Text, nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    paid_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    paid_through = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', name='payment_status'), nullable=False, default='Pending')
-    from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.from_user_id")
-    to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="StripeArchivedPayment.to_user_id")
+    method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
+    charge_id=db.Column(db.Text)
+    user=db.relationship("User", backref=db.backref("fees", lazy='dynamic'))
+
+class ArchivedPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    charge_id = db.Column(db.Text, nullable=False, unique=True)
+    method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
+    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', name='payment_status'), nullable=False, default='Pending')
+    from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="ArchivedPayment.from_user_id")
+    to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="ArchivedPayment.to_user_id")
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
