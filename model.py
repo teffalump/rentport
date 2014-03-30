@@ -1,9 +1,11 @@
 from rentport import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import g
 from flask.ext.security import UserMixin, RoleMixin
 from sqlalchemy.dialects import postgresql
 from sqlalchemy import or_
+
+#TODO Add text search to issues and comments
 
 #### MODELS ####
 roles_users = db.Table('roles_users',
@@ -20,9 +22,10 @@ class User(db.Model, UserMixin):
     username = db.Column(db.Text, unique=True, nullable=False)
     email = db.Column(db.Text, unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
-    joined = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    joined = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     confirmed_at = db.Column(db.DateTime)
     active = db.Column(db.Boolean)
+    paid_through = db.Column(db.DateTime, nullable=False, default=datetime.min)
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
@@ -42,6 +45,9 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return '<User %r %r>' % (self.username, self.email)
+
+    def fee_paid(self):
+        return self.paid_through >= datetime.utcnow()
 
     def all_issues(self):
         '''Return all relevant issues'''
@@ -90,7 +96,9 @@ class User(db.Model, UserMixin):
                         LandlordTenant.current==True, User.id != self.id)
 
     def payments(self):
-        return self.rec_payments.union(self.sent_payments).order_by(StripeArchivedPayment.id.desc())
+        return Payment.query.filter(or_(Payment.from_user_id == self.id,
+                        Payment.to_user_id == self.id)).\
+                    order_by(Payment.id.desc())
 
 class LandlordTenant(db.Model):
     '''Class to model Landlord-Tenant relationships'''
@@ -102,7 +110,7 @@ class LandlordTenant(db.Model):
 
     confirmed = db.Column(db.Boolean, default=False, nullable=False)
 
-    started = db.Column(db.DateTime, default=datetime.utcnow())
+    started = db.Column(db.DateTime, default=datetime.utcnow)
     stopped = db.Column(db.DateTime)
 
     location = db.relationship("Property", backref=db.backref("assocs", lazy='dynamic'), foreign_keys="LandlordTenant.location_id")
@@ -140,36 +148,36 @@ class StripeUserInfo(db.Model):
     refresh_token = db.Column(db.Text, nullable=False)
     user_acct = db.Column(db.Text, nullable=False)
     pub_key = db.Column(db.Text, nullable=False)
-    retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     user = db.relationship("User", backref='stripe_info', order_by=id)
 
 class Fee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
-    paid_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    paid_through = db.Column(db.DateTime, nullable=False)
-    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', name='payment_status'), nullable=False, default='Pending')
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    paid_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    length = db.Column(db.Interval, nullable=False, default=timedelta(days=365))
+    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
     method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
-    charge_id=db.Column(db.Text)
-    user=db.relationship("User", backref=db.backref("fees", lazy='dynamic'))
+    charge_id = db.Column(db.Text, nullable=False)
+    user = db.relationship("User", backref=db.backref("fees", lazy='dynamic'), order_by=id)
 
-class ArchivedPayment(db.Model):
+class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     charge_id = db.Column(db.Text, nullable=False, unique=True)
     method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
-    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', name='payment_status'), nullable=False, default='Pending')
-    from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="ArchivedPayment.from_user_id")
-    to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="ArchivedPayment.to_user_id")
+    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded','Denied', name='payment_status'), nullable=False, default='Pending')
+    from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="Payment.from_user_id")
+    to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="Payment.to_user_id")
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
     text = db.Column(db.Text, nullable=False)
-    posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     user = db.relationship("User", backref=db.backref('comments', lazy='dynamic'),  foreign_keys="Comment.user_id")
     issue = db.relationship("Issue", backref=db.backref('comments', lazy='dynamic'), foreign_keys="Comment.issue_id")
@@ -185,7 +193,7 @@ class Issue(db.Model):
     description = db.Column(db.Text, nullable=False)
     severity = db.Column(db.Enum('Critical', 'Medium', 'Low', 'Future', name='issue_severity'), nullable=False)
     status = db.Column(db.Enum('Open', 'Closed', 'Pending', name='issue_status'), nullable=False, default='Open')
-    opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     closed_at = db.Column(db.DateTime)
     closed_because = db.Column(db.Text)
 
@@ -205,7 +213,7 @@ def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the closed_at column;
     when status set to False; closed_at set to now'''
     if value == 'Closed':
-        target.closed_at = datetime.utcnow()
+        target.closed_at = datetime.utcnow
 
 #TODO Add another listener to update previous relationship to false
 # when a colliding row is added? Or write func to handle?
@@ -214,4 +222,4 @@ def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the stopped column;
     when current set to False, stopped set to now'''
     if value == False:
-        target.stopped = datetime.utcnow()
+        target.stopped = datetime.utcnow
