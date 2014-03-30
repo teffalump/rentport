@@ -9,7 +9,7 @@ from wtforms.validators import Length, DataRequired, AnyOf
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
 from sys import exc_info as er
-from datetime import datetime
+from datetime import datetime as dt
 import stripe
 
 
@@ -370,31 +370,38 @@ def pay_rent(amount=None):
     if not landlord.fee_paid():
         flash('Landlord has not paid service fee')
         return redirect(url_for('payments'))
-    if not landlord.stripe_info:
+    if not landlord.stripe:
         flash('Landlord cannot accept CC')
         return redirect(url_for('payments'))
-    if amount != None:
+    if amount:
         cents=amount*100
         if request.method == 'POST':
             token = request.form['stripeToken']
             try:
                 charge = stripe.Charge.create(
+                      api_key=landlord.stripe.access_token,
                       amount=cents,
                       currency="usd",
                       card=token,
-                      description=':'.join([g.user.id, g.user.username])
-                      )
+                      description=':'.join([g.user.id, g.user.username]))
+                p = Payment(to_user_id=landlord.id, charge_id=charge.id)
+                g.user.sent_payments.append(p)
+                db.session.add(p)
+                db.session.commit()
+                flash('Payment processed')
+                return redirect(url_for('payments'))
             except stripe.error.CardError:
                 flash('Card error')
                 return redirect(url_for('pay_rent'))
-            except Exception:
-                flash('Error occurred')
+            except stripe.error.AuthenticationError:
+                flash('Authentication error')
                 return redirect(url_for('pay_rent'))
-            else:
-                flash('Payment processed')
-                return redirect(url_for('/payments'))
+            except Exception:
+                flash(str(er()))
+                return redirect(url_for('pay_rent'))
         else:
-            return render_template('pay_landlord.html', landlord=landlord, amount=cents)
+            return render_template('pay_landlord.html', landlord=landlord,
+                                                        amount=amount)
     else:
         return 'Need amount'
 
@@ -417,8 +424,7 @@ def pay_fee():
             g.user.fees.append(c)
             db.session.add(c)
             db.session.commit()
-            if g.user.fee_paid(): g.user.paid_through+=c.length
-            else: g.user.paid_through=datetime.utcnow()+c.length
+            g.user.paid_through=max(g.user.paid_through,dt.utcnow())+c.length
             db.session.add(g.user)
             db.session.commit()
             flash('Payment processed')

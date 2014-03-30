@@ -47,6 +47,7 @@ class User(db.Model, UserMixin):
         return '<User %r %r>' % (self.username, self.email)
 
     def fee_paid(self):
+        '''Check if fee payment is current'''
         return self.paid_through >= datetime.utcnow()
 
     def all_issues(self):
@@ -149,7 +150,7 @@ class StripeUserInfo(db.Model):
     user_acct = db.Column(db.Text, nullable=False)
     pub_key = db.Column(db.Text, nullable=False)
     retrieved = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user = db.relationship("User", backref='stripe_info', order_by=id)
+    user = db.relationship("User", backref=db.backref('stripe', uselist=False), uselist=False)
 
 class Fee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -168,7 +169,7 @@ class Payment(db.Model):
     time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     charge_id = db.Column(db.Text, nullable=False, unique=True)
     method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
-    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded','Denied', name='payment_status'), nullable=False, default='Pending')
+    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
     from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="Payment.from_user_id")
     to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="Payment.to_user_id")
 
