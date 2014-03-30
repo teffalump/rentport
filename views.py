@@ -1,6 +1,6 @@
 from rentport import app, db
 from requests_oauthlib import OAuth2Session
-from rentport.model import Issue, Property, User, LandlordTenant, Comment
+from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment
 from flask import render_template, request, g, redirect, url_for, abort, flash, session, json
 from flask.ext.security import login_required
 from flask.ext.wtf import Form
@@ -8,12 +8,16 @@ from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenFi
 from wtforms.validators import Length, DataRequired, AnyOf
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
+from sys import exc_info as er
+from datetime import datetime
+import stripe
+
 
 FEE_AMOUNT=1000 #in cents
 ISSUES_PER_PAGE=10
 PAYMENTS_PER_PAGE=10
 
-class stripe:
+class stripe_config:
         redirect_uri='https://www.rentport.com/oauth/authorized'
         base_url='https://api.stripe.com'
         access_token_url='https://connect.stripe.com/oauth/token'
@@ -115,7 +119,7 @@ def open_issue():
     '''
     #TODO Email/text when opened
     if g.user.current_location() == None: abort(403)
-    if not g.user.current_landlord().fee_paid: abort(403)
+    if not g.user.current_landlord().fee_paid(): abort(403)
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -250,7 +254,7 @@ def add_property():
         returns:    POST: Redirect
                     GET: Add property form
     '''
-    if not g.user.fee_paid: abort(403)
+    if not g.user.fee_paid(): abort(403)
     form=AddPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -338,8 +342,8 @@ def confirm_relation(tenant=None):
 @login_required
 def authorize():
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'], 
-            redirect_uri=stripe.redirect_uri, scope=stripe.scope)
-    auth_url, state=oauth.authorization_url(stripe.authorize_url)
+            redirect_uri=stripe_config.redirect_uri, scope=stripe_config.scope)
+    auth_url, state=oauth.authorization_url(stripe_config.authorize_url)
     session['state']=state
     return str(auth_url)
     #return redirect(auth_url)
@@ -350,7 +354,7 @@ def authorized():
     #TODO Save token
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
-    token=oauth.fetch_token(stripe.access_token_url,
+    token=oauth.fetch_token(stripe_config.access_token_url,
                     app.config['STRIPE_CONSUMER_SECRET'],
                     authorization_response=request.url)
     return 'blar'
@@ -363,7 +367,12 @@ def authorized():
 def pay_rent(amount=None):
     #TODO Add dynamic payment amount
     landlord=g.user.current_landlord() or abort(403)
-    if not landlord.fee_paid: abort(403)
+    if not landlord.fee_paid():
+        flash('Landlord has not paid service fee')
+        return redirect(url_for('payments'))
+    if not landlord.stripe_info:
+        flash('Landlord cannot accept CC')
+        return redirect(url_for('payments'))
     if amount != None:
         cents=amount*100
         if request.method == 'POST':
@@ -375,15 +384,15 @@ def pay_rent(amount=None):
                       card=token,
                       description=':'.join([g.user.id, g.user.username])
                       )
-            except stripe.CardError:
+            except stripe.error.CardError:
                 flash('Card error')
-                abort(400)
+                return redirect(url_for('pay_rent'))
             except Exception:
                 flash('Error occurred')
-                abort(400)
+                return redirect(url_for('pay_rent'))
             else:
                 flash('Payment processed')
-                redirect(url_for('/payments'))
+                return redirect(url_for('/payments'))
         else:
             return render_template('pay_landlord.html', landlord=landlord, amount=cents)
     else:
@@ -393,25 +402,36 @@ def pay_rent(amount=None):
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
-    #TODO Store charge
+    #TODO How to know defaults w/o committing twice?
     if request.method == 'POST':
         token = request.form['stripeToken']
         try:
             charge = stripe.Charge.create(
+                  api_key=app.config['STRIPE_CONSUMER_SECRET'],
                   amount=FEE_AMOUNT,
                   currency="usd",
                   card=token,
-                  description=':'.join([g.user.id, g.user.username])
+                  description=':'.join([str(g.user.id), g.user.username])
                   )
-        except stripe.CardError:
-            flash('Card error')
-            abort(400)
-        except Exception:
-            flash('Error occurred')
-            abort(400)
-        else:
+            c = Fee(charge_id=charge.id)
+            g.user.fees.append(c)
+            db.session.add(c)
+            db.session.commit()
+            if g.user.fee_paid(): g.user.paid_through+=c.length
+            else: g.user.paid_through=datetime.utcnow()+c.length
+            db.session.add(g.user)
+            db.session.commit()
             flash('Payment processed')
-            redirect(url_for('/payments'))
+            return redirect(url_for('fees'))
+        except stripe.error.CardError:
+            flash('Card error')
+            return redirect(url_for('pay_fee'))
+        except stripe.error.AuthenticationError:
+            flash('Authentication error')
+            return redirect(url_for('pay_fee'))
+        except Exception:
+            flash(str(er()))
+            return redirect(url_for('pay_fee'))
 
     else:
         return render_template('pay_service_fee.html',
@@ -432,6 +452,12 @@ def show_payments(pay_id):
     '''show payments'''
     payment=self.payments().filter(Payment.id==pay_id).first_or_404()
     return render_template('show_payment.html', payment=payment)
+
+@app.route('/fees', methods=['GET'])
+@login_required
+def fees():
+    '''main fees page'''
+    return render_template('fees.html', fees=g.user.fees, user=g.user)
 
 @app.route('/hook/charge', methods=['POST'])
 def charge_hook():
