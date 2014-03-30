@@ -60,6 +60,7 @@
                   weird querying (like, iterating prev landlord with stripe)
             + How to mitigate info? Simply save the charge id, from, to info
               from the webhook but only that!
+    + Incorporate mylar: http://css.csail.mit.edu/mylar/
 
 # Other thoughts
 + rental agreements? seems security issues too big for me... at the moment
