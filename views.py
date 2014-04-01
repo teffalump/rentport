@@ -11,20 +11,15 @@ from werkzeug.security import gen_salt
 from sys import exc_info as er
 from datetime import datetime as dt
 import stripe
-import json
 
-
-FEE_AMOUNT=1000 #in cents
-ISSUES_PER_PAGE=10
-PAYMENTS_PER_PAGE=10
-
-class stripe_config:
-        redirect_uri='https://www.rentport.com/oauth/authorized'
-        base_url='https://api.stripe.com'
-        access_token_url='https://connect.stripe.com/oauth/token'
-        authorize_url='https://connect.stripe.com/oauth/authorize'
-        scope=['read_write']
-        access_token_method='POST',
+#### UTILS ####
+def get_url(endpoint, **kw):
+    '''Return endpoint url, or next arg url'''
+    try:
+        return request.args['next']
+    except:
+        return url_for(endpoint, **kw)
+#### /UTILS ####
 
 #### FORMS ####
 class FileUploadForm(Form):
@@ -87,7 +82,7 @@ def home():
 @app.route('/issues/<int(min=1):page>', methods=['GET'])
 @app.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def issues(page=1, per_page=ISSUES_PER_PAGE):
+def issues(page=1, per_page=app.config['ISSUES_PER_PAGE']):
     '''display main issues page
         params:     GET: <page> page number (optional)
                     GET: <per_page> # of issues per page (optional)
@@ -203,7 +198,7 @@ def add_landlord(landlord):
     #TODO Email when added?
     if g.user.current_landlord():
         flash('End relationship with current landlord first')
-        return redirect(url_for('end_relation'))
+        return redirect(url_for('end_relation', next=url_for('add_landlord', landlord=landlord)))
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
@@ -228,6 +223,9 @@ def end_relation():
         returns:    POST: Redirect
                     GET: End relation form
     '''
+    if not g.user.current_landlord():
+        flash('No current landlord')
+        return redirect(url_for('home'))
     form=EndLandlordForm()
     lt=LandlordTenant.query.\
             filter(LandlordTenant.tenant_id==g.user.id,
@@ -238,7 +236,7 @@ def end_relation():
         db.session.add(lt)
         db.session.commit()
         flash('Ended landlord relationship')
-        return redirect(url_for('home'))
+        return redirect(get_url('home'))
     return render_template('end_relation.html', form=form)
 #### /LANDLORD ####
 
@@ -356,9 +354,11 @@ def authorize():
     if g.user.stripe:
         flash('Have stripe info already')
         return redirect(url_for('home'))
-    oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'], 
-        redirect_uri=stripe_config.redirect_uri, scope=stripe_config.scope)
-    auth_url, state=oauth.authorization_url(stripe_config.authorize_url)
+    oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
+        redirect_uri=url_for('authorized', _external=True),
+        scope=app.config['STRIPE_OAUTH_CONFIG']['scope'])
+    auth_url, state=oauth.authorization_url(
+            app.config['STRIPE_OAUTH_CONFIG']['authorize_url'])
     session['state']=state
     return redirect(auth_url)
 
@@ -370,7 +370,8 @@ def authorized():
         return redirect(url_for('home'))
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
-    token=oauth.fetch_token(stripe_config.access_token_url,
+    token=oauth.fetch_token(
+                    app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
                     app.config['STRIPE_CONSUMER_SECRET'],
                     authorization_response=request.url)
     s = StripeUserInfo(access_token=token['access_token'],
@@ -441,7 +442,7 @@ def pay_fee():
         try:
             charge = stripe.Charge.create(
                   api_key=app.config['STRIPE_CONSUMER_SECRET'],
-                  amount=FEE_AMOUNT,
+                  amount=app.config['FEE_AMOUNT'],
                   currency="usd",
                   card=token,
                   description=':'.join([str(g.user.id), g.user.username])
@@ -467,22 +468,22 @@ def pay_fee():
 
     else:
         return render_template('pay_service_fee.html',
-                                amount=FEE_AMOUNT,
+                                amount=app.config['FEE_AMOUNT'],
                                 key=app.config['STRIPE_CONSUMER_KEY'])
 
 @app.route('/payments', methods=['GET'])
 @app.route('/payments/<int(min=1):page>', methods=['GET'])
 @app.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def payments(page=1, per_page=PAYMENTS_PER_PAGE):
+def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
     '''main payments page'''
     payments=g.user.payments().paginate(page, per_page, False)
     return render_template('payments.html', payments=payments, user=g.user)
 
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 @login_required
-def show_payments(pay_id):
-    '''show payments'''
+def show_payment(pay_id):
+    '''show detailed payment info'''
     payment=g.user.payments().filter(Payment.id==pay_id).first_or_404()
     p = stripe.Charge.retrieve(payment.charge_id,
                     api_key=payment.from_user.stripe.access_token).to_dict()
@@ -492,18 +493,19 @@ def show_payments(pay_id):
 @app.route('/fees/<int(min=1):page>', methods=['GET'])
 @app.route('/fees/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def fees(page=1, per_page=PAYMENTS_PER_PAGE):
+def fees(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
     '''main fees page'''
     fees=g.user.fees.paginate(page, per_page, False)
     return render_template('fees.html', fees=fees, user=g.user)
 
 @app.route('/fees/<int:pay_id>/show', methods=['GET'])
 @login_required
-def show_fees(pay_id):
-    '''show fees'''
+def show_fee(pay_id):
+    '''show detailed fee info'''
     fee=g.user.fees.filter(Fee.id==pay_id).first_or_404()
     f = stripe.Charge.retrieve(fee.charge_id,
-                    api_key=app.config['STRIPE_CONSUMER_SECRET']).to_dict()
+                    api_key=app.config['STRIPE_CONSUMER_SECRET'])\
+                    .to_dict()
     return render_template('show_fee.html', fee=f)
 
 @app.route('/hook/charge', methods=['POST'])
