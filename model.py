@@ -91,7 +91,7 @@ class User(db.Model, UserMixin):
                 filter(LandlordTenant.landlord_id==self.id, LandlordTenant.current == True)
 
     def fellow_tenants(self):
-        '''Return user's fellow renters'''
+        '''Return user's fellow tenants'''
         return User.query.join(LandlordTenant, LandlordTenant.tenant_id==User.id).\
                 filter(LandlordTenant.landlord_id==getattr(self.current_landlord(),'id',-1),
                         LandlordTenant.current==True, User.id != self.id)

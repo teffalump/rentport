@@ -459,14 +459,27 @@ def payments(page=1, per_page=PAYMENTS_PER_PAGE):
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 def show_payments(pay_id):
     '''show payments'''
-    payment=self.payments().filter(Payment.id==pay_id).first_or_404()
-    return render_template('show_payment.html', payment=payment)
+    payment=g.user.payments().filter(Payment.id==pay_id).first_or_404()
+    p = stripe.Charge.retrieve(payment.charge_id,
+                    api_key=payment.from_user.stripe.access_token).to_dict()
+    return render_template('show_payment.html', payment=p)
 
 @app.route('/fees', methods=['GET'])
+@app.route('/fees/<int(min=1):page>', methods=['GET'])
+@app.route('/fees/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def fees():
+def fees(page=1, per_page=PAYMENTS_PER_PAGE):
     '''main fees page'''
-    return render_template('fees.html', fees=g.user.fees, user=g.user)
+    fees=g.user.fees.paginate(page, per_page, False)
+    return render_template('fees.html', fees=fees, user=g.user)
+
+@app.route('/fees/<int:pay_id>/show', methods=['GET'])
+def show_fees(pay_id):
+    '''show fees'''
+    fee=g.user.fees.filter(Fee.id==pay_id).first_or_404()
+    f = stripe.Charge.retrieve(fee.charge_id,
+                    api_key=app.config['STRIPE_CONSUMER_SECRET']).to_dict()
+    return render_template('show_fee.html', fee=f)
 
 @app.route('/hook/charge', methods=['POST'])
 def charge_hook():
