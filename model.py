@@ -51,8 +51,7 @@ class User(db.Model, UserMixin):
         return self.paid_through >= datetime.utcnow()
 
     def all_issues(self):
-        '''Return all relevant issues'''
-        #TODO Return previous residence issues?
+        '''Return all issues at current location and user's properties'''
         return Issue.query.join(Property.issues).\
             filter(or_(Issue.landlord_id==self.id,
                 Property.id==\
@@ -61,7 +60,7 @@ class User(db.Model, UserMixin):
 
     def open_issue(self):
         '''Open an issue with pre-filled fields'''
-        if self.current_location != None:
+        if self.current_location:
             return Issue(creator_id=self.id,
                         location_id=self.current_location().id,
                         landlord_id=self.current_landlord().id)
@@ -84,6 +83,11 @@ class User(db.Model, UserMixin):
         return Issue.query.join(Property.issues).\
                 filter(Property.id == getattr(self.current_location(),'id',-1)).\
                 order_by(Issue.id.desc())
+
+    def prev_location_issues(self):
+        '''Return issues at user's previous residence(s)'''
+        return Issue.query.join(LandlordTenant, LandlordTenant.location_id==Issue.location_id).\
+                filter(LandlordTenant.tenant_id == self.id)
 
     def current_tenants(self):
         '''Return user's current tenants'''
@@ -214,7 +218,7 @@ def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the closed_at column;
     when status set to False; closed_at set to now'''
     if value == 'Closed':
-        target.closed_at = datetime.utcnow
+        target.closed_at = datetime.utcnow()
 
 #TODO Add another listener to update previous relationship to false
 # when a colliding row is added? Or write func to handle?
@@ -223,4 +227,4 @@ def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the stopped column;
     when current set to False, stopped set to now'''
     if value == False:
-        target.stopped = datetime.utcnow
+        target.stopped = datetime.utcnow()

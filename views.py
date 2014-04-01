@@ -1,6 +1,6 @@
 from rentport import app, db
 from requests_oauthlib import OAuth2Session
-from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment
+from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment, StripeUserInfo
 from flask import render_template, request, g, redirect, url_for, abort, flash, session, json
 from flask.ext.security import login_required
 from flask.ext.wtf import Form
@@ -11,6 +11,7 @@ from werkzeug.security import gen_salt
 from sys import exc_info as er
 from datetime import datetime as dt
 import stripe
+import json
 
 
 FEE_AMOUNT=1000 #in cents
@@ -111,15 +112,19 @@ def show_issue(ident):
 @app.route('/issues/open', methods=['POST', 'GET'])
 @login_required
 def open_issue():
-    '''open new issue
+    '''open new issue at current location
         params:     POST:   <severity> issue severity
                     POST:   <description> issue description
         returns:    POST:   Redirect for main issues
                     GET:    Open issue form
     '''
     #TODO Email/text when opened
-    if g.user.current_location() == None: abort(403)
-    if not g.user.current_landlord().fee_paid(): abort(403)
+    if not g.user.current_landlord():
+        flash('No current landlord')
+        return redirect(url_for('issues'))
+    if not g.user.current_landlord().fee_paid():
+        flash('Landlord needs to pay fee')
+        return redirect(url_for('issues'))
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -196,6 +201,9 @@ def add_landlord(landlord):
                     GET:        Request form
     '''
     #TODO Email when added?
+    if g.user.current_landlord():
+        flash('End relationship with current landlord first')
+        return redirect(url_for('end_relation'))
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
@@ -340,28 +348,43 @@ def confirm_relation(tenant=None):
 
 #### /TENANTS ####
 
-#### PAYMENTS ####
+#### OAUTH ####
 @app.route('/oauth/authorize', methods=['GET'])
 @login_required
 def authorize():
+    '''Authorize Stripe, or refresh'''
+    if g.user.stripe:
+        flash('Have stripe info already')
+        return redirect(url_for('home'))
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'], 
-            redirect_uri=stripe_config.redirect_uri, scope=stripe_config.scope)
+        redirect_uri=stripe_config.redirect_uri, scope=stripe_config.scope)
     auth_url, state=oauth.authorization_url(stripe_config.authorize_url)
     session['state']=state
-    return str(auth_url)
-    #return redirect(auth_url)
+    return redirect(auth_url)
 
 @app.route('/oauth/authorized', methods=['GET'])
 @login_required
 def authorized():
-    #TODO Save token
+    if g.user.stripe:
+        flash('Have stripe info already')
+        return redirect(url_for('home'))
     oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
     token=oauth.fetch_token(stripe_config.access_token_url,
                     app.config['STRIPE_CONSUMER_SECRET'],
                     authorization_response=request.url)
-    return 'blar'
+    s = StripeUserInfo(access_token=token['access_token'],
+                       refresh_token=token['refresh_token'],
+                       user_acct=token['stripe_user_id'],
+                       pub_key=token['stripe_publishable_key'])
+    g.user.stripe=s
+    db.session.add(s)
+    db.session.commit()
+    flash('Authorized!')
+    return redirect(url_for('home'))
+#### /OAUTH ####
 
+#### PAYMENTS ####
 #RISK
 #PAID ENDPOINT
 @app.route('/pay/landlord', methods=['GET'])
@@ -457,6 +480,7 @@ def payments(page=1, per_page=PAYMENTS_PER_PAGE):
     return render_template('payments.html', payments=payments, user=g.user)
 
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
+@login_required
 def show_payments(pay_id):
     '''show payments'''
     payment=g.user.payments().filter(Payment.id==pay_id).first_or_404()
@@ -474,6 +498,7 @@ def fees(page=1, per_page=PAYMENTS_PER_PAGE):
     return render_template('fees.html', fees=fees, user=g.user)
 
 @app.route('/fees/<int:pay_id>/show', methods=['GET'])
+@login_required
 def show_fees(pay_id):
     '''show fees'''
     fee=g.user.fees.filter(Fee.id==pay_id).first_or_404()
@@ -482,6 +507,7 @@ def show_fees(pay_id):
     return render_template('show_fee.html', fee=f)
 
 @app.route('/hook/charge', methods=['POST'])
+@login_required
 def charge_hook():
     #TODO
     charge=json.loads(request.data)
