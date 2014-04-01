@@ -254,17 +254,20 @@ def add_property():
         returns:    POST: Redirect
                     GET: Add property form
     '''
-    if not g.user.fee_paid(): abort(403)
+    if not g.user.fee_paid():
+        flash('You need to pay to access this endpoint')
+        return redirect(url_for('properties'))
     form=AddPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
         description=request.form['description']
-        p=Property(location=location, description=description)
+        p=Property(location=location,
+                description=description)
         g.user.properties.append(p)
         db.session.add(p)
         db.session.commit()
         flash("Property added")
-        return redirect(url_for('/landlord/property'))
+        return redirect(url_for('properties'))
     return render_template('add_property.html', form=form)
 
 @app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
@@ -287,7 +290,7 @@ def modify_property(prop_id):
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
-        return redirect(url_for('/landlord/property'))
+        return redirect(url_for('properties'))
     form.location.data=prop.location
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
