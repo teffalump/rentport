@@ -163,7 +163,7 @@ class Fee(db.Model):
     length = db.Column(db.Interval, nullable=False, default=timedelta(days=365))
     status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
     method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
-    charge_id = db.Column(db.Text, nullable=False)
+    pay_id = db.Column(db.Text, nullable=False)
     user = db.relationship("User", backref=db.backref("fees", lazy='dynamic'), order_by=id)
 
 class Payment(db.Model):
@@ -171,7 +171,7 @@ class Payment(db.Model):
     from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    charge_id = db.Column(db.Text, nullable=False, unique=True)
+    pay_id = db.Column(db.Text, nullable=False, unique=True)
     method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
     status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
     from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="Payment.from_user_id")

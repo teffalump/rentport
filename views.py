@@ -86,7 +86,7 @@ def issues(page=1, per_page=app.config['ISSUES_PER_PAGE']):
     '''display main issues page
         params:     GET: <page> page number (optional)
                     GET: <per_page> # of issues per page (optional)
-        returns:    list of issues
+        returns:    GET: list of issues
     '''
     #TODO What issues to retrieve?
     issues=g.user.all_issues().paginate(page, per_page, False)
@@ -97,7 +97,7 @@ def issues(page=1, per_page=app.config['ISSUES_PER_PAGE']):
 def show_issue(ident):
     '''show issue
         params:     GET: <ident> absolute id
-        returns:    detailed issue page
+        returns:    GET: detailed issue page
     '''
     issue=g.user.all_issues().filter(Issue.status=='Open',
             Issue.id==ident).first_or_404()
@@ -411,7 +411,7 @@ def pay_rent(amount=None):
                       currency="usd",
                       card=token,
                       description=':'.join([g.user.id, g.user.username]))
-                p = Payment(to_user_id=landlord.id, charge_id=charge.id)
+                p = Payment(to_user_id=landlord.id, pay_id=charge.id)
                 g.user.sent_payments.append(p)
                 db.session.add(p)
                 db.session.commit()
@@ -447,7 +447,7 @@ def pay_fee():
                   card=token,
                   description=':'.join([str(g.user.id), g.user.username])
                   )
-            c = Fee(charge_id=charge.id)
+            c = Fee(pay_id=charge.id)
             g.user.fees.append(c)
             db.session.add(c)
             db.session.commit()
@@ -485,7 +485,7 @@ def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
 def show_payment(pay_id):
     '''show detailed payment info'''
     payment=g.user.payments().filter(Payment.id==pay_id).first_or_404()
-    p = stripe.Charge.retrieve(payment.charge_id,
+    p = stripe.Charge.retrieve(payment.pay_id,
                     api_key=payment.from_user.stripe.access_token).to_dict()
     return render_template('show_payment.html', payment=p)
 
@@ -503,17 +503,65 @@ def fees(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
 def show_fee(pay_id):
     '''show detailed fee info'''
     fee=g.user.fees.filter(Fee.id==pay_id).first_or_404()
-    f = stripe.Charge.retrieve(fee.charge_id,
+    f = stripe.Charge.retrieve(fee.pay_id,
                     api_key=app.config['STRIPE_CONSUMER_SECRET'])\
                     .to_dict()
     return render_template('show_fee.html', fee=f)
 
-@app.route('/hook/charge', methods=['POST'])
-@login_required
-def charge_hook():
-    #TODO
-    charge=json.loads(request.data)
-    return 'got charge hook'
+@app.route('/hook', methods=['POST'])
+def hook():
+    #TODO Add more hooks
+    event=json.loads(request.data)
+    c = stripe.Event.retrieve(event['id'],
+            api_key=app.config['STRIPE_CONSUMER_SECRET'])
+    try:
+        acct=c['user_id']
+    except:
+        acct=None
+    if c['type']=='account.application.deauthorized':
+        t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
+        if not t: return
+        db.session.delete(t)
+        db.session.commit()
+    elif c['data']['object']=='charge':
+        i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
+                or Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
+        if not i: return
+        if c['type']=='charge.succeeded':
+            i.status='Confirmed'
+        elif c['type']=='charge.refunded':
+            i.status='Refunded'
+        elif c['type']=='charge.failed':
+            i.status='Denied'
+        else:
+            return
+        db.session.add(i)
+        db.session.commit()
+    elif c['data']['object']=='dispute':
+        pass
+    elif c['data']['object']=='customer':
+        pass
+    elif c['data']['object']=='card':
+        pass
+    elif c['data']['object']=='subscription':
+        pass
+    elif c['data']['object']=='invoice':
+        pass
+    elif c['data']['object']=='plan':
+        pass
+    elif c['data']['object']=='transfer':
+        pass
+    elif c['data']['object']=='discount':
+        pass
+    elif c['data']['object']=='coupon':
+        pass
+    elif c['data']['object']=='balance':
+        pass
+    elif c['data']['object']=='account':
+        pass
+    else:
+        pass
+    return
 #### /PAYMENTS ####
 
 #### SESSION TESTING ####
