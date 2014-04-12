@@ -13,6 +13,7 @@ roles_users = db.Table('roles_users',
         db.Column('role_id', db.Integer(), db.ForeignKey('role.id')))
 
 class Role(db.Model, RoleMixin):
+    '''Roles'''
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
@@ -86,8 +87,12 @@ class User(db.Model, UserMixin):
 
     def prev_location_issues(self):
         '''Return issues at user's previous residence(s)'''
-        return Issue.query.join(LandlordTenant, LandlordTenant.location_id==Issue.location_id).\
-                filter(LandlordTenant.tenant_id == self.id)
+        return Issue.query.join(Property.issues).\
+                join(LandlordTenant, LandlordTenant.location_id==Property.id).\
+                    filter(LandlordTenant.tenant_id==self.id,
+                            LandlordTenant.current==False).\
+                    filter((LandlordTenant.started < Issue.opened),
+                            (Issue.opened < LandlordTenant.stopped))
 
     def current_tenants(self):
         '''Return user's current tenants'''
@@ -108,8 +113,8 @@ class User(db.Model, UserMixin):
 class LandlordTenant(db.Model):
     '''Class to model Landlord-Tenant relationships'''
     id = db.Column(db.Integer, primary_key=True)
-    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     current = db.Column(db.Boolean, default=True, nullable=False)
 
