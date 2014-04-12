@@ -1,8 +1,6 @@
 from rentport import db
 from datetime import datetime, timedelta
-from flask import g
 from flask.ext.security import UserMixin, RoleMixin
-from sqlalchemy.dialects import postgresql
 from sqlalchemy import or_
 
 #TODO Add text search to issues and comments
@@ -30,8 +28,8 @@ class User(db.Model, UserMixin):
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
-    last_login_ip=db.Column(postgresql.INET)
-    current_login_ip=db.Column(postgresql.INET)
+    last_login_ip=db.Column(db.Text) #could use postgresql built-in
+    current_login_ip=db.Column(db.Text) #could use postgresql built-in
     login_count=db.Column(db.Integer)
 
     roles = db.relationship('Role',secondary=roles_users,backref=db.backref('users', lazy='dynamic'))
@@ -61,10 +59,12 @@ class User(db.Model, UserMixin):
 
     def open_issue(self):
         '''Open an issue with pre-filled fields'''
-        if self.current_location:
+        try:
             return Issue(creator_id=self.id,
                         location_id=self.current_location().id,
                         landlord_id=self.current_landlord().id)
+        except:
+            return None
 
     def current_location(self):
         '''Return user's current location else None'''
@@ -82,7 +82,9 @@ class User(db.Model, UserMixin):
     def current_location_issues(self):
         '''Return issues at user's current rental location'''
         return Issue.query.join(Property.issues).\
-                filter(Property.id == getattr(self.current_location(),'id',-1)).\
+                join(LandlordTenant, LandlordTenant.location_id==Property.id).\
+                filter(LandlordTenant.tenant_id==self.id,
+                        LandlordTenant.current==True).\
                 order_by(Issue.id.desc())
 
     def prev_location_issues(self):
@@ -92,7 +94,8 @@ class User(db.Model, UserMixin):
                     filter(LandlordTenant.tenant_id==self.id,
                             LandlordTenant.current==False).\
                     filter((LandlordTenant.started < Issue.opened),
-                            (Issue.opened < LandlordTenant.stopped))
+                            (Issue.opened < LandlordTenant.stopped)).\
+                    order_by(Issue.id.desc())
 
     def current_tenants(self):
         '''Return user's current tenants'''
@@ -101,9 +104,12 @@ class User(db.Model, UserMixin):
 
     def fellow_tenants(self):
         '''Return user's fellow tenants'''
-        return User.query.join(LandlordTenant, LandlordTenant.tenant_id==User.id).\
-                filter(LandlordTenant.landlord_id==getattr(self.current_landlord(),'id',-1),
-                        LandlordTenant.current==True, User.id != self.id)
+        try:
+            return User.query.join(User.landlords).\
+                    filter(LandlordTenant.current==True, User.id != self.id,
+                        LandlordTenant.landlord_id==self.current_landlord().id)
+        except:
+            return None
 
     def payments(self):
         return Payment.query.filter(or_(Payment.from_user_id == self.id,
