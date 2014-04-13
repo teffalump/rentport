@@ -88,7 +88,8 @@ class User(db.Model, UserMixin):
                 order_by(Issue.id.desc())
 
     def prev_location_issues(self):
-        '''Return issues at user's previous residence(s)'''
+        '''Return issues at user's previous residence(s);
+            issues must be opened during user duration'''
         return Issue.query.join(Property.issues).\
                 join(LandlordTenant, LandlordTenant.location_id==Property.id).\
                     filter(LandlordTenant.tenant_id==self.id,
@@ -105,13 +106,12 @@ class User(db.Model, UserMixin):
     def fellow_tenants(self):
         '''Return user's fellow tenants'''
         try:
-            return User.query.join(User.landlords).\
-                    filter(LandlordTenant.current==True, User.id != self.id,
-                        LandlordTenant.landlord_id==self.current_landlord().id)
+            return self.current_location().current_tenants().filter(User.id != self.id)
         except:
             return None
 
     def payments(self):
+        '''Return all relevant payments'''
         return Payment.query.filter(or_(Payment.from_user_id == self.id,
                         Payment.to_user_id == self.id)).\
                     order_by(Payment.id.desc())
@@ -149,6 +149,15 @@ class Property(db.Model):
         return User.query.join(User.landlords).\
                 filter(LandlordTenant.current == True,
                         LandlordTenant.location_id == self.id)
+
+    def prev_tenants(self):
+        return User.query.join(User.landlords).\
+                filter(LandlordTenant.location_id == self.id,
+                        LandlordTenant.current == False)
+
+    def all_tenants(self):
+        return User.query.join(User.landlords).\
+                filter(LandlordTenant.location_id == self.id)
 
     def __init__(self, location, description):
         self.location=location
