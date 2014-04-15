@@ -171,7 +171,7 @@ def close_issue(ident):
         reason=request.form['reason']
         issue.status='Closed'
         issue.closed_because=reason
-        db.session.add(i)
+        db.session.add(issue)
         db.session.commit()
         flash('Issue closed')
         return redirect(url_for('issues'))
@@ -237,7 +237,7 @@ def end_relation():
         db.session.commit()
         flash('Ended landlord relationship')
         return redirect(get_url('home'))
-    return render_template('end_relation.html', form=form)
+    return render_template('end_relation.html', form=form, landlord=lt.landlord)
 #### /LANDLORD ####
 
 ##### PROPERTIES #####
@@ -324,6 +324,15 @@ def confirm_relation(tenant=None):
                         LandlordTenant.current==True,
                         LandlordTenant.confirmed==False)
         return render_template('unconfirmed_tenants.html', tenants=tenants)
+    else:
+        t=User.query.join(User.landlords).\
+                filter(LandlordTenant.landlord_id==g.user.id,
+                        LandlordTenant.current==True,
+                        LandlordTenant.confirmed==False,
+                        User.username==tenant).first()
+        if not t:
+            flash('No unconfirmed tenant request')
+            return redirect(url_for('confirm_relation'))
     form=ConfirmTenantForm()
     if form.validate_on_submit():
         lt=LandlordTenant.query.\
@@ -342,7 +351,7 @@ def confirm_relation(tenant=None):
             db.session.commit()
             flash('Disallowed tenant')
         return redirect(url_for('home'))
-    return render_template('confirm_relation.html', form=form)
+    return render_template('confirm_relation.html', form=form, tenant=t)
 
 #### /TENANTS ####
 
