@@ -10,6 +10,7 @@ from flask.ext.wtf import Form
 from wtforms import SelectField, TextField
 from wtforms.validators import Length, DataRequired
 from flask.ext.kvsession import KVSessionExtension
+from flask.ext.bootstrap import Bootstrap
 from simplekv.memory.redisstore import RedisStore
 import redis
 
@@ -45,6 +46,7 @@ security = Security(app, user_datastore,
             register_form=ExtendedRegisterForm,
             login_form=ExtendedLoginForm)
 
+Bootstrap(app)
 
 @app.before_request
 def before_request():
