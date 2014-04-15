@@ -74,11 +74,6 @@ class User(db.Model, UserMixin):
         '''Return user's current landlord else None'''
         return getattr(self.landlords.filter(LandlordTenant.current==True).first(), 'landlord', None)
 
-    def owner_issues(self):
-        '''Return issues at user's property(ies)'''
-        return Issue.query.filter(Issue.landlord_id==self.id).\
-                order_by(Issue.id.desc())
-
     def current_location_issues(self):
         '''Return issues at user's current rental location'''
         return Issue.query.join(Property.issues).\
@@ -184,7 +179,7 @@ class Fee(db.Model):
     status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
     method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
     pay_id = db.Column(db.Text, nullable=False)
-    user = db.relationship("User", backref=db.backref("fees", lazy='dynamic'), order_by=id)
+    user = db.relationship("User", backref=db.backref("fees", lazy='dynamic', order_by=id))
 
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -203,7 +198,6 @@ class Comment(db.Model):
     issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
     text = db.Column(db.Text, nullable=False)
     posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
     user = db.relationship("User", backref=db.backref('comments', lazy='dynamic'),  foreign_keys="Comment.user_id")
     issue = db.relationship("Issue", backref=db.backref('comments', lazy='dynamic'), foreign_keys="Comment.issue_id")
 
@@ -221,9 +215,8 @@ class Issue(db.Model):
     opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     closed_at = db.Column(db.DateTime)
     closed_because = db.Column(db.Text)
-
     creator = db.relationship("User", backref=db.backref('issues_opened', lazy='dynamic'), foreign_keys="Issue.creator_id")
-    landlord = db.relationship("User", backref=db.backref('property_issues', lazy='dynamic'), foreign_keys="Issue.landlord_id")
+    landlord = db.relationship("User", backref=db.backref('owner_issues', lazy='dynamic', order_by=id), foreign_keys="Issue.landlord_id")
     location = db.relationship("Property", backref=db.backref('issues', lazy='dynamic'), foreign_keys="Issue.location_id")
 
     def num_of_comments(self):
