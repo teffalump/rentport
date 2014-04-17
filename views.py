@@ -104,6 +104,7 @@ def show_issue(ident):
     return render_template('show_issue.html', issue=issue)
 
 # PAID ENDPOINT
+# ALERT USER(S)
 @app.route('/issues/open', methods=['POST', 'GET'])
 @login_required
 def open_issue():
@@ -113,7 +114,6 @@ def open_issue():
         returns:    POST:   Redirect for main issues
                     GET:    Open issue form
     '''
-    #TODO Email/text when opened
     if not g.user.current_landlord():
         flash('No current landlord')
         return redirect(url_for('issues'))
@@ -131,6 +131,7 @@ def open_issue():
         return redirect(url_for('issues'))
     return render_template('open_issue.html', form=form)
 
+# ALERT USER(S)?
 @app.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
 @login_required
 def comment(ident):
@@ -140,7 +141,6 @@ def comment(ident):
         returns:    POST: Redirect to main issues page
                     GET: Comment form
     '''
-    #TODO Email when there is a comment?
     form = CommentForm()
     issue=g.user.all_issues().filter(Issue.status=='Open',
             Issue.id==ident).first_or_404()
@@ -150,9 +150,11 @@ def comment(ident):
         issue.comments.append(comment)
         db.session.add(comment)
         db.session.commit()
+        flash('Commented on issue')
         return redirect(url_for('issues'))
     return render_template('comment.html', form=form, issue=issue)
 
+# ALERT USER(S)?
 @app.route('/issues/<int(min=1):ident>/close', methods=['POST', 'GET'])
 @login_required
 def close_issue(ident):
@@ -186,6 +188,7 @@ def profile():
 #### /PROFILE ####
 
 #### LANDLORD ####
+# ALERT USER(S)
 @app.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
 @login_required
 def add_landlord(landlord):
@@ -195,7 +198,6 @@ def add_landlord(landlord):
         returns:    POST:       Redirect
                     GET:        Request form
     '''
-    #TODO Email when added?
     if g.user.current_landlord():
         flash('End relationship with current landlord first')
         return redirect(url_for('end_relation', next=url_for('add_landlord', landlord=landlord)))
@@ -215,6 +217,7 @@ def add_landlord(landlord):
         return redirect(url_for('home'))
     return render_template('add_landlord.html', form=form, landlord=landlord)
 
+# ALERT USER(S)
 @app.route('/landlord/end', methods=['POST', 'GET'])
 @login_required
 def end_relation():
@@ -313,6 +316,7 @@ def show_property(prop_id):
 #### /PROPERTIES ####
 
 #### TENANTS ####
+# ALERT USER(S)
 @app.route('/tenant/confirm', methods=['GET'])
 @app.route('/tenant/<tenant>/confirm', methods=['POST', 'GET'])
 @login_required
@@ -352,7 +356,6 @@ def confirm_relation(tenant=None):
             flash('Disallowed tenant')
         return redirect(url_for('home'))
     return render_template('confirm_relation.html', form=form, tenant=t)
-
 #### /TENANTS ####
 
 #### OAUTH ####
@@ -397,12 +400,16 @@ def authorized():
 #### PAYMENTS ####
 #RISK
 #PAID ENDPOINT
+# ALERT USER(S)
 @app.route('/pay/landlord', methods=['GET'])
 @app.route('/pay/landlord/<int(min=100):amount>', methods=['POST', 'GET'])
 @login_required
 def pay_rent(amount=None):
     #TODO Add dynamic payment amount
-    landlord=g.user.current_landlord() or abort(403)
+    landlord=g.user.current_landlord()
+    if not landlord:
+        flash('No current landlord')
+        return redirect(url_for('home'))
     if not landlord.fee_paid():
         flash('Landlord has not paid service fee')
         return redirect(url_for('payments'))
@@ -442,6 +449,7 @@ def pay_rent(amount=None):
         return 'Need amount'
 
 #RISK
+# ALERT USER(S)
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
