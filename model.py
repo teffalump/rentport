@@ -248,8 +248,6 @@ def set_stopped_value(target, value, old_value, initiator):
     if value == 'Closed':
         target.closed_at = datetime.utcnow()
 
-#TODO Add another listener to update previous relationship to false
-# when a colliding row is added? Or write func to handle?
 @db.event.listens_for(LandlordTenant.current, 'set')
 def set_stopped_value(target, value, old_value, initiator):
     '''This listener will update the stopped column;
