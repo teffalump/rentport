@@ -131,7 +131,6 @@ def open_issue():
         return redirect(url_for('issues'))
     return render_template('open_issue.html', form=form)
 
-# ALERT USER(S)?
 @app.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
 @login_required
 def comment(ident):
@@ -402,10 +401,9 @@ def authorized():
 #PAID ENDPOINT
 # ALERT USER(S)
 @app.route('/pay/landlord', methods=['GET'])
-@app.route('/pay/landlord/<int(min=100):amount>', methods=['POST', 'GET'])
+@app.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
 @login_required
 def pay_rent(amount=None):
-    #TODO Add dynamic payment amount
     landlord=g.user.current_landlord()
     if not landlord:
         flash('No current landlord')
@@ -446,7 +444,7 @@ def pay_rent(amount=None):
             return render_template('pay_landlord.html', landlord=landlord,
                                                         amount=amount)
     else:
-        return 'Need amount'
+        return render_template('get_pay_amount.html', landlord=landlord, user=g.user)
 
 #RISK
 # ALERT USER(S)
