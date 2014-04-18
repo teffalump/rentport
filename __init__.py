@@ -8,7 +8,7 @@ from flask.ext.security.utils import encrypt_password
 from flask.ext.security.forms import RegisterForm, LoginForm
 from flask.ext.wtf import Form
 from wtforms import SelectField, TextField
-from wtforms.validators import Length, DataRequired
+from wtforms.validators import Length, DataRequired, Regexp
 from flask.ext.kvsession import KVSessionExtension
 from flask.ext.bootstrap import Bootstrap
 from simplekv.memory.redisstore import RedisStore
@@ -31,12 +31,14 @@ db = SQLAlchemy(app)
 
 
 from rentport.views import *
-from rentport.model import *
+from rentport.model import User, Issue, LandlordTenant, Role, Property
 
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
 class ExtendedRegisterForm(RegisterForm):
-    username=TextField('Username', [DataRequired(), Length(min=3, max=20)])
+    username=TextField('Username', [DataRequired(),
+                                    Regexp(r'^\w+$', message="Only alphanumeric characters"),
+                                    Length(min=4, max=20)])
 
 class ExtendedLoginForm(LoginForm):
     email=TextField('Login', [DataRequired()])
