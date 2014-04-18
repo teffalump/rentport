@@ -1,9 +1,13 @@
 from rentport import db
 from datetime import datetime, timedelta
 from flask.ext.security import UserMixin, RoleMixin
+from flask.ext.sqlalchemy import BaseQuery
+from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy_utils.types import TSVectorType
+from sqlalchemy_searchable import SearchQueryMixin, make_searchable
 from sqlalchemy import or_
 
-#TODO Add text search to issues and comments
+make_searchable()
 
 #### MODELS ####
 roles_users = db.Table('roles_users',
@@ -28,8 +32,8 @@ class User(db.Model, UserMixin):
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
-    last_login_ip=db.Column(db.Text) #could use postgresql built-in
-    current_login_ip=db.Column(db.Text) #could use postgresql built-in
+    last_login_ip=db.Column(INET)
+    current_login_ip=db.Column(INET)
     login_count=db.Column(db.Integer)
 
     roles = db.relationship('Role',secondary=roles_users,backref=db.backref('users', lazy='dynamic'))
@@ -192,19 +196,28 @@ class Payment(db.Model):
     from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="Payment.from_user_id")
     to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="Payment.to_user_id")
 
+class CommentQuery(BaseQuery, SearchQueryMixin):
+    pass
+
 class Comment(db.Model):
+    query_class = CommentQuery
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
     text = db.Column(db.Text, nullable=False)
     posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    search_vector = db.Column(TSVectorType('text'))
     user = db.relationship("User", backref=db.backref('comments', lazy='dynamic'),  foreign_keys="Comment.user_id")
     issue = db.relationship("Issue", backref=db.backref('comments', lazy='dynamic'), foreign_keys="Comment.issue_id")
 
     def __repr__(self):
         return '<Comment %r %r >' % (self.text, self.posted)
 
+class IssueQuery(BaseQuery, SearchQueryMixin):
+    pass
+
 class Issue(db.Model):
+    query_class = IssueQuery
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -215,6 +228,7 @@ class Issue(db.Model):
     opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     closed_at = db.Column(db.DateTime)
     closed_because = db.Column(db.Text)
+    search_vector = db.Column(TSVectorType('description'))
     creator = db.relationship("User", backref=db.backref('issues_opened', lazy='dynamic'), foreign_keys="Issue.creator_id")
     landlord = db.relationship("User", backref=db.backref('owner_issues', lazy='dynamic', order_by=id), foreign_keys="Issue.landlord_id")
     location = db.relationship("Property", backref=db.backref('issues', lazy='dynamic'), foreign_keys="Issue.location_id")
@@ -224,6 +238,7 @@ class Issue(db.Model):
 
     def __repr__(self):
         return '<Issue %r %r >' % (self.status, self.severity)
+#### /MODELS ####
 
 #### LISTENERS ####
 @db.event.listens_for(Issue.status, 'set')
@@ -241,3 +256,4 @@ def set_stopped_value(target, value, old_value, initiator):
     when current set to False, stopped set to now'''
     if value == False:
         target.stopped = datetime.utcnow()
+#### /LISTENERS ####
