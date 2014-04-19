@@ -58,8 +58,7 @@ class User(db.Model, UserMixin):
         return Issue.query.join(Property.issues).\
             filter(or_(Issue.landlord_id==self.id,
                 Property.id==\
-                        getattr(self.current_location(),'id', -1))).\
-                order_by(Issue.id.desc())
+                        getattr(self.current_location(),'id', -1)))
 
     def open_issue(self):
         '''Open an issue with pre-filled fields'''
@@ -112,8 +111,7 @@ class User(db.Model, UserMixin):
     def payments(self):
         '''Return all relevant payments'''
         return Payment.query.filter(or_(Payment.from_user_id == self.id,
-                        Payment.to_user_id == self.id)).\
-                    order_by(Payment.id.desc())
+                        Payment.to_user_id == self.id))
 
 class LandlordTenant(db.Model):
     '''Class to model Landlord-Tenant relationships'''
@@ -223,8 +221,8 @@ class Issue(db.Model):
     landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    severity = db.Column(db.Enum('Critical', 'Medium', 'Low', 'Future', name='issue_severity'), nullable=False)
-    status = db.Column(db.Enum('Open', 'Closed', 'Pending', name='issue_status'), nullable=False, default='Open')
+    severity = db.Column(db.Enum('Future', 'Low', 'Medium', 'Critical', name='issue_severity'), nullable=False)
+    status = db.Column(db.Enum('Open', 'Closed', name='issue_status'), nullable=False, default='Open')
     opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     closed_at = db.Column(db.DateTime)
     closed_because = db.Column(db.Text)

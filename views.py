@@ -88,9 +88,21 @@ def issues(page=1, per_page=app.config['ISSUES_PER_PAGE']):
                     GET: <per_page> # of issues per page (optional)
         returns:    GET: list of issues
     '''
-    #TODO What issues to retrieve?
-    issues=g.user.all_issues().paginate(page, per_page, False)
-    return render_template('issues.html', issues=issues)
+    allowed_sort={'id': Issue.id,
+            'date': Issue.opened,
+            'severity': Issue.severity,
+            'status': Issue.status}
+    sort_key=request.args.get('sort', 'id')
+    sort = allowed_sort.get(sort_key, Issue.id)
+    order_key = request.args.get('order')
+    if order_key =='asc':
+        issues=g.user.all_issues().order_by(sort.asc()).\
+                paginate(page, per_page, False)
+    else:
+        order_key='desc'
+        issues=g.user.all_issues().order_by(sort.desc()).\
+                paginate(page, per_page, False)
+    return render_template('issues.html', issues=issues, sort=sort_key, order=order_key)
 
 @app.route('/issues/<int(min=1):ident>/show', methods=['GET'])
 @login_required
@@ -492,8 +504,22 @@ def pay_fee():
 @login_required
 def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
     '''main payments page'''
-    payments=g.user.payments().paginate(page, per_page, False)
-    return render_template('payments.html', payments=payments, user=g.user)
+    allowed_sort={'id': Payment.id,
+            'date': Payment.time,
+            'status': Payment.status,
+            'from': Payment.from_user,
+            'to': Payment.to_user}
+    sort_key=requests.args.get('sort', 'id')
+    sort = allowed_sort.get(sort_key, Payment.id)
+    order_key = request.args.get('order', 'desc')
+    if order_key =='asc':
+        payments=g.user.payments().order_by(sort.asc()).\
+                paginate(page, per_page, False)
+    else:
+        order_key='desc'
+        payments=g.user.payments().order_by(sort.desc()).\
+                paginate(page, per_page, False)
+    return render_template('payments.html', payments=payments, sort=sort_key, order=order_key)
 
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 @login_required
