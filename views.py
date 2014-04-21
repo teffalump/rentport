@@ -509,7 +509,7 @@ def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
             'status': Payment.status,
             'from': Payment.from_user,
             'to': Payment.to_user}
-    sort_key=requests.args.get('sort', 'id')
+    sort_key=request.args.get('sort', 'id')
     sort = allowed_sort.get(sort_key, Payment.id)
     order_key = request.args.get('order', 'desc')
     if order_key =='asc':

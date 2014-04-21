@@ -24,6 +24,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.Text, unique=True, nullable=False)
     email = db.Column(db.Text, unique=True, nullable=False)
+    phone = db.Column(db.Text, unique=True)
     password = db.Column(db.Text, nullable=False)
     joined = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     confirmed_at = db.Column(db.DateTime)
@@ -112,6 +113,12 @@ class User(db.Model, UserMixin):
         '''Return all relevant payments'''
         return Payment.query.filter(or_(Payment.from_user_id == self.id,
                         Payment.to_user_id == self.id))
+
+class NotificationSetting(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    method = db.Column(db.Enum('Email', 'Phone', 'All', name='methods'), nullable=False, default='Email')
+    verbosity=db.Column(db.Enum('Low', 'Medium', 'High', name='notification_level'), nullable=False, default='Low')
+    user = db.relationship("User", backref=db.backref("notifications", lazy='dynamic', use_list=False), use_list=False)
 
 class LandlordTenant(db.Model):
     '''Class to model Landlord-Tenant relationships'''

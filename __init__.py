@@ -11,10 +11,10 @@ from wtforms import SelectField, TextField
 from wtforms.validators import Length, DataRequired, Regexp
 from flask.ext.kvsession import KVSessionExtension
 from flask.ext.bootstrap import Bootstrap
+from flask.ext.mail import Mail, Message
 from simplekv.memory.redisstore import RedisStore
 import redis
 
-store = RedisStore(redis.StrictRedis())
 
 app = Flask(__name__)
 app.config.from_object('rentport.config')
@@ -22,11 +22,13 @@ app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = 'username,email'
 app.config['RATELIMIT_STORE_URL']='redis://localhost:6379/0'
 app.config['RATELIMIT_STRATEGY']='moving-window'
 app.config['WTF_CSRF_ENABLED']=False
-#KVSessionExtension(store, app)
 
+store = RedisStore(redis.StrictRedis())
 os.environ['DEBUG']="1"
 
 db = SQLAlchemy(app)
+#mail = Mail(app)
+#KVSessionExtension(store, app)
 #limiter = Limiter(app, global_limits=['15 per minute'])
 
 
