@@ -118,7 +118,7 @@ class NotificationSetting(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     method = db.Column(db.Enum('Email', 'Phone', 'All', name='methods'), nullable=False, default='Email')
     verbosity=db.Column(db.Enum('Low', 'Medium', 'High', name='notification_level'), nullable=False, default='Low')
-    user = db.relationship("User", backref=db.backref("notifications", lazy='dynamic', use_list=False), use_list=False)
+    user = db.relationship("User", backref=db.backref("notifications", lazy='dynamic', uselist=False), uselist=False)
 
 class LandlordTenant(db.Model):
     '''Class to model Landlord-Tenant relationships'''
