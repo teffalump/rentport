@@ -18,10 +18,6 @@ import redis
 
 app = Flask(__name__)
 app.config.from_object('rentport.config')
-app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] = 'username,email'
-app.config['RATELIMIT_STORE_URL']='redis://localhost:6379/0'
-app.config['RATELIMIT_STRATEGY']='moving-window'
-app.config['WTF_CSRF_ENABLED']=False
 
 store = RedisStore(redis.StrictRedis())
 os.environ['DEBUG']="1"
@@ -30,10 +26,11 @@ db = SQLAlchemy(app)
 #mail = Mail(app)
 #KVSessionExtension(store, app)
 #limiter = Limiter(app, global_limits=['15 per minute'])
+Bootstrap(app)
 
 
 from rentport.views import *
-from rentport.model import User, Issue, LandlordTenant, Role, Property
+from rentport.model import *
 
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
@@ -45,12 +42,9 @@ class ExtendedRegisterForm(RegisterForm):
 class ExtendedLoginForm(LoginForm):
     email=TextField('Login', [DataRequired()])
 
-
 security = Security(app, user_datastore,
             register_form=ExtendedRegisterForm,
             login_form=ExtendedLoginForm)
-
-Bootstrap(app)
 
 @app.before_request
 def before_request():
