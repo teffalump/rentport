@@ -1,8 +1,9 @@
-from rentport import app, db
+from rentport import app, db, mail
 from requests_oauthlib import OAuth2Session
 from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment, StripeUserInfo
 from flask import render_template, request, g, redirect, url_for, abort, flash, session, json
 from flask.ext.security import login_required
+from flask.ext.mail import Message
 from flask.ext.wtf import Form
 from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField, RadioField
 from wtforms.validators import Length, DataRequired, AnyOf
@@ -68,6 +69,10 @@ class AddPropertyForm(Form):
 
 class ModifyPropertyForm(AddPropertyForm):
     submit=SubmitField('Modify Property')
+
+class AddPhoneNumber(Form):
+    phone=TextField('Phone #:', [DataRequired()])
+    submit=SubmitField('Validate number')
 #### /FORMS ####
 
 #### DEFAULT ####
@@ -112,7 +117,10 @@ def show_issue(ident):
         returns:    GET: detailed issue page
     '''
     issue=g.user.all_issues().filter(Issue.status=='Open',
-            Issue.id==ident).first_or_404()
+            Issue.id==ident).first()
+    if not issue:
+        flash('No issue with that id')
+        return redirect(url_for('issues'))
     return render_template('show_issue.html', issue=issue)
 
 # PAID ENDPOINT
@@ -140,6 +148,11 @@ def open_issue():
         db.session.add(i)
         db.session.commit()
         flash('Issue opened')
+        msg = Message('New issue', recipients=[i.landlord.email])
+        msg.body = 'New issue @ {0}: {1} ::: {2}'.\
+                format(i.location.location, i.severity, i.description)
+        mail.send(msg)
+        flash('Landlord notified')
         return redirect(url_for('issues'))
     return render_template('open_issue.html', form=form)
 
@@ -154,7 +167,10 @@ def comment(ident):
     '''
     form = CommentForm()
     issue=g.user.all_issues().filter(Issue.status=='Open',
-            Issue.id==ident).first_or_404()
+            Issue.id==ident).first()
+    if not issue:
+        flash('No issue with that id')
+        return redirect(url_for('issues'))
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
@@ -165,7 +181,6 @@ def comment(ident):
         return redirect(url_for('issues'))
     return render_template('comment.html', form=form, issue=issue)
 
-# ALERT USER(S)?
 @app.route('/issues/<int(min=1):ident>/close', methods=['POST', 'GET'])
 @login_required
 def close_issue(ident):
@@ -179,7 +194,10 @@ def close_issue(ident):
     issue=Issue.query.filter(or_(Issue.landlord_id==g.user.id,
                 Issue.creator_id==g.user.id),
                 Issue.status == 'Open',
-                Issue.id == ident).first_or_404()
+                Issue.id == ident).first()
+    if not issue:
+        flash('No issue with that id')
+        return redirect(url_for('issues'))
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
@@ -195,7 +213,14 @@ def close_issue(ident):
 @app.route('/profile', methods=['GET'])
 @login_required
 def profile():
-    return render_template('profile.html', user=g.user)
+    tenants = [ x.username for x in g.user.current_tenants().all() ]
+    return render_template('profile.html', tenants=tenants)
+
+@app.route('/profile/phone', methods=['GET', 'POST'])
+@login_required
+def phone():
+    #TODO
+    pass
 #### /PROFILE ####
 
 #### LANDLORD ####
@@ -244,7 +269,10 @@ def end_relation():
     lt=LandlordTenant.query.\
             filter(LandlordTenant.tenant_id==g.user.id,
                     LandlordTenant.current==True).\
-            first_or_404()
+            first()
+    if not lt:
+        flash('No relationship to end')
+        return redirect(url_for('home'))
     if form.validate_on_submit():
         lt.current=False
         db.session.add(lt)
@@ -300,7 +328,10 @@ def modify_property(prop_id):
         returns:    POST: Redirect
                     GET: Modify property form
     '''
-    prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
+    prop=g.user.properties.filter(Property.id==prop_id).first()
+    if not prop:
+        flash('Not a valid property id')
+        return redirect(url_for('properties'))
     form=ModifyPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -322,7 +353,10 @@ def show_property(prop_id):
         params:     GET: <prop_id> absolute property id
         returns:    GET: Detaild property info
     '''
-    prop=g.user.properties.filter(Property.id==prop_id).first_or_404()
+    prop=g.user.properties.filter(Property.id==prop_id).first()
+    if not prop:
+        flash('Not a valid property id')
+        return redirect(url_for('properties'))
     return render_template('show_property.html', location=prop)
 #### /PROPERTIES ####
 
@@ -442,6 +476,11 @@ def pay_rent(amount=None):
                 db.session.add(p)
                 db.session.commit()
                 flash('Payment processed')
+                msg = Message('Rent payment', recipients=[landlord.email])
+                msg.body = 'Rent from {0}: amt: {1}'.\
+                        format(g.user.username, '$' + amount)
+                mail.send(msg)
+                flash('Landlord notified')
                 return redirect(url_for('payments'))
             except stripe.error.CardError:
                 flash('Card error')
@@ -459,11 +498,9 @@ def pay_rent(amount=None):
         return render_template('get_pay_amount.html', landlord=landlord, user=g.user)
 
 #RISK
-# ALERT USER(S)
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
-    #TODO How to know defaults w/o committing twice?
     if request.method == 'POST':
         token = request.form['stripeToken']
         try:
@@ -525,7 +562,10 @@ def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
 @login_required
 def show_payment(pay_id):
     '''show detailed payment info'''
-    payment=g.user.payments().filter(Payment.id==pay_id).first_or_404()
+    payment=g.user.payments().filter(Payment.id==pay_id).first()
+    if not payment:
+        flash('No payment with that id')
+        return redirect(url_for('payments'))
     p = stripe.Charge.retrieve(payment.pay_id,
                     api_key=payment.from_user.stripe.access_token).to_dict()
     return render_template('show_payment.html', payment=p)
@@ -537,20 +577,23 @@ def show_payment(pay_id):
 def fees(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
     '''main fees page'''
     fees=g.user.fees.paginate(page, per_page, False)
-    return render_template('fees.html', fees=fees, user=g.user)
+    return render_template('fees.html', fees=fees)
 
 @app.route('/fees/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_fee(pay_id):
     '''show detailed fee info'''
-    fee=g.user.fees.filter(Fee.id==pay_id).first_or_404()
+    fee=g.user.fees.filter(Fee.id==pay_id).first()
+    if not fee:
+        flash('No fee with that id')
+        return redirect(url_for('fees'))
     f = stripe.Charge.retrieve(fee.pay_id,
                     api_key=app.config['STRIPE_CONSUMER_SECRET'])\
                     .to_dict()
     return render_template('show_fee.html', fee=f)
 
-@app.route('/hook', methods=['POST'])
-def hook():
+@app.route('/hook/stripe', methods=['POST'])
+def stripe_hook():
     #TODO Add more hooks
     event=json.loads(request.data)
     c = stripe.Event.retrieve(event['id'],
@@ -603,6 +646,11 @@ def hook():
     else:
         pass
     return
+
+@app.route('/hook/twilio')
+def twilio_hook():
+    #TODO
+    pass
 #### /PAYMENTS ####
 
 #### SESSION TESTING ####
