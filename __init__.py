@@ -23,7 +23,7 @@ store = RedisStore(redis.StrictRedis())
 os.environ['DEBUG']="1"
 
 db = SQLAlchemy(app)
-#mail = Mail(app)
+mail = Mail(app)
 #KVSessionExtension(store, app)
 #limiter = Limiter(app, global_limits=['15 per minute'])
 Bootstrap(app)
