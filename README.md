@@ -16,9 +16,14 @@
         + security (user management, security, email, etc)
         + kvsession (server-side sessions) (broken!)
         + sqlalchemy (sql)
-    + twilio (text) $1/month + $.0075/msg
+    + twilio (text)
     + dwolla (payment)
-+ mailgun (email) free-ish
+
+# Infrastructure
+* linode (hosting) - $20/month
+* mailgun (email) - free-ish ( < 10k/month )
+* twilio (sms) - $1/month + $.0075/msg
+* easydns (dns) - $20/yr
 
 # Roadmap
 1. User system
@@ -74,7 +79,7 @@
         1. Comment on and close current issues
         2. Modify existing properties
 + Notification levels
-    1. Low: Only payment/fee and new issues
+    1. Low: Only rent and new issue - Only allowed for now
     2. Medium: Low + landlord-request/end
     3. High: Medium + comments
 
