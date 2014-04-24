@@ -30,7 +30,9 @@ class User(db.Model, UserMixin):
     confirmed_at = db.Column(db.DateTime)
     active = db.Column(db.Boolean)
     paid_through = db.Column(db.DateTime, nullable=False, default=datetime.min)
-    not_method = db.Column(db.Enum('Email', 'Phone', 'All', name='notification_methods'), nullable=False, default='Email')
+
+    not_confirmed = db.Column(db.Boolean, default=False)
+    not_method = db.Column(db.Enum('Email', 'Text', 'All', 'None', name='notification_methods'), nullable=False, default='Email')
     not_verbosity=db.Column(db.Enum('Low', 'Medium', 'High', name='notification_levels'), nullable=False, default='Low')
 
     last_login_at=db.Column(db.DateTime)
