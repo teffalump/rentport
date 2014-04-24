@@ -237,7 +237,7 @@ def phone():
 @app.route('/profile/notify', methods=['GET', 'POST'])
 @app.route('/profile/notify/<token>', methods=['GET'])
 @login_required
-def notify():
+def notify(token=None):
     form = ChangeNotifyForm()
     if token:
         s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
