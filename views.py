@@ -5,6 +5,7 @@ from flask import render_template, request, g, redirect, url_for, abort, flash, 
 from flask.ext.security import login_required
 from flask.ext.mail import Message
 from flask.ext.wtf import Form
+from itsdangerous import URLSafeTimedSerializer
 from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField, RadioField
 from wtforms.validators import Length, DataRequired, AnyOf
 from sqlalchemy import or_
@@ -73,6 +74,17 @@ class ModifyPropertyForm(AddPropertyForm):
 class AddPhoneNumber(Form):
     phone=TextField('Phone #:', [DataRequired()])
     submit=SubmitField('Validate number')
+
+class ChangeNotifyForm(Form):
+    method=SelectField('Method', choices=[('Email', 'Email'),
+                                            ('Text', 'Text'),
+                                            ('All', 'All'),
+                                            ('None', 'None')])
+    level=SelectField('Verbosity', choices=[('Low', 'Low'),
+                                            ('Medium', 'Medium'),
+                                            ('High', 'High')])
+    submit=SubmitField('Confirm')
+
 #### /FORMS ####
 
 #### DEFAULT ####
@@ -220,7 +232,39 @@ def profile():
 @login_required
 def phone():
     #TODO
-    pass
+    return ''
+
+@app.route('/profile/notify', methods=['GET', 'POST'])
+@app.route('/profile/notify/<token>', methods=['GET'])
+@login_required
+def notify():
+    form = ChangeNotifyForm()
+    if token:
+        s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
+        sig_okay, payload = s.loads_unsafe(token, max_age=app.config['NOTIFY_CONFIRM_WITHIN'])
+        if sig_okay and payload == g.user.id:
+            g.user.not_confirmed=True
+            db.session.add(g.user)
+            db.session.commit()
+            flash('Settings updated')
+            return redirect(url_for('profile'))
+        else:
+            flash('Bad token')
+            return redirect(url_for('notify'))
+    else:
+        if form.validate_on_submit():
+            if form.method != g.user.not_method and form.level != g.user.not_verbosity:
+                s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
+                token=s.dumps(g.user.id)
+                msg = Message('Confirm settings', recipients=[g.user.email])
+                msg.body='Confirm notification changes: %s'.format(url_for('notify', token=token, _external=True))
+                mail.send(msg)
+                flash('Confirmation email sent')
+                return redirect(url_for('home'))
+            else:
+                flash('Nothing changed')
+                return redirect(url_for('profile'))
+        return render_template('change_notify.html', form=form)
 #### /PROFILE ####
 
 #### LANDLORD ####
@@ -604,13 +648,13 @@ def stripe_hook():
         acct=None
     if c['type']=='account.application.deauthorized':
         t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
-        if not t: return
+        if not t: return ''
         db.session.delete(t)
         db.session.commit()
     elif c['data']['object']=='charge':
         i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
                 or Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
-        if not i: return
+        if not i: return ''
         if c['type']=='charge.succeeded':
             i.status='Confirmed'
         elif c['type']=='charge.refunded':
@@ -618,39 +662,39 @@ def stripe_hook():
         elif c['type']=='charge.failed':
             i.status='Denied'
         else:
-            return
+            return ''
         db.session.add(i)
         db.session.commit()
     elif c['data']['object']=='dispute':
-        pass
+        return ''
     elif c['data']['object']=='customer':
-        pass
+        return ''
     elif c['data']['object']=='card':
-        pass
+        return ''
     elif c['data']['object']=='subscription':
-        pass
+        return ''
     elif c['data']['object']=='invoice':
-        pass
+        return ''
     elif c['data']['object']=='plan':
-        pass
+        return ''
     elif c['data']['object']=='transfer':
-        pass
+        return ''
     elif c['data']['object']=='discount':
-        pass
+        return ''
     elif c['data']['object']=='coupon':
-        pass
+        return ''
     elif c['data']['object']=='balance':
-        pass
+        return ''
     elif c['data']['object']=='account':
-        pass
+        return ''
     else:
-        pass
-    return
+        return ''
+    return ''
 
 @app.route('/hook/twilio')
 def twilio_hook():
     #TODO
-    pass
+    return ''
 #### /PAYMENTS ####
 
 #### SESSION TESTING ####
