@@ -243,7 +243,7 @@ def notify(token=None):
         s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
         sig_okay, payload = s.loads_unsafe(token, max_age=app.config['NOTIFY_CONFIRM_WITHIN'])
         if sig_okay and payload == g.user.id:
-            g.user.not_confirmed=True
+            g.user.notify_confirmed=True
             db.session.add(g.user)
             db.session.commit()
             flash('Settings updated')
@@ -253,7 +253,7 @@ def notify(token=None):
             return redirect(url_for('notify'))
     else:
         if form.validate_on_submit():
-            if form.method != g.user.not_method and form.level != g.user.not_verbosity:
+            if form.method != g.user.notify_method and form.level != g.user.notify_verbosity:
                 s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
                 token=s.dumps(g.user.id)
                 msg = Message('Confirm settings', recipients=[g.user.email])
