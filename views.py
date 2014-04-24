@@ -235,10 +235,31 @@ def phone():
     return ''
 
 @app.route('/profile/notify', methods=['GET', 'POST'])
-@app.route('/profile/notify/<token>', methods=['GET'])
 @login_required
 def notify(token=None):
     form = ChangeNotifyForm()
+    if form.validate_on_submit():
+        if request.form['method'] != g.user.notify_method or request.form['level'] != g.user.notify_verbosity:
+            g.user.notify_verbosity = request.form['level']
+            g.user.notify_method = request.form['method']
+            g.user.notify_confirmed = False
+            db.session.add(g.user)
+            db.session.commit()
+            flash('Updated unconfirmed settings')
+            s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
+            token=s.dumps(g.user.id)
+            msg = Message('Confirm settings', recipients=[g.user.email])
+            msg.body='Confirm notification changes: {0}'.format(url_for('confirm_notify', token=token, _external=True))
+            mail.send(msg)
+            flash('Confirmation email sent')
+        else:
+            flash('Nothing changed')
+        return redirect(url_for('profile'))
+    return render_template('change_notify.html', form=form)
+
+@app.route('/profile/notify/<token>', methods=['GET'])
+@login_required
+def confirm_notify(token=None):
     if token:
         s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
         sig_okay, payload = s.loads_unsafe(token, max_age=app.config['NOTIFY_CONFIRM_WITHIN'])
@@ -247,24 +268,9 @@ def notify(token=None):
             db.session.add(g.user)
             db.session.commit()
             flash('Settings updated')
-            return redirect(url_for('profile'))
         else:
             flash('Bad token')
-            return redirect(url_for('notify'))
-    else:
-        if form.validate_on_submit():
-            if form.method != g.user.notify_method and form.level != g.user.notify_verbosity:
-                s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
-                token=s.dumps(g.user.id)
-                msg = Message('Confirm settings', recipients=[g.user.email])
-                msg.body='Confirm notification changes: %s'.format(url_for('notify', token=token, _external=True))
-                mail.send(msg)
-                flash('Confirmation email sent')
-                return redirect(url_for('home'))
-            else:
-                flash('Nothing changed')
-                return redirect(url_for('profile'))
-        return render_template('change_notify.html', form=form)
+    return redirect(url_for('profile'))
 #### /PROFILE ####
 
 #### LANDLORD ####
