@@ -32,11 +32,11 @@
 2. Issue tracking system
     + Simple issue tracker - DONE
 3. Payment system
-    + Stripe - TODO
-    + Dwolla - TODO
+    + Stripe - NEEDS TESTING
+    + Dwolla - TODO (optional)
 4. Notification system
-    + Twilio for sms - TODO
     + Mailgun for email - TODO
+    + Twilio for sms - TODO (optional)
 5. Prettify
     + Ajax-ify
     + Good templates
@@ -47,9 +47,9 @@
     + Any DoS/spam/bruteforce-possible attack surfaces need throttling
         + Use Flask-Limiter for endpoints - TODO
     + go through OWASP top ten
-    + Do I import js plugins (e.g, jQuery)? Security considerations
+    + Do I import js plugins (e.g, jQuery)? No, store locally
     + Payment history? How to display that. Either:
-        1. Store the payment history locally 
+        1. Store the payment history locally
             Pros:
                 + User experience (pagination, etc)
             Cons:
@@ -85,4 +85,3 @@
 
 # Other thoughts
 + rental agreements? seems security issues are too big... at the moment
-+ Add Dwolla after Stripe (but Stripe is the minimum)
