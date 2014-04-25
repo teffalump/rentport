@@ -39,12 +39,18 @@ class ExtendedRegisterForm(RegisterForm):
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20)])
 
+#class ExtendedConfirmRegisterForm(ConfirmRegisterForm):
+    #username=TextField('Username', [DataRequired(),
+                                    #Regexp(r'^\w+$', message="Only alphanumeric characters"),
+                                    #Length(min=4, max=20)])
+
 class ExtendedLoginForm(LoginForm):
     email=TextField('Login', [DataRequired()])
 
 security = Security(app, user_datastore,
             register_form=ExtendedRegisterForm,
-            login_form=ExtendedLoginForm)
+            login_form=ExtendedLoginForm,
+            confirm_register_form=ExtendedRegisterForm)
 
 @app.before_request
 def before_request():
