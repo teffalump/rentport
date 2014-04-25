@@ -39,11 +39,6 @@ class ExtendedRegisterForm(RegisterForm):
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20)])
 
-#class ExtendedConfirmRegisterForm(ConfirmRegisterForm):
-    #username=TextField('Username', [DataRequired(),
-                                    #Regexp(r'^\w+$', message="Only alphanumeric characters"),
-                                    #Length(min=4, max=20)])
-
 class ExtendedLoginForm(LoginForm):
     email=TextField('Login', [DataRequired()])
 
