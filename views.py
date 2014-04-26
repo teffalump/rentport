@@ -136,6 +136,7 @@ def show_issue(ident):
     return render_template('show_issue.html', issue=issue)
 
 # PAID ENDPOINT
+# MUST BE CONFIRMED
 # ALERT USER(S)
 @app.route('/issues/open', methods=['POST', 'GET'])
 @login_required
@@ -146,10 +147,14 @@ def open_issue():
         returns:    POST:   Redirect for main issues
                     GET:    Open issue form
     '''
-    if not g.user.current_landlord():
+    lt = g.user.landlords.filter(LandlordTenant.current==True).first()
+    if not lt:
         flash('No current landlord')
         return redirect(url_for('issues'))
-    if not g.user.current_landlord().fee_paid():
+    if not lt.confirmed:
+        flash('Need to be confirmed!')
+        return redirect(url_for('profile'))
+    if not lt.landlord.fee_paid():
         flash('Landlord needs to pay fee')
         return redirect(url_for('issues'))
     form=OpenIssueForm()
@@ -168,6 +173,7 @@ def open_issue():
         return redirect(url_for('issues'))
     return render_template('open_issue.html', form=form)
 
+# MUST BE CONFIRMED
 @app.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
 @login_required
 def comment(ident):
@@ -180,6 +186,9 @@ def comment(ident):
     form = CommentForm()
     issue=g.user.all_issues().filter(Issue.status=='Open',
             Issue.id==ident).first()
+    if not g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
+        flash('Need to be confirmed!')
+        return redirect(url_for('issues'))
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('issues'))
@@ -495,19 +504,23 @@ def authorized():
 #### PAYMENTS ####
 #RISK
 #PAID ENDPOINT
+# MUST BE CONFIRMED
 # ALERT USER(S)
 @app.route('/pay/landlord', methods=['GET'])
 @app.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
 @login_required
 def pay_rent(amount=None):
-    landlord=g.user.current_landlord()
-    if not landlord:
+    lt=g.user.landlords.filter(LandlordTenant.current==True).first()
+    if not lt:
         flash('No current landlord')
-        return redirect(url_for('home'))
-    if not landlord.fee_paid():
+        return redirect(url_for('payments'))
+    if not lt.confirmed:
+        flash('Need to be confirmed!')
+        return redirect(url_for('payments'))
+    if not lt.landlord.fee_paid():
         flash('Landlord has not paid service fee')
         return redirect(url_for('payments'))
-    if not landlord.stripe:
+    if not lt.landlord.stripe:
         flash('Landlord cannot accept CC')
         return redirect(url_for('payments'))
     if amount:
