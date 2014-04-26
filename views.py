@@ -225,7 +225,7 @@ def close_issue(ident):
 @app.route('/profile', methods=['GET'])
 @login_required
 def profile():
-    tenants = [ x.username for x in g.user.current_tenants().all() ]
+    tenants = g.user.current_tenants().all()
     return render_template('profile.html', tenants=tenants)
 
 @app.route('/profile/phone', methods=['GET', 'POST'])
