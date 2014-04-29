@@ -84,7 +84,6 @@ class ChangeNotifyForm(Form):
                                             ('Medium', 'Medium'),
                                             ('High', 'High')])
     submit=SubmitField('Confirm')
-
 #### /FORMS ####
 
 #### DEFAULT ####
@@ -184,8 +183,8 @@ def comment(ident):
                     GET: Comment form
     '''
     form = CommentForm()
-    issue=g.user.all_issues().filter(Issue.status=='Open',
-            Issue.id==ident).first()
+    issue=g.user.all_issues().\
+            filter(Issue.status=='Open',Issue.id==ident).first()
     if not g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
         flash('Need to be confirmed!')
         return redirect(url_for('issues'))
@@ -234,18 +233,29 @@ def close_issue(ident):
 @app.route('/profile', methods=['GET'])
 @login_required
 def profile():
+    '''display profile
+        params:     NONE
+        returns:    GET: profile info
+    '''
     tenants = g.user.current_tenants().all()
     return render_template('profile.html', tenants=tenants)
 
 @app.route('/profile/phone', methods=['GET', 'POST'])
 @login_required
 def phone():
+    '''add phone'''
     #TODO
     return ''
 
 @app.route('/profile/notify', methods=['GET', 'POST'])
 @login_required
-def notify(token=None):
+def notify():
+    '''change notification settings
+        params:     POST:   level - verbosity level
+                    POST:   method - notification method
+        returns:    GET:    change notify form
+                    POST:   redirect
+    '''
     form = ChangeNotifyForm()
     if form.validate_on_submit():
         if request.form['method'] != g.user.notify_method or request.form['level'] != g.user.notify_verbosity:
@@ -268,17 +278,20 @@ def notify(token=None):
 
 @app.route('/profile/notify/<token>', methods=['GET'])
 @login_required
-def confirm_notify(token=None):
-    if token:
-        s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
-        sig_okay, payload = s.loads_unsafe(token, max_age=app.config['NOTIFY_CONFIRM_WITHIN'])
-        if sig_okay and payload == g.user.id:
-            g.user.notify_confirmed=True
-            db.session.add(g.user)
-            db.session.commit()
-            flash('Settings updated')
-        else:
-            flash('Bad token')
+def confirm_notify(token):
+    '''confirm notify endpoint
+        params:     GET: token
+        returns:    GET: redirect
+    '''
+    s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
+    sig_okay, payload = s.loads_unsafe(token, max_age=app.config['NOTIFY_CONFIRM_WITHIN'])
+    if sig_okay and payload == g.user.id:
+        g.user.notify_confirmed=True
+        db.session.add(g.user)
+        db.session.commit()
+        flash('Settings updated')
+    else:
+        flash('Bad token')
     return redirect(url_for('profile'))
 #### /PROFILE ####
 
@@ -421,12 +434,17 @@ def show_property(prop_id):
 
 #### TENANTS ####
 # ALERT USER(S)
-@app.route('/tenant/confirm', methods=['GET'])
+@app.route('/tenant/confirm', defaults={'tenant': None}, methods=['GET'])
 @app.route('/tenant/<tenant>/confirm', methods=['POST', 'GET'])
 @login_required
-def confirm_relation(tenant=None):
-    '''confirm tenant request'''
-    if tenant == None:
+def confirm_relation(tenant):
+    '''confirm tenant request
+        params:     GET: tenant
+                    POST: confirm
+        returns:    GET: confirm request form or list of unconfirmed
+                    POST: redirect
+    '''
+    if not tenant:
         tenants=User.query.join(User.landlords).\
                 filter(LandlordTenant.landlord_id==g.user.id,
                         LandlordTenant.current==True,
@@ -502,8 +520,8 @@ def authorized():
 #### /OAUTH ####
 
 #### PAYMENTS ####
-#RISK
-#PAID ENDPOINT
+# RISK
+# PAID ENDPOINT
 # MUST BE CONFIRMED
 # ALERT USER(S)
 @app.route('/pay/landlord', methods=['GET'])
@@ -560,7 +578,7 @@ def pay_rent(amount=None):
     else:
         return render_template('get_pay_amount.html', landlord=landlord, user=g.user)
 
-#RISK
+# RISK
 @app.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
@@ -592,7 +610,6 @@ def pay_fee():
         except Exception:
             flash(str(er()))
             return redirect(url_for('pay_fee'))
-
     else:
         return render_template('pay_service_fee.html',
                                 amount=app.config['FEE_AMOUNT'],
@@ -661,10 +678,7 @@ def stripe_hook():
     event=json.loads(request.data)
     c = stripe.Event.retrieve(event['id'],
             api_key=app.config['STRIPE_CONSUMER_SECRET'])
-    try:
-        acct=c['user_id']
-    except:
-        acct=None
+    acct=c.get('user_id', None)
     if c['type']=='account.application.deauthorized':
         t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
         if not t: return ''
@@ -712,6 +726,7 @@ def stripe_hook():
 
 @app.route('/hook/twilio')
 def twilio_hook():
+    '''twilio hook'''
     #TODO
     return ''
 #### /PAYMENTS ####
