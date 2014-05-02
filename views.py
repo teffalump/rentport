@@ -1,7 +1,7 @@
 from rentport import app, db, mail
 from requests_oauthlib import OAuth2Session
 from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment, StripeUserInfo
-from flask import render_template, request, g, redirect, url_for, abort, flash, session, json
+from flask import render_template, request, g, redirect, url_for, abort, flash, session, json, jsonify
 from flask.ext.security import login_required
 from flask.ext.mail import Message
 from flask.ext.wtf import Form
@@ -24,12 +24,6 @@ def get_url(endpoint, **kw):
 #### /UTILS ####
 
 #### FORMS ####
-class FileUploadForm(Form):
-    upload=FileField('File', [DataRequired()])
-    title=TextField('Title')
-    description=TextAreaField('Description')
-    submit=SubmitField('Upload')
-
 class OpenIssueForm(Form):
     severity=SelectField('Severity', choices=[('Critical', 'Critical'),
                                                 ('Medium', 'Medium'),
@@ -55,9 +49,8 @@ class EndLandlordForm(Form):
     submit=SubmitField('End')
 
 class ConfirmTenantForm(Form):
-    confirm=RadioField('Confirm?', choices=[('True', 'Confirm'),
-                                        ('False', 'Disallow')])
-    submit=SubmitField('Submit')
+    confirm=SubmitField('Confirm', default='True')
+    disallow=SubmitField('Disallow', default='False')
 
 class CommentForm(Form):
     comment=TextAreaField('Comment', [DataRequired()])
@@ -334,9 +327,6 @@ def end_relation():
         returns:    POST: Redirect
                     GET: End relation form
     '''
-    if not g.user.current_landlord():
-        flash('No current landlord')
-        return redirect(url_for('home'))
     form=EndLandlordForm()
     lt=LandlordTenant.query.\
             filter(LandlordTenant.tenant_id==g.user.id,
@@ -435,30 +425,15 @@ def show_property(prop_id):
 #### TENANTS ####
 # ALERT USER(S)
 @app.route('/tenant/confirm', defaults={'tenant': None}, methods=['GET'])
-@app.route('/tenant/<tenant>/confirm', methods=['POST', 'GET'])
+@app.route('/tenant/<tenant>/confirm', methods=['POST'])
 @login_required
 def confirm_relation(tenant):
     '''confirm tenant request
         params:     GET: tenant
                     POST: confirm
-        returns:    GET: confirm request form or list of unconfirmed
+        returns:    GET: list of unconfirmed
                     POST: redirect
     '''
-    if not tenant:
-        tenants=User.query.join(User.landlords).\
-                filter(LandlordTenant.landlord_id==g.user.id,
-                        LandlordTenant.current==True,
-                        LandlordTenant.confirmed==False)
-        return render_template('unconfirmed_tenants.html', tenants=tenants)
-    else:
-        t=User.query.join(User.landlords).\
-                filter(LandlordTenant.landlord_id==g.user.id,
-                        LandlordTenant.current==True,
-                        LandlordTenant.confirmed==False,
-                        User.username==tenant).first()
-        if not t:
-            flash('No unconfirmed tenant request')
-            return redirect(url_for('confirm_relation'))
     form=ConfirmTenantForm()
     if form.validate_on_submit():
         lt=LandlordTenant.query.\
@@ -467,7 +442,7 @@ def confirm_relation(tenant):
                         LandlordTenant.confirmed==False,
                         User.username==tenant).\
                 first_or_404()
-        if request.form['confirm']=='True':
+        if request.form.get('confirm', None):
             lt.confirmed=True
             db.session.add(lt)
             db.session.commit()
@@ -477,7 +452,11 @@ def confirm_relation(tenant):
             db.session.commit()
             flash('Disallowed tenant')
         return redirect(url_for('home'))
-    return render_template('confirm_relation.html', form=form, tenant=t)
+    tenants=g.user.unconfirmed_tenants()
+    if not tenants:
+        flash('No unconfirmed tenant request')
+        return redirect(url_for('home'))
+    return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /TENANTS ####
 
 #### OAUTH ####
@@ -524,10 +503,10 @@ def authorized():
 # PAID ENDPOINT
 # MUST BE CONFIRMED
 # ALERT USER(S)
-@app.route('/pay/landlord', methods=['GET'])
+@app.route('/pay/landlord', defaults={'amount': None}, methods=['GET'])
 @app.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
 @login_required
-def pay_rent(amount=None):
+def pay_rent(amount):
     lt=g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
@@ -655,22 +634,28 @@ def show_payment(pay_id):
 @app.route('/fees/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
 def fees(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
-    '''main fees page'''
+    '''main fees page
+        params:     GET: <page> what page to show
+                    GET: <per_page> how many items per page
+        returns:    GET: template'''
     fees=g.user.fees.paginate(page, per_page, False)
     return render_template('fees.html', fees=fees)
 
 @app.route('/fees/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_fee(pay_id):
-    '''show detailed fee info'''
+    '''show extended fee info
+        params:     GET: <pay_id> payment id
+        returns:    GET: json-ed payment info'''
     fee=g.user.fees.filter(Fee.id==pay_id).first()
     if not fee:
         flash('No fee with that id')
-        return redirect(url_for('fees'))
+        return jsonify({'error': 'No fee with that id'})
     f = stripe.Charge.retrieve(fee.pay_id,
                     api_key=app.config['STRIPE_CONSUMER_SECRET'])\
                     .to_dict()
-    return render_template('show_fee.html', fee=f)
+    return jsonify({k:v for (k,v) in f.items() if k in \
+            ['amount', 'currency', 'paid', 'refunded','description']})
 
 @app.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
