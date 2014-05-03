@@ -122,10 +122,13 @@ def show_issue(ident):
     '''
     issue=g.user.all_issues().filter(Issue.status=='Open',
             Issue.id==ident).first()
+    form = CommentForm()
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('issues'))
-    return render_template('show_issue.html', issue=issue)
+    if not g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
+        form=None
+    return render_template('show_issue.html', issue=issue, form=form)
 
 # PAID ENDPOINT
 # MUST BE CONFIRMED
@@ -166,24 +169,22 @@ def open_issue():
     return render_template('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
-@app.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
+@app.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
 @login_required
 def comment(ident):
     '''comment on issue
         params:     POST: <comment> comment text
-                    GET/POST: <ident> absolute id
+                    POST: <ident> absolute id
         returns:    POST: Redirect to main issues page
-                    GET: Comment form
     '''
+    #TODO Jsonify?
     form = CommentForm()
     issue=g.user.all_issues().\
             filter(Issue.status=='Open',Issue.id==ident).first()
     if not g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
-        flash('Need to be confirmed!')
-        return redirect(url_for('issues'))
+        flash('Need to be confirmed by landlord!')
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('issues'))
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
@@ -191,8 +192,8 @@ def comment(ident):
         db.session.add(comment)
         db.session.commit()
         flash('Commented on issue')
-        return redirect(url_for('issues'))
-    return render_template('comment.html', form=form, issue=issue)
+        return redirect(url_for('show_issue', ident=ident))
+    return redirect(url_for('issues'))
 
 @app.route('/issues/<int(min=1):ident>/close', methods=['POST', 'GET'])
 @login_required
@@ -352,7 +353,8 @@ def properties():
         params:     NONE
         returns:    GET: List of properties
     '''
-    return render_template('properties.html', user=g.user)
+    props = g.user.properties.all()
+    return render_template('properties.html', props=props)
 
 # PAID ENDPOINT
 @app.route('/landlord/property/add', methods=['GET', 'POST'])
@@ -407,21 +409,6 @@ def modify_property(prop_id):
     form.location.data=prop.location
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
-
-@app.route('/landlord/property/<int(min=1):prop_id>/show', methods=['GET'])
-@login_required
-def show_property(prop_id):
-    '''show detailed info on property
-        params:     GET: <prop_id> absolute property id
-        returns:    GET: json-ed property info
-    '''
-    prop=g.user.properties.filter(Property.id==prop_id).first()
-    if not prop:
-        flash('Not a valid property id')
-        return jsonify({'error': 'Not a valid property id'})
-    tens = [ t.username for t in prop.current_tenants() ]
-    return jsonify({'tenants': tens, 'description': prop.description,
-        'location': prop.location})
 #### /PROPERTIES ####
 
 #### TENANTS ####
