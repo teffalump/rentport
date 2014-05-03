@@ -122,13 +122,16 @@ def show_issue(ident):
     '''
     issue=g.user.all_issues().filter(Issue.status=='Open',
             Issue.id==ident).first()
-    form = CommentForm()
+    comment = None
+    close = None
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('issues'))
-    if not g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
-        form=None
-    return render_template('show_issue.html', issue=issue, form=form)
+    if issue.landlord_id == g.user.id or g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
+        comment=CommentForm()
+    if issue.creator_id == g.user.id or issue.landlord_id == g.user.id:
+        close=CloseIssueForm()
+    return render_template('show_issue.html', issue=issue, comment=comment, close=close)
 
 # PAID ENDPOINT
 # MUST BE CONFIRMED
@@ -195,7 +198,7 @@ def comment(ident):
         return redirect(url_for('show_issue', ident=ident))
     return redirect(url_for('issues'))
 
-@app.route('/issues/<int(min=1):ident>/close', methods=['POST', 'GET'])
+@app.route('/issues/<int(min=1):ident>/close', methods=['POST'])
 @login_required
 def close_issue(ident):
     '''close issue - only opener or landlord can
@@ -204,11 +207,12 @@ def close_issue(ident):
         returns:    GET: Form to close issue
                     POST: Redirect to main issues page
     '''
-    form=CloseIssueForm()
+    #TODO Jsonify?
     issue=Issue.query.filter(or_(Issue.landlord_id==g.user.id,
                 Issue.creator_id==g.user.id),
                 Issue.status == 'Open',
                 Issue.id == ident).first()
+    form=CloseIssueForm()
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('issues'))
@@ -220,7 +224,8 @@ def close_issue(ident):
         db.session.commit()
         flash('Issue closed')
         return redirect(url_for('issues'))
-    return render_template('close_issue.html', form=form, issue=issue)
+    return redirect(url_for('issues', ident=ident))
+
 #### /ISSUES ####
 
 #### PROFILE ####
