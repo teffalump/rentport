@@ -413,13 +413,15 @@ def modify_property(prop_id):
 def show_property(prop_id):
     '''show detailed info on property
         params:     GET: <prop_id> absolute property id
-        returns:    GET: Detaild property info
+        returns:    GET: json-ed property info
     '''
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
         flash('Not a valid property id')
-        return redirect(url_for('properties'))
-    return render_template('show_property.html', location=prop)
+        return jsonify({'error': 'Not a valid property id'})
+    tens = [ t.username for t in prop.current_tenants() ]
+    return jsonify({'tenants': tens, 'description': prop.description,
+        'location': prop.location})
 #### /PROPERTIES ####
 
 #### TENANTS ####
@@ -446,15 +448,15 @@ def confirm_relation(tenant):
             lt.confirmed=True
             db.session.add(lt)
             db.session.commit()
-            flash('Confirmed tenant')
+            flash('Confirmed tenant request')
         else:
             db.session.delete(lt)
             db.session.commit()
-            flash('Disallowed tenant')
+            flash('Disallowed tenant request')
         return redirect(url_for('home'))
-    tenants=g.user.unconfirmed_tenants()
+    tenants=g.user.unconfirmed_tenants().all()
     if not tenants:
-        flash('No unconfirmed tenant request')
+        flash('No unconfirmed tenant requests')
         return redirect(url_for('home'))
     return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /TENANTS ####
@@ -599,7 +601,10 @@ def pay_fee():
 @app.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
 def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
-    '''main payments page'''
+    '''main payments page
+        params:     GET: <page> page to show
+                    GET: <per_page> items per page
+        returns:    GET: template'''
     allowed_sort={'id': Payment.id,
             'date': Payment.time,
             'status': Payment.status,
@@ -620,14 +625,17 @@ def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
 @app.route('/payments/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_payment(pay_id):
-    '''show detailed payment info'''
+    '''show extended payment info
+        params:     GET: <pay_id> payment id
+        returns:    GET: json-ed payment info'''
     payment=g.user.payments().filter(Payment.id==pay_id).first()
     if not payment:
         flash('No payment with that id')
-        return redirect(url_for('payments'))
+        return jsonify({'error': 'No payment with that id'})
     p = stripe.Charge.retrieve(payment.pay_id,
                     api_key=payment.from_user.stripe.access_token).to_dict()
-    return render_template('show_payment.html', payment=p)
+    return jsonify({k:v for (k,v) in p.items() if k in \
+            ['amount', 'currency', 'paid', 'refunded', 'description']})
 
 @app.route('/fees', methods=['GET'])
 @app.route('/fees/<int(min=1):page>', methods=['GET'])
