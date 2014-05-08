@@ -10,6 +10,9 @@ def create_app(config='rentport.config'):
     with app.app_context():
         app.config.from_object(config)
 
+        from rentport.extensions import mail
+        mail.init_app(app)
+
         from rentport.extensions import db
         db.init_app(app)
 
@@ -25,6 +28,7 @@ def create_app(config='rentport.config'):
 
         from rentport.extensions import bootstrap
         bootstrap.init_app(app)
+
 
         #from redis import StrictRedis
         #from flask.extensions import kvsession

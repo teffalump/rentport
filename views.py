@@ -1,9 +1,9 @@
-from rentport.model import db
+from rentport.extensions import db, mail
+from flask.ext.mail import Message
+from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
 from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment, StripeUserInfo
 from flask import Blueprint, render_template, request, g, redirect, url_for, abort, flash, session, json, jsonify, current_app
-from flask.ext.security import login_required
-from flask.ext.mail import Message
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
