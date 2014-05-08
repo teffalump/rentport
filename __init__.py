@@ -19,6 +19,7 @@ def create_app(config=None):
         mail.init_app(app)
         db.init_app(app)
         bootstrap.init_app(app)
+        limiter.init_app(app)
 
         from rentport.model import User, Role
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)

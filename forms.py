@@ -2,7 +2,8 @@
 
 from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
-from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField, RadioField, SelectField, TextField
+from wtforms import (SelectField, TextField, SubmitField, TextAreaField,
+                HiddenField, FileField, RadioField, SelectField, TextField)
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp
 
 class ExtendedRegisterForm(RegisterForm):
@@ -66,4 +67,3 @@ class ChangeNotifyForm(Form):
                                             ('Medium', 'Medium'),
                                             ('High', 'High')])
     submit=SubmitField('Confirm')
-#### /FORMS ####
