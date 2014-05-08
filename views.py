@@ -1,18 +1,21 @@
-from rentport import app, db, mail
+from rentport.model import db
 from requests_oauthlib import OAuth2Session
 from rentport.model import Issue, Property, User, LandlordTenant, Comment, Fee, Payment, StripeUserInfo
-from flask import render_template, request, g, redirect, url_for, abort, flash, session, json, jsonify
+from flask import Blueprint, render_template, request, g, redirect, url_for, abort, flash, session, json, jsonify, current_app
 from flask.ext.security import login_required
 from flask.ext.mail import Message
-from flask.ext.wtf import Form
 from itsdangerous import URLSafeTimedSerializer
-from wtforms import SelectField, TextField, SubmitField, TextAreaField, HiddenField, FileField, RadioField
-from wtforms.validators import Length, DataRequired, AnyOf
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
 from sys import exc_info as er
 from datetime import datetime as dt
 import stripe
+
+#### Blueprint ####
+
+rp = Blueprint('rentport', __name__, template_folder = 'templates', static_folder='static')
+
+#### /Blueprint ####
 
 #### UTILS ####
 def get_url(endpoint, **kw):
@@ -23,75 +26,20 @@ def get_url(endpoint, **kw):
         return url_for(endpoint, **kw)
 #### /UTILS ####
 
-#### FORMS ####
-class OpenIssueForm(Form):
-    severity=SelectField('Severity', choices=[('Critical', 'Critical'),
-                                                ('Medium', 'Medium'),
-                                                ('Low', 'Low'),
-                                                ('Future', 'Future')])
-    description=TextAreaField('Description', [DataRequired()])
-    submit=SubmitField('Open')
-
-class PostCommentForm(Form):
-    text=TextAreaField('Comment', [DataRequired()])
-    submit=SubmitField('Respond')
-
-class CloseIssueForm(Form):
-    reason=TextAreaField('Reason', [DataRequired()])
-    submit=SubmitField('Close')
-
-class AddLandlordForm(Form):
-    location=SelectField('Location', coerce=int)
-    submit=SubmitField('Add')
-
-class EndLandlordForm(Form):
-    end=HiddenField(default='True', validators=[AnyOf('True')])
-    submit=SubmitField('End')
-
-class ConfirmTenantForm(Form):
-    confirm=SubmitField('Confirm', default='True')
-    disallow=SubmitField('Disallow', default='False')
-
-class CommentForm(Form):
-    comment=TextAreaField('Comment', [DataRequired()])
-    submit=SubmitField('Add Comment')
-
-class AddPropertyForm(Form):
-    location=TextField('Location:', [DataRequired()])
-    description=TextAreaField('Description:', [DataRequired()])
-    submit=SubmitField('Add Property')
-
-class ModifyPropertyForm(AddPropertyForm):
-    submit=SubmitField('Modify Property')
-
-class AddPhoneNumber(Form):
-    phone=TextField('Phone #:', [DataRequired()])
-    submit=SubmitField('Validate number')
-
-class ChangeNotifyForm(Form):
-    method=SelectField('Method', choices=[('Email', 'Email'),
-                                            ('Text', 'Text'),
-                                            ('All', 'All'),
-                                            ('None', 'None')])
-    level=SelectField('Verbosity', choices=[('Low', 'Low'),
-                                            ('Medium', 'Medium'),
-                                            ('High', 'High')])
-    submit=SubmitField('Confirm')
-#### /FORMS ####
 
 #### DEFAULT ####
-@app.route('/')
+@rp.route('/')
 @login_required
 def home():
     return render_template('home.html')
 #### /DEFAULT ####
 
 #### ISSUES ####
-@app.route('/issues', methods=['GET'])
-@app.route('/issues/<int(min=1):page>', methods=['GET'])
-@app.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@rp.route('/issues', methods=['GET'])
+@rp.route('/issues/<int(min=1):page>', methods=['GET'])
+@rp.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def issues(page=1, per_page=app.config['ISSUES_PER_PAGE']):
+def issues(page=1, per_page=current_app.config['ISSUES_PER_PAGE']):
     '''display main issues page
         params:     GET: <page> page number (optional)
                     GET: <per_page> # of issues per page (optional)
@@ -113,7 +61,7 @@ def issues(page=1, per_page=app.config['ISSUES_PER_PAGE']):
                 paginate(page, per_page, False)
     return render_template('issues.html', issues=issues, sort=sort_key, order=order_key)
 
-@app.route('/issues/<int(min=1):ident>/show', methods=['GET'])
+@rp.route('/issues/<int(min=1):ident>/show', methods=['GET'])
 @login_required
 def show_issue(ident):
     '''show issue
@@ -126,7 +74,7 @@ def show_issue(ident):
     close = None
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('issues'))
+        return redirect(url_for('.issues'))
     if issue.landlord_id == g.user.id or g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
         comment=CommentForm()
     if issue.creator_id == g.user.id or issue.landlord_id == g.user.id:
@@ -136,7 +84,7 @@ def show_issue(ident):
 # PAID ENDPOINT
 # MUST BE CONFIRMED
 # ALERT USER(S)
-@app.route('/issues/open', methods=['POST', 'GET'])
+@rp.route('/issues/open', methods=['POST', 'GET'])
 @login_required
 def open_issue():
     '''open new issue at current location
@@ -148,13 +96,13 @@ def open_issue():
     lt = g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
-        return redirect(url_for('issues'))
+        return redirect(url_for('.issues'))
     if not lt.confirmed:
         flash('Need to be confirmed!')
-        return redirect(url_for('profile'))
+        return redirect(url_for('.profile'))
     if not lt.landlord.fee_paid():
         flash('Landlord needs to pay fee')
-        return redirect(url_for('issues'))
+        return redirect(url_for('.issues'))
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -168,11 +116,11 @@ def open_issue():
                 format(i.location.location, i.severity, i.description)
         mail.send(msg)
         flash('Landlord notified')
-        return redirect(url_for('issues'))
+        return redirect(url_for('.issues'))
     return render_template('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
-@app.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
+@rp.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
 @login_required
 def comment(ident):
     '''comment on issue
@@ -195,10 +143,10 @@ def comment(ident):
         db.session.add(comment)
         db.session.commit()
         flash('Commented on issue')
-        return redirect(url_for('show_issue', ident=ident))
-    return redirect(url_for('issues'))
+        return redirect(url_for('.show_issue', ident=ident))
+    return redirect(url_for('.issues'))
 
-@app.route('/issues/<int(min=1):ident>/close', methods=['POST'])
+@rp.route('/issues/<int(min=1):ident>/close', methods=['POST'])
 @login_required
 def close_issue(ident):
     '''close issue - only opener or landlord can
@@ -215,7 +163,7 @@ def close_issue(ident):
     form=CloseIssueForm()
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('issues'))
+        return redirect(url_for('.issues'))
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
@@ -224,12 +172,12 @@ def close_issue(ident):
         db.session.commit()
         flash('Issue closed')
         return redirect(url_for('issues'))
-    return redirect(url_for('issues', ident=ident))
+    return redirect(url_for('.issues', ident=ident))
 
 #### /ISSUES ####
 
 #### PROFILE ####
-@app.route('/profile', methods=['GET'])
+@rp.route('/profile', methods=['GET'])
 @login_required
 def profile():
     '''display profile
@@ -239,14 +187,14 @@ def profile():
     tenants = g.user.current_tenants().all()
     return render_template('profile.html', tenants=tenants)
 
-@app.route('/profile/phone', methods=['GET', 'POST'])
+@rp.route('/profile/phone', methods=['GET', 'POST'])
 @login_required
 def phone():
     '''add phone'''
     #TODO
     return ''
 
-@app.route('/profile/notify', methods=['GET', 'POST'])
+@rp.route('/profile/notify', methods=['GET', 'POST'])
 @login_required
 def notify():
     '''change notification settings
@@ -264,26 +212,26 @@ def notify():
             db.session.add(g.user)
             db.session.commit()
             flash('Updated unconfirmed settings')
-            s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
+            s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['NOTIFY_CONFIRM_SALT'])
             token=s.dumps(g.user.id)
             msg = Message('Confirm settings', recipients=[g.user.email])
-            msg.body='Confirm notification changes: {0}'.format(url_for('confirm_notify', token=token, _external=True))
+            msg.body='Confirm notification changes: {0}'.format(url_for('.confirm_notify', token=token, _external=True))
             mail.send(msg)
             flash('Confirmation email sent')
         else:
             flash('Nothing changed')
-        return redirect(url_for('profile'))
+        return redirect(url_for('.profile'))
     return render_template('change_notify.html', form=form)
 
-@app.route('/profile/notify/<token>', methods=['GET'])
+@rp.route('/profile/notify/<token>', methods=['GET'])
 @login_required
 def confirm_notify(token):
     '''confirm notify endpoint
         params:     GET: token
         returns:    GET: redirect
     '''
-    s=URLSafeTimedSerializer(app.config['SECRET_KEY'], salt=app.config['NOTIFY_CONFIRM_SALT'])
-    sig_okay, payload = s.loads_unsafe(token, max_age=app.config['NOTIFY_CONFIRM_WITHIN'])
+    s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['NOTIFY_CONFIRM_SALT'])
+    sig_okay, payload = s.loads_unsafe(token, max_age=current_app.config['NOTIFY_CONFIRM_WITHIN'])
     if sig_okay and payload == g.user.id:
         g.user.notify_confirmed=True
         db.session.add(g.user)
@@ -291,12 +239,12 @@ def confirm_notify(token):
         flash('Settings updated')
     else:
         flash('Bad token')
-    return redirect(url_for('profile'))
+    return redirect(url_for('.profile'))
 #### /PROFILE ####
 
 #### LANDLORD ####
 # ALERT USER(S)
-@app.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
+@rp.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
 @login_required
 def add_landlord(landlord):
     '''make landlord request
@@ -307,7 +255,7 @@ def add_landlord(landlord):
     '''
     if g.user.current_landlord():
         flash('End relationship with current landlord first')
-        return redirect(url_for('end_relation', next=url_for('add_landlord', landlord=landlord)))
+        return redirect(url_for('.end_relation', next=url_for('.add_landlord', landlord=landlord)))
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
@@ -321,11 +269,11 @@ def add_landlord(landlord):
         db.session.add(lt)
         db.session.commit()
         flash('Added landlord')
-        return redirect(url_for('home'))
+        return redirect(url_for('.home'))
     return render_template('add_landlord.html', form=form, landlord=landlord)
 
 # ALERT USER(S)
-@app.route('/landlord/end', methods=['POST', 'GET'])
+@rp.route('/landlord/end', methods=['POST', 'GET'])
 @login_required
 def end_relation():
     '''end landlord relation
@@ -340,7 +288,7 @@ def end_relation():
             first()
     if not lt:
         flash('No relationship to end')
-        return redirect(url_for('home'))
+        return redirect(url_for('.home'))
     if form.validate_on_submit():
         lt.current=False
         db.session.add(lt)
@@ -351,7 +299,7 @@ def end_relation():
 #### /LANDLORD ####
 
 ##### PROPERTIES #####
-@app.route('/landlord/property', methods=['GET'])
+@rp.route('/landlord/property', methods=['GET'])
 @login_required
 def properties():
     '''show properties
@@ -362,7 +310,7 @@ def properties():
     return render_template('properties.html', props=props)
 
 # PAID ENDPOINT
-@app.route('/landlord/property/add', methods=['GET', 'POST'])
+@rp.route('/landlord/property/add', methods=['GET', 'POST'])
 @login_required
 def add_property():
     '''add property
@@ -373,7 +321,7 @@ def add_property():
     '''
     if not g.user.fee_paid():
         flash('You need to pay to access this endpoint')
-        return redirect(url_for('properties'))
+        return redirect(url_for('.properties'))
     form=AddPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -384,10 +332,10 @@ def add_property():
         db.session.add(p)
         db.session.commit()
         flash("Property added")
-        return redirect(url_for('properties'))
+        return redirect(url_for('.properties'))
     return render_template('add_property.html', form=form)
 
-@app.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
+@rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
 def modify_property(prop_id):
     '''modify existing property
@@ -400,7 +348,7 @@ def modify_property(prop_id):
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
         flash('Not a valid property id')
-        return redirect(url_for('properties'))
+        return redirect(url_for('.properties'))
     form=ModifyPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -410,7 +358,7 @@ def modify_property(prop_id):
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
-        return redirect(url_for('properties'))
+        return redirect(url_for('.properties'))
     form.location.data=prop.location
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
@@ -418,8 +366,8 @@ def modify_property(prop_id):
 
 #### TENANTS ####
 # ALERT USER(S)
-@app.route('/tenant/confirm', defaults={'tenant': None}, methods=['GET'])
-@app.route('/tenant/<tenant>/confirm', methods=['POST'])
+@rp.route('/tenant/confirm', defaults={'tenant': None}, methods=['GET'])
+@rp.route('/tenant/<tenant>/confirm', methods=['POST'])
 @login_required
 def confirm_relation(tenant):
     '''confirm tenant request
@@ -445,41 +393,41 @@ def confirm_relation(tenant):
             db.session.delete(lt)
             db.session.commit()
             flash('Disallowed tenant request')
-        return redirect(url_for('home'))
+        return redirect(url_for('.home'))
     tenants=g.user.unconfirmed_tenants().all()
     if not tenants:
         flash('No unconfirmed tenant requests')
-        return redirect(url_for('home'))
+        return redirect(url_for('.home'))
     return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /TENANTS ####
 
 #### OAUTH ####
-@app.route('/oauth/authorize', methods=['GET'])
+@rp.route('/oauth/authorize', methods=['GET'])
 @login_required
 def authorize():
     '''Authorize Stripe, or refresh'''
     if g.user.stripe:
         flash('Have stripe info already')
-        return redirect(url_for('home'))
-    oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
-        redirect_uri=url_for('authorized', _external=True),
+        return redirect(url_for('.home'))
+    oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
+        redirect_uri=url_for('.authorized', _external=True),
         scope=app.config['STRIPE_OAUTH_CONFIG']['scope'])
     auth_url, state=oauth.authorization_url(
-            app.config['STRIPE_OAUTH_CONFIG']['authorize_url'])
+            current_app.config['STRIPE_OAUTH_CONFIG']['authorize_url'])
     session['state']=state
     return redirect(auth_url)
 
-@app.route('/oauth/authorized', methods=['GET'])
+@rp.route('/oauth/authorized', methods=['GET'])
 @login_required
 def authorized():
     if g.user.stripe:
         flash('Have stripe info already')
-        return redirect(url_for('home'))
-    oauth=OAuth2Session(app.config['STRIPE_CONSUMER_KEY'],
+        return redirect(url_for('.home'))
+    oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
     token=oauth.fetch_token(
-                    app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
-                    app.config['STRIPE_CONSUMER_SECRET'],
+                    current_app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
+                    current_app.config['STRIPE_CONSUMER_SECRET'],
                     authorization_response=request.url)
     s = StripeUserInfo(access_token=token['access_token'],
                        refresh_token=token['refresh_token'],
@@ -489,7 +437,7 @@ def authorized():
     db.session.add(s)
     db.session.commit()
     flash('Authorized!')
-    return redirect(url_for('home'))
+    return redirect(url_for('.home'))
 #### /OAUTH ####
 
 #### PAYMENTS ####
@@ -497,23 +445,23 @@ def authorized():
 # PAID ENDPOINT
 # MUST BE CONFIRMED
 # ALERT USER(S)
-@app.route('/pay/landlord', defaults={'amount': None}, methods=['GET'])
-@app.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
+@rp.route('/pay/landlord', defaults={'amount': None}, methods=['GET'])
+@rp.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
 @login_required
 def pay_rent(amount):
     lt=g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
-        return redirect(url_for('payments'))
+        return redirect(url_for('.payments'))
     if not lt.confirmed:
         flash('Need to be confirmed!')
-        return redirect(url_for('payments'))
+        return redirect(url_for('.payments'))
     if not lt.landlord.fee_paid():
         flash('Landlord has not paid service fee')
-        return redirect(url_for('payments'))
+        return redirect(url_for('.payments'))
     if not lt.landlord.stripe:
         flash('Landlord cannot accept CC')
-        return redirect(url_for('payments'))
+        return redirect(url_for('.payments'))
     if amount:
         cents=amount*100
         if request.method == 'POST':
@@ -535,16 +483,16 @@ def pay_rent(amount):
                         format(g.user.username, '$' + amount)
                 mail.send(msg)
                 flash('Landlord notified')
-                return redirect(url_for('payments'))
+                return redirect(url_for('.payments'))
             except stripe.error.CardError:
                 flash('Card error')
-                return redirect(url_for('pay_rent'))
+                return redirect(url_for('.pay_rent'))
             except stripe.error.AuthenticationError:
                 flash('Authentication error')
-                return redirect(url_for('pay_rent'))
+                return redirect(url_for('.pay_rent'))
             except Exception:
                 flash(str(er()))
-                return redirect(url_for('pay_rent'))
+                return redirect(url_for('.pay_rent'))
         else:
             return render_template('pay_landlord.html', landlord=landlord,
                                                         amount=amount)
@@ -552,15 +500,15 @@ def pay_rent(amount):
         return render_template('get_pay_amount.html', landlord=landlord, user=g.user)
 
 # RISK
-@app.route('/pay/fee', methods=['POST', 'GET'])
+@rp.route('/pay/fee', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
     if request.method == 'POST':
         token = request.form['stripeToken']
         try:
             charge = stripe.Charge.create(
-                  api_key=app.config['STRIPE_CONSUMER_SECRET'],
-                  amount=app.config['FEE_AMOUNT'],
+                  api_key=current_app.config['STRIPE_CONSUMER_SECRET'],
+                  amount=current_app.config['FEE_AMOUNT'],
                   currency="usd",
                   card=token,
                   description=':'.join([str(g.user.id), g.user.username])
@@ -573,26 +521,26 @@ def pay_fee():
             db.session.add(g.user)
             db.session.commit()
             flash('Payment processed')
-            return redirect(url_for('fees'))
+            return redirect(url_for('.fees'))
         except stripe.error.CardError:
             flash('Card error')
-            return redirect(url_for('pay_fee'))
+            return redirect(url_for('.pay_fee'))
         except stripe.error.AuthenticationError:
             flash('Authentication error')
-            return redirect(url_for('pay_fee'))
+            return redirect(url_for('.pay_fee'))
         except Exception:
             flash(str(er()))
-            return redirect(url_for('pay_fee'))
+            return redirect(url_for('.pay_fee'))
     else:
         return render_template('pay_service_fee.html',
-                                amount=app.config['FEE_AMOUNT'],
-                                key=app.config['STRIPE_CONSUMER_KEY'])
+                                amount=current_app.config['FEE_AMOUNT'],
+                                key=current_app.config['STRIPE_CONSUMER_KEY'])
 
-@app.route('/payments', methods=['GET'])
-@app.route('/payments/<int(min=1):page>', methods=['GET'])
-@app.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@rp.route('/payments', methods=['GET'])
+@rp.route('/payments/<int(min=1):page>', methods=['GET'])
+@rp.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
+def payments(page=1, per_page=current_app.config['PAYMENTS_PER_PAGE']):
     '''main payments page
         params:     GET: <page> page to show
                     GET: <per_page> items per page
@@ -614,7 +562,7 @@ def payments(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
                 paginate(page, per_page, False)
     return render_template('payments.html', payments=payments, sort=sort_key, order=order_key)
 
-@app.route('/payments/<int:pay_id>/show', methods=['GET'])
+@rp.route('/payments/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_payment(pay_id):
     '''show extended payment info
@@ -629,11 +577,11 @@ def show_payment(pay_id):
     return jsonify({k:v for (k,v) in p.items() if k in \
             ['amount', 'currency', 'paid', 'refunded', 'description']})
 
-@app.route('/fees', methods=['GET'])
-@app.route('/fees/<int(min=1):page>', methods=['GET'])
-@app.route('/fees/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@rp.route('/fees', methods=['GET'])
+@rp.route('/fees/<int(min=1):page>', methods=['GET'])
+@rp.route('/fees/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def fees(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
+def fees(page=1, per_page=current_app.config['PAYMENTS_PER_PAGE']):
     '''main fees page
         params:     GET: <page> what page to show
                     GET: <per_page> how many items per page
@@ -641,7 +589,7 @@ def fees(page=1, per_page=app.config['PAYMENTS_PER_PAGE']):
     fees=g.user.fees.paginate(page, per_page, False)
     return render_template('fees.html', fees=fees)
 
-@app.route('/fees/<int:pay_id>/show', methods=['GET'])
+@rp.route('/fees/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_fee(pay_id):
     '''show extended fee info
@@ -652,17 +600,17 @@ def show_fee(pay_id):
         flash('No fee with that id')
         return jsonify({'error': 'No fee with that id'})
     f = stripe.Charge.retrieve(fee.pay_id,
-                    api_key=app.config['STRIPE_CONSUMER_SECRET'])\
+                    api_key=current_app.config['STRIPE_CONSUMER_SECRET'])\
                     .to_dict()
     return jsonify({k:v for (k,v) in f.items() if k in \
             ['amount', 'currency', 'paid', 'refunded','description']})
 
-@app.route('/hook/stripe', methods=['POST'])
+@rp.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
     #TODO Add more hooks
     event=json.loads(request.data)
     c = stripe.Event.retrieve(event['id'],
-            api_key=app.config['STRIPE_CONSUMER_SECRET'])
+            api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
     acct=c.get('user_id', None)
     if c['type']=='account.application.deauthorized':
         t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
@@ -709,7 +657,7 @@ def stripe_hook():
         return ''
     return ''
 
-@app.route('/hook/twilio')
+@rp.route('/hook/twilio')
 def twilio_hook():
     '''twilio hook'''
     #TODO
@@ -717,20 +665,20 @@ def twilio_hook():
 #### /PAYMENTS ####
 
 #### SESSION TESTING ####
-@app.route('/session/dump')
+@rp.route('/session/dump')
 @login_required
 def dump():
     return str(session['add'])
 
-@app.route('/session/add')
+@rp.route('/session/add')
 @login_required
 def add():
     session['add']=gen_salt(1000)
-    return redirect(url_for('dump'))
+    return redirect(url_for('.dump'))
 
-@app.route('/session/remove')
+@rp.route('/session/remove')
 @login_required
 def remove():
     session['add']=None
-    return redirect(url_for('dump'))
+    return redirect(url_for('.dump'))
 #### /SESSION TESTING ####

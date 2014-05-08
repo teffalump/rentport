@@ -1,5 +1,5 @@
-from rentport import db
 from datetime import datetime, timedelta
+from rentport.extensions import db
 from flask.ext.security import UserMixin, RoleMixin
 from flask.ext.sqlalchemy import BaseQuery
 from sqlalchemy.dialects.postgresql import INET
@@ -112,6 +112,12 @@ class User(db.Model, UserMixin):
             return self.current_location().current_tenants().filter(User.id != self.id)
         except:
             return None
+
+    def unconfirmed_tenants(self):
+        return User.query.join(User.landlords).\
+                filter(LandlordTenant.landlord_id==self.id,
+                        LandlordTenant.current==True,
+                        LandlordTenant.confirmed==False)
 
     def payments(self):
         '''Return all relevant payments'''
