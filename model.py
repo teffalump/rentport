@@ -33,7 +33,6 @@ class User(db.Model, UserMixin):
 
     notify_confirmed = db.Column(db.Boolean, default=False)
     notify_method = db.Column(db.Enum('Email', 'Text', 'All', 'None', name='notification_methods'))
-    notify_verbosity=db.Column(db.Enum('Low', 'Medium', 'High', name='notification_levels'))
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)

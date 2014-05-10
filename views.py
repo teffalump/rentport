@@ -204,15 +204,13 @@ def phone():
 @login_required
 def notify():
     '''change notification settings
-        params:     POST:   level - verbosity level
-                    POST:   method - notification method
+        params:     POST:   method - notification method
         returns:    GET:    change notify form
                     POST:   redirect
     '''
     form = ChangeNotifyForm()
     if form.validate_on_submit():
-        if request.form['method'] != g.user.notify_method or request.form['level'] != g.user.notify_verbosity:
-            g.user.notify_verbosity = request.form['level']
+        if request.form['method'] != g.user.notify_method:
             g.user.notify_method = request.form['method']
             g.user.notify_confirmed = False
             db.session.add(g.user)

@@ -63,7 +63,4 @@ class ChangeNotifyForm(Form):
                                             ('Text', 'Text'),
                                             ('All', 'All'),
                                             ('None', 'None')])
-    level=SelectField('Verbosity', choices=[('Low', 'Low'),
-                                            ('Medium', 'Medium'),
-                                            ('High', 'High')])
     submit=SubmitField('Confirm')
