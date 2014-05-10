@@ -79,9 +79,7 @@
         1. Comment on and close current issues
         2. Modify existing properties
 + Notification levels
-    1. Low: Only rent and new issue - Only allowed for now
-    2. Medium: Low + landlord-request/end
-    3. High: Medium + comments
+    + Only rent and new issue - Only allowed for now
 
 # Other thoughts
 + rental agreements? seems security issues are too big... at the moment
