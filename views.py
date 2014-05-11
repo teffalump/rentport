@@ -2,7 +2,7 @@ from rentport.extensions import db, mail
 from rentport.forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm)
+                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -190,8 +190,9 @@ def profile():
         params:     NONE
         returns:    GET: profile info
     '''
+    resend_form = ResendNotifyForm()
     tenants = g.user.current_tenants().all()
-    return render_template('profile.html', tenants=tenants)
+    return render_template('profile.html', tenants=tenants, form=resend_form)
 
 @rp.route('/profile/phone', methods=['GET', 'POST'])
 @login_required
@@ -226,6 +227,20 @@ def notify():
             flash('Nothing changed')
         return redirect(url_for('.profile'))
     return render_template('change_notify.html', form=form)
+
+@rp.route('/profile/notify/resend', methods=['POST'])
+@login_required
+def resend_notify_confirm():
+    form = ResendNotifyForm()
+    if form.validate_on_submit():
+        if request.form.get('resend', True):
+            s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['NOTIFY_CONFIRM_SALT'])
+            token=s.dumps(g.user.id)
+            msg = Message('Confirm settings', recipients=[g.user.email])
+            msg.body='Confirm notification changes: {0}'.format(url_for('.confirm_notify', token=token, _external=True))
+            mail.send(msg)
+            flash('Confirmation email sent')
+    return redirect(url_for('rentport.profile'))
 
 @rp.route('/profile/notify/<token>', methods=['GET'])
 @login_required

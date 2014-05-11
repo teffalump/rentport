@@ -64,3 +64,6 @@ class ChangeNotifyForm(Form):
                                             ('All', 'All'),
                                             ('None', 'None')])
     submit=SubmitField('Confirm')
+
+class ResendNotifyForm(Form):
+    resend=SubmitField('Resend email', default='True')
