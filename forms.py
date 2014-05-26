@@ -2,17 +2,17 @@
 
 from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
-from wtforms import (SelectField, TextField, SubmitField, TextAreaField,
-                HiddenField, FileField, RadioField, SelectField, TextField)
+from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
+                HiddenField, FileField, RadioField, SelectField)
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp
 
 class ExtendedRegisterForm(RegisterForm):
-    username=TextField('Username', [DataRequired(),
+    username=StringField('Username', [DataRequired(),
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20)])
 
 class ExtendedLoginForm(LoginForm):
-    email=TextField('Login', [DataRequired()])
+    email=StringField('Login', [DataRequired()])
 
 class OpenIssueForm(Form):
     severity=SelectField('Severity', choices=[('Critical', 'Critical'),
@@ -47,7 +47,7 @@ class CommentForm(Form):
     submit=SubmitField('Add Comment')
 
 class AddPropertyForm(Form):
-    location=TextField('Location:', [DataRequired()])
+    location=StringField('Location:', [DataRequired()])
     description=TextAreaField('Description:', [DataRequired()])
     submit=SubmitField('Add Property')
 
@@ -55,7 +55,7 @@ class ModifyPropertyForm(AddPropertyForm):
     submit=SubmitField('Modify Property')
 
 class AddPhoneNumber(Form):
-    phone=TextField('Phone #:', [DataRequired()])
+    phone=StringField('Phone #:', [DataRequired()])
     submit=SubmitField('Validate number')
 
 class ChangeNotifyForm(Form):
