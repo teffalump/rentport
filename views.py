@@ -80,7 +80,7 @@ def show_issue(ident):
     close = None
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('.issues'))
+        return redirect(url_for('rentport.issues'))
     if issue.landlord_id == g.user.id or g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
         comment=CommentForm()
     if issue.creator_id == g.user.id or issue.landlord_id == g.user.id:
@@ -102,13 +102,13 @@ def open_issue():
     lt = g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
-        return redirect(url_for('.issues'))
+        return redirect(url_for('rentport.issues'))
     if not lt.confirmed:
         flash('Need to be confirmed!')
-        return redirect(url_for('.profile'))
+        return redirect(url_for('rentport.profile'))
     if not lt.landlord.fee_paid():
         flash('Landlord needs to pay fee')
-        return redirect(url_for('.issues'))
+        return redirect(url_for('rentport.issues'))
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -122,7 +122,7 @@ def open_issue():
                 format(i.location.location, i.severity, i.description)
         mail.send(msg)
         flash('Landlord notified')
-        return redirect(url_for('.issues'))
+        return redirect(url_for('rentport.issues'))
     return render_template('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
@@ -149,8 +149,8 @@ def comment(ident):
         db.session.add(comment)
         db.session.commit()
         flash('Commented on issue')
-        return redirect(url_for('.show_issue', ident=ident))
-    return redirect(url_for('.issues'))
+        return redirect(url_for('rentport.show_issue', ident=ident))
+    return redirect(url_for('rentport.issues'))
 
 @rp.route('/issues/<int(min=1):ident>/close', methods=['POST'])
 @login_required
@@ -169,7 +169,7 @@ def close_issue(ident):
     form=CloseIssueForm()
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('.issues'))
+        return redirect(url_for('rentport.issues'))
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
@@ -177,8 +177,8 @@ def close_issue(ident):
         db.session.add(issue)
         db.session.commit()
         flash('Issue closed')
-        return redirect(url_for('issues'))
-    return redirect(url_for('.issues', ident=ident))
+        return redirect(url_for('rentport.issues'))
+    return redirect(url_for('rentport.issues', ident=ident))
 
 #### /ISSUES ####
 
@@ -220,12 +220,12 @@ def notify():
             s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['NOTIFY_CONFIRM_SALT'])
             token=s.dumps(g.user.id)
             msg = Message('Confirm settings', recipients=[g.user.email])
-            msg.body='Confirm notification changes: {0}'.format(url_for('.confirm_notify', token=token, _external=True))
+            msg.body='Confirm notification changes: {0}'.format(url_for('rentport.confirm_notify', token=token, _external=True))
             mail.send(msg)
             flash('Confirmation email sent')
         else:
             flash('Nothing changed')
-        return redirect(url_for('.profile'))
+        return redirect(url_for('rentport.profile'))
     return render_template('change_notify.html', form=form)
 
 @rp.route('/profile/notify/resend', methods=['POST'])
@@ -237,7 +237,7 @@ def resend_notify_confirm():
             s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['NOTIFY_CONFIRM_SALT'])
             token=s.dumps(g.user.id)
             msg = Message('Confirm settings', recipients=[g.user.email])
-            msg.body='Confirm notification changes: {0}'.format(url_for('.confirm_notify', token=token, _external=True))
+            msg.body='Confirm notification changes: {0}'.format(url_for('rentport.confirm_notify', token=token, _external=True))
             mail.send(msg)
             flash('Confirmation email sent')
     return redirect(url_for('rentport.profile'))
@@ -258,7 +258,7 @@ def confirm_notify(token):
         flash('Settings updated')
     else:
         flash('Bad token')
-    return redirect(url_for('.profile'))
+    return redirect(url_for('rentport.profile'))
 #### /PROFILE ####
 
 #### LANDLORD ####
@@ -274,7 +274,7 @@ def add_landlord(landlord):
     '''
     if g.user.current_landlord():
         flash('End relationship with current landlord first')
-        return redirect(url_for('.end_relation', next=url_for('.add_landlord', landlord=landlord)))
+        return redirect(url_for('rentport.end_relation', next=url_for('rentport.add_landlord', landlord=landlord)))
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
@@ -288,7 +288,7 @@ def add_landlord(landlord):
         db.session.add(lt)
         db.session.commit()
         flash('Added landlord')
-        return redirect(url_for('.home'))
+        return redirect(url_for('rentport.home'))
     return render_template('add_landlord.html', form=form, landlord=landlord)
 
 # ALERT USER(S)
@@ -307,7 +307,7 @@ def end_relation():
             first()
     if not lt:
         flash('No relationship to end')
-        return redirect(url_for('.home'))
+        return redirect(url_for('rentport.home'))
     if form.validate_on_submit():
         lt.current=False
         db.session.add(lt)
@@ -340,7 +340,7 @@ def add_property():
     '''
     if not g.user.fee_paid():
         flash('You need to pay to access this endpoint')
-        return redirect(url_for('.properties'))
+        return redirect(url_for('rentport.properties'))
     form=AddPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -351,7 +351,7 @@ def add_property():
         db.session.add(p)
         db.session.commit()
         flash("Property added")
-        return redirect(url_for('.properties'))
+        return redirect(url_for('rentport.properties'))
     return render_template('add_property.html', form=form)
 
 @rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
@@ -367,7 +367,7 @@ def modify_property(prop_id):
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
         flash('Not a valid property id')
-        return redirect(url_for('.properties'))
+        return redirect(url_for('rentport.properties'))
     form=ModifyPropertyForm()
     if form.validate_on_submit():
         location=request.form['location']
@@ -377,7 +377,7 @@ def modify_property(prop_id):
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
-        return redirect(url_for('.properties'))
+        return redirect(url_for('rentport.properties'))
     form.location.data=prop.location
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
@@ -412,11 +412,11 @@ def confirm_relation(tenant):
             db.session.delete(lt)
             db.session.commit()
             flash('Disallowed tenant request')
-        return redirect(url_for('.home'))
+        return redirect(url_for('rentport.home'))
     tenants=g.user.unconfirmed_tenants().all()
     if not tenants:
         flash('No unconfirmed tenant requests')
-        return redirect(url_for('.home'))
+        return redirect(url_for('rentport.home'))
     return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /TENANTS ####
 
@@ -427,9 +427,9 @@ def authorize():
     '''Authorize Stripe, or refresh'''
     if g.user.stripe:
         flash('Have stripe info already')
-        return redirect(url_for('.home'))
+        return redirect(url_for('rentport.home'))
     oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
-        redirect_uri=url_for('.authorized', _external=True),
+        redirect_uri=url_for('rentport.authorized', _external=True),
         scope=app.config['STRIPE_OAUTH_CONFIG']['scope'])
     auth_url, state=oauth.authorization_url(
             current_app.config['STRIPE_OAUTH_CONFIG']['authorize_url'])
@@ -441,7 +441,7 @@ def authorize():
 def authorized():
     if g.user.stripe:
         flash('Have stripe info already')
-        return redirect(url_for('.home'))
+        return redirect(url_for('rentport.home'))
     oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
     token=oauth.fetch_token(
@@ -456,7 +456,7 @@ def authorized():
     db.session.add(s)
     db.session.commit()
     flash('Authorized!')
-    return redirect(url_for('.home'))
+    return redirect(url_for('rentport.home'))
 #### /OAUTH ####
 
 #### PAYMENTS ####
@@ -471,16 +471,16 @@ def pay_rent(amount):
     lt=g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
-        return redirect(url_for('.payments'))
+        return redirect(url_for('rentport.payments'))
     if not lt.confirmed:
         flash('Need to be confirmed!')
-        return redirect(url_for('.payments'))
+        return redirect(url_for('rentport.payments'))
     if not lt.landlord.fee_paid():
         flash('Landlord has not paid service fee')
-        return redirect(url_for('.payments'))
+        return redirect(url_for('rentport.payments'))
     if not lt.landlord.stripe:
         flash('Landlord cannot accept CC')
-        return redirect(url_for('.payments'))
+        return redirect(url_for('rentport.payments'))
     if amount:
         cents=amount*100
         if request.method == 'POST':
@@ -502,16 +502,16 @@ def pay_rent(amount):
                         format(g.user.username, '$' + amount)
                 mail.send(msg)
                 flash('Landlord notified')
-                return redirect(url_for('.payments'))
+                return redirect(url_for('rentport.payments'))
             except stripe.error.CardError:
                 flash('Card error')
-                return redirect(url_for('.pay_rent'))
+                return redirect(url_for('rentport.pay_rent'))
             except stripe.error.AuthenticationError:
                 flash('Authentication error')
-                return redirect(url_for('.pay_rent'))
+                return redirect(url_for('rentport.pay_rent'))
             except Exception:
                 flash(str(er()))
-                return redirect(url_for('.pay_rent'))
+                return redirect(url_for('rentport.pay_rent'))
         else:
             return render_template('pay_landlord.html', landlord=landlord,
                                                         amount=amount)
@@ -540,16 +540,16 @@ def pay_fee():
             db.session.add(g.user)
             db.session.commit()
             flash('Payment processed')
-            return redirect(url_for('.fees'))
+            return redirect(url_for('rentport.fees'))
         except stripe.error.CardError:
             flash('Card error')
-            return redirect(url_for('.pay_fee'))
+            return redirect(url_for('rentport.pay_fee'))
         except stripe.error.AuthenticationError:
             flash('Authentication error')
-            return redirect(url_for('.pay_fee'))
+            return redirect(url_for('rentport.pay_fee'))
         except Exception:
             flash(str(er()))
-            return redirect(url_for('.pay_fee'))
+            return redirect(url_for('rentport.pay_fee'))
     else:
         return render_template('pay_service_fee.html',
                                 amount=current_app.config['FEE_AMOUNT'],
