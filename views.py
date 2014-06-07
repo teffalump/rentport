@@ -313,7 +313,7 @@ def end_relation():
         db.session.add(lt)
         db.session.commit()
         flash('Ended landlord relationship')
-        return redirect(get_url('home'))
+        return redirect(get_url('rentport.home'))
     return render_template('end_relation.html', form=form, landlord=lt.landlord)
 #### /LANDLORD ####
 
@@ -403,7 +403,7 @@ def confirm_relation(tenant):
                         LandlordTenant.confirmed==False,
                         User.username==tenant).\
                 first_or_404()
-        if request.form.get('confirm', None):
+        if request.form.get('confirm', None) == 'True':
             lt.confirmed=True
             db.session.add(lt)
             db.session.commit()
