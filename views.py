@@ -168,7 +168,7 @@ def close_issue(ident):
                 Issue.id == ident).first()
     form=CloseIssueForm()
     if not issue:
-        flash('No issue with that id')
+        flash('No close-able issue with that id')
         return redirect(url_for('rentport.issues'))
     if form.validate_on_submit():
         reason=request.form['reason']
