@@ -157,9 +157,8 @@ def comment(ident):
 def close_issue(ident):
     '''close issue - only opener or landlord can
         params:     POST: <reason> reason (to close issue)
-                    GET/POST: <ident> absolute id
-        returns:    GET: Form to close issue
-                    POST: Redirect to main issues page
+                    POST: <ident> absolute id
+        returns:    POST: Redirect to main issues page
     '''
     #TODO Jsonify?
     issue=Issue.query.filter(or_(Issue.landlord_id==g.user.id,
