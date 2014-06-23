@@ -430,18 +430,14 @@ def authorize():
         return redirect(url_for('rentport.home'))
     oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
         redirect_uri=url_for('rentport.authorized', _external=True),
-        scope=app.config['STRIPE_OAUTH_CONFIG']['scope'])
+        scope=current_app.config['STRIPE_OAUTH_CONFIG']['scope'])
     auth_url, state=oauth.authorization_url(
             current_app.config['STRIPE_OAUTH_CONFIG']['authorize_url'])
     session['state']=state
     return redirect(auth_url)
 
 @rp.route('/oauth/authorized', methods=['GET'])
-@login_required
 def authorized():
-    if g.user.stripe:
-        flash('Have stripe info already')
-        return redirect(url_for('rentport.home'))
     oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
     token=oauth.fetch_token(
