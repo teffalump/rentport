@@ -7,6 +7,7 @@
 * postgresql (db)
 * python libraries
     + tornado (wsgi server)
+    * supervisord (process management)
     + stripe (payment)
     + redis (key-store)
     + sqlalchemy (sql modeling)
@@ -20,27 +21,26 @@
     + dwolla (payment)
 
 # Infrastructure
-* linode (hosting) - $20/month
+* linode (hosting) - $10/month
 * mailgun (email) - free-ish ( < 10k/month )
 * twilio (sms) - $1/month + $.0075/msg
 * easydns (dns) - $20/yr
+* ? (ssl) - $20/yr
 
 # Roadmap
-1. User system
-    + Using Flask-Security...already implemented
-        + Configure email through Flask-Security
-2. Issue tracking system
-    + Simple issue tracker - DONE
-3. Payment system
+1. User system - DONE
+2. Issue tracking system - DONE
+3. Payment system(s)
     + Stripe - NEEDS TESTING
     + Dwolla - TODO (optional)
-4. Notification system
-    + Mailgun for email - TODO
+    + Bitcoin - TODO (optional)
+4. Notification system(s)
+    + Mailgun for email - NEEDS TESTING
     + Twilio for sms - TODO (optional)
 5. Prettify
-    + Ajax-ify
-    + Good templates
-    + Works on Mobile, etc
+    + Good, robust templates - Almost there
+    + Add searching along issues and comments - TODO
+    + Ajax-ify - TODO
 
 # Security TODOs
     + Prevent CSRF by protecting forms - DEFAULT IN WTFORMS
@@ -78,8 +78,10 @@
     + Can:
         1. Comment on and close current issues
         2. Modify existing properties
-+ Notification levels
-    + Only rent and new issue - Only allowed for now
++ Notification events
+    + Rent payment
+    + New issue
+    + ... Any other?
 
 # Other thoughts
 + rental agreements? seems security issues are too big... at the moment
