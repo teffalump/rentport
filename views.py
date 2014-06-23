@@ -437,7 +437,11 @@ def authorize():
     return redirect(auth_url)
 
 @rp.route('/oauth/authorized', methods=['GET'])
+@login_required
 def authorized():
+    if g.user.stripe:
+        flash('Have stripe info already')
+        return redirect(url_for('rentport.home'))
     oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
     token=oauth.fetch_token(
