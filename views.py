@@ -587,7 +587,7 @@ def show_payment(pay_id):
     '''show extended payment info
         params:     GET: <pay_id> payment id
         returns:    GET: json-ed payment info'''
-    payment=g.user.payments().filter(Payment.id==pay_id).first()
+    payment=Payment.query.filter(Payment.id==pay_id).first()
     if not payment:
         flash('No payment with that id')
         return jsonify({'error': 'No payment with that id'})
@@ -646,34 +646,32 @@ def stripe_hook():
             i.status='Refunded'
         elif c['type']=='charge.failed':
             i.status='Denied'
-        else:
-            return ''
         db.session.add(i)
         db.session.commit()
     elif c['data']['object']=='dispute':
-        return ''
+        pass
     elif c['data']['object']=='customer':
-        return ''
+        pass
     elif c['data']['object']=='card':
-        return ''
+        pass
     elif c['data']['object']=='subscription':
-        return ''
+        pass
     elif c['data']['object']=='invoice':
-        return ''
+        pass
     elif c['data']['object']=='plan':
-        return ''
+        pass
     elif c['data']['object']=='transfer':
-        return ''
+        pass
     elif c['data']['object']=='discount':
-        return ''
+        pass
     elif c['data']['object']=='coupon':
-        return ''
+        pass
     elif c['data']['object']=='balance':
-        return ''
+        pass
     elif c['data']['object']=='account':
-        return ''
+        pass
     else:
-        return ''
+        pass
     return ''
 
 @rp.route('/hook/twilio')
