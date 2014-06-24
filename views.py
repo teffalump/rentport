@@ -193,12 +193,22 @@ def profile():
     tenants = g.user.current_tenants().all()
     return render_template('profile.html', tenants=tenants, form=resend_form)
 
-@rp.route('/profile/phone', methods=['GET', 'POST'])
+@rp.route('/profile/phone', methods=['POST'])
 @login_required
 def phone():
-    '''add phone'''
-    #TODO
-    return ''
+    '''add phone number
+        params:     POST: <phone> phone number
+        returns:    POST: redirect'''
+    #TODO Ajaxify?
+    #TODO Test valid #
+    form = AddPhoneNumber()
+    if form.validate_on_submit():
+        p = request.form['phone']
+        g.user.phone = p
+        db.session.add(g.user)
+        db.session.commit()
+        flash('Phone added')
+    return redirect(url_for('rentport.profile'))
 
 @rp.route('/profile/notify', methods=['GET', 'POST'])
 @login_required
