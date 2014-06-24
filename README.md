@@ -25,7 +25,7 @@
 * mailgun (email) - free-ish ( < 10k/month )
 * twilio (sms) - $1/month + $.0075/msg
 * easydns (dns) - $20/yr
-* ? (ssl) - $20/yr
+* ? (ssl) - $20/yr (?)
 
 # Roadmap
 1. User system - DONE
