@@ -30,7 +30,7 @@ class User(db.Model, UserMixin):
     active = db.Column(db.Boolean)
     paid_through = db.Column(db.DateTime, nullable=False, default=datetime.min)
     phone = db.Column(db.Text, unique=True)
-    phone_confirmed = db.Column(db.Text, default=False)
+    phone_confirmed = db.Column(db.Boolean, default=False)
 
     notify_confirmed = db.Column(db.Boolean, default=False)
     notify_method = db.Column(db.Enum('Email', 'Text', 'All', 'None', name='notification_methods'))
