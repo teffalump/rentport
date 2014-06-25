@@ -2,4 +2,4 @@
 *.un~
 *.swp
 config.py
-templates/
+old/
