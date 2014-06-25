@@ -15,11 +15,12 @@
     <ul class="list-group">
         <li class="list-group-item">username: {{g.user.username}}</li>
         <li class="list-group-item">email: {{g.user.email}}</li>
-        {% if g.user.phone %}<li class="list-group-item">phone:{{g.user.phone}}</li>{% endif %}
+        {% if g.user.phone %}<li class="list-group-item">phone: {{ '+'+'-'.join([g.user.phone[:-10], g.user.phone[-10:-7], g.user.phone[-7:-4], g.user.phone[-4:]])}}</li>{% endif %}
         <form action="{{ url_for('rentport.phone') }}" method="POST" role="form" class="form-inline">
           {{ phone_form.hidden_tag() }}
           {{ wtf.form_errors(phone_form, hiddens="only") }}
           {{ wtf.form_field(phone_form.phone) }}
+          {{ wtf.form_field(phone_form.country) }}
           {{ wtf.form_field(phone_form.submit) }}
       </form>
 
