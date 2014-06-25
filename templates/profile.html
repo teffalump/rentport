@@ -16,6 +16,13 @@
         <li class="list-group-item">username: {{g.user.username}}</li>
         <li class="list-group-item">email: {{g.user.email}}</li>
         {% if g.user.phone %}<li class="list-group-item">phone:{{g.user.phone}}</li>{% endif %}
+        <form action="{{ url_for('rentport.phone') }}" method="POST" role="form" class="form-inline">
+          {{ phone_form.hidden_tag() }}
+          {{ wtf.form_errors(phone_form, hiddens="only") }}
+          {{ wtf.form_field(phone_form.phone) }}
+          {{ wtf.form_field(phone_form.submit) }}
+      </form>
+
         <li class="list-group-item">joined: {{g.user.joined.strftime('%Y/%m/%d')}}</li>
         {% if g.user.current_landlord() %}
         <li class="list-group-item">landlord: {{g.user.current_landlord().username}} ... <a href="{{ url_for('rentport.end_relation') }}">End?</a></li>
@@ -28,9 +35,9 @@
         <li class="list-group-item">last ip: {{g.user.last_login_ip}}</li>
         <li class="list-group-item">Notify method: {{g.user.notify_method}}</li>
         <li class="list-group-item">Settings confirmed: {{g.user.notify_confirmed}} {% if not g.user.notify_confirmed %}<form action="{{ url_for('rentport.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">
-            {{ form.hidden_tag() }}
-          {{ wtf.form_errors(form, hiddens="only") }}
-          {{ wtf.form_field(form.resend) }}</form>{% endif %}</li>
+            {{ resend_form.hidden_tag() }}
+          {{ wtf.form_errors(resend_form, hiddens="only") }}
+          {{ wtf.form_field(resend_form.resend) }}</form>{% endif %}</li>
     </ul>
     </div>
 {% include "flash.html" %}
