@@ -190,8 +190,9 @@ def profile():
         returns:    GET: profile info
     '''
     resend_form = ResendNotifyForm()
+    phone_form = AddPhoneNumber()
     tenants = g.user.current_tenants().all()
-    return render_template('profile.html', tenants=tenants, form=resend_form)
+    return render_template('profile.html', tenants=tenants, resend_form=resend_form, phone_form=phone_form)
 
 @rp.route('/profile/phone', methods=['POST'])
 @login_required
@@ -209,6 +210,7 @@ def phone():
         db.session.add(g.user)
         db.session.commit()
         flash('Phone updated; Validation text sent!')
+    for error in form.phone.errors: flash(error, category='error')
     return redirect(url_for('rentport.profile'))
 
 @rp.route('/profile/notify', methods=['GET', 'POST'])
