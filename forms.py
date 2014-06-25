@@ -55,9 +55,8 @@ class ModifyPropertyForm(AddPropertyForm):
     submit=SubmitField('Modify Property')
 
 class AddPhoneNumber(Form):
-    phone=StringField('Phone #:', [DataRequired(),
-                                    Regexp(r'^\d+$', message="Only digits"),
-                                    Length(min=11, max=12)])
+    phone=StringField('Phone #:', [DataRequired(), Length(min=10)])
+    country=SelectField('Country', choices=[('1', 'US'), ('02', 'UK')])
     submit=SubmitField('Update number')
 
 class ChangeNotifyForm(Form):
