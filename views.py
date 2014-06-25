@@ -208,7 +208,7 @@ def phone():
         g.user.phone_confirmed=False
         db.session.add(g.user)
         db.session.commit()
-        flash('Phone added; Validate info sent!')
+        flash('Phone updated; Validation text sent!')
     return redirect(url_for('rentport.profile'))
 
 @rp.route('/profile/notify', methods=['GET', 'POST'])
