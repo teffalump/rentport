@@ -15,7 +15,7 @@
     <ul class="list-group">
         <li class="list-group-item">username: {{g.user.username}}</li>
         <li class="list-group-item">email: {{g.user.email}}</li>
-        {% if g.user.phone %}<li class="list-group-item">phone: {{ '+'+'-'.join([g.user.phone[:-10], g.user.phone[-10:-7], g.user.phone[-7:-4], g.user.phone[-4:]])}}</li>{% endif %}
+        {% if g.user.phone %}<li class="list-group-item">phone: {{ '+'+'-'.join([g.user.phone[:-10], g.user.phone[-10:-7], g.user.phone[-7:-4], g.user.phone[-4:]])}}{% if g.user.phone_confirmed %} <b class="glyphicon glyphicon-check"></b>{% else %} <b class="glyphicon glyphicon-unchecked"></b></li>{% endif %}{% endif %}
         <form action="{{ url_for('rentport.phone') }}" method="POST" role="form" class="form-inline">
           {{ phone_form.hidden_tag() }}
           {{ wtf.form_errors(phone_form, hiddens="only") }}
@@ -34,9 +34,9 @@
             </li>
         {% endif %}
         <li class="list-group-item">last ip: {{g.user.last_login_ip}}</li>
-        <li class="list-group-item">Notify method: {{g.user.notify_method}}</li>
-        <li class="list-group-item">Settings confirmed: {{g.user.notify_confirmed}} {% if not g.user.notify_confirmed %}<form action="{{ url_for('rentport.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">
-            {{ resend_form.hidden_tag() }}
+        <li class="list-group-item">Notify method: {{g.user.notify_method}} {% if g.user.notify_confirmed %}<b class="glyphicon glyphicon-check"></b>
+        {% else %}<b class="glyphicon glyphicon-unchecked"></b><form action="{{ url_for('rentport.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">
+        {{ resend_form.hidden_tag() }}
           {{ wtf.form_errors(resend_form, hiddens="only") }}
           {{ wtf.form_field(resend_form.resend) }}</form>{% endif %}</li>
     </ul>
