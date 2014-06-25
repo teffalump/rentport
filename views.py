@@ -198,19 +198,26 @@ def profile():
 @login_required
 def phone():
     '''add phone number
-        params:     POST: <phone> phone number
+        params:     POST: <phone> phone number w/o country code
+                    POST: <country> country code
         returns:    POST: redirect'''
     #TODO Ajaxify?
     #TODO Test valid #
     form = AddPhoneNumber()
     if form.validate_on_submit():
-        p = request.form['phone']
-        g.user.phone = p
+        p = ''.join(filter(lambda x: x.isdigit(), request.form['phone']))
+        if len(p) != 10:
+            flash('Invalid number: ' + p, category='error')
+            return redirect(url_for('rentport.profile'))
+        full_p = ''.join([request.form['country'], p])
+        g.user.phone = full_p
         g.user.phone_confirmed=False
         db.session.add(g.user)
         db.session.commit()
         flash('Phone updated; Validation text sent!')
+        return redirect(url_for('rentport.profile'))
     for error in form.phone.errors: flash(error, category='error')
+    for error in form.country.errors: flash(error, category='error')
     return redirect(url_for('rentport.profile'))
 
 @rp.route('/profile/notify', methods=['GET', 'POST'])
