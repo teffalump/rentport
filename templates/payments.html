@@ -1,0 +1,20 @@
+{% extends "bootstrap/base.html" %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page = "rentport.payments"|default('rentport.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h1>Payments</h1>
+        {% for payment in payments.items %}
+        <p>
+            {{ payment }}
+        </p>
+        {% endfor %}
+    {% include "flash.html" %}
+</div>
+{% endblock %}

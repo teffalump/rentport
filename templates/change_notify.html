@@ -1,0 +1,23 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page=".notify"|default('.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+<h3>Change notifications</h3>
+<form action="{{ url_for('rentport.notify') }}" method="POST" name="change_notify_form" role="form">
+  {{ form.hidden_tag() }}
+  {{ wtf.form_errors(form, hiddens="only") }}
+  {{ wtf.form_field(form.method) }}
+  {{ wtf.form_field(form.level) }}
+  {{ wtf.form_field(form.submit) }}
+</form>
+{% include "flash.html" %}
+</div>
+{% endblock %}

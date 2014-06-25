@@ -1,0 +1,3 @@
+{% macro render_link(endpoint, text, active='.home') -%}
+    <li{% if active == endpoint %} class="active"{% endif %}><a href="{{ url_for(endpoint)|e }}">{{ text|e }}</a></li>
+{%- endmacro %}

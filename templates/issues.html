@@ -1,0 +1,45 @@
+{% extends "bootstrap/base.html" %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page = "rentport.issues"|default('rentport.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3>Issues</h3></div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Creator</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+        {% for issue in issues.items %}
+                <tr>
+                    <th>@{{ issue.creator.username}}</th>
+                    <th>{{ issue.severity }}</th>
+                    <th>{{ issue.status}}</th>
+                    <th>{{ issue.opened.strftime('%Y/%m/%d') }}</th>
+                    <th><a class="btn btn-default btn-sm" href="{{ url_for('rentport.show_issue', ident=issue.id) }}">show <span class="badge">{{ issue.num_of_comments() }}</span></a> {% if issue.status != 'Closed' %}{% if issue.landlord_id == g.user.id or issue.creator_id == g.user.id %}<a class="btn btn-default btn-sm" href="{{ url_for('rentport.close_issue', ident=issue.id)}}">close</a>{% endif %}{% endif %}</th>
+                </tr>
+        {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <ul class="pagination">
+        {% if issues.has_prev %}<li class="next">{% else %}<li class="next disabled">{% endif %}
+        <a href="{{ url_for('rentport.issues', page = issues.prev_num, order=order, sort=sort) }}">&larr; Next</a>
+        {% if issues.has_next %}<li class="previous">{% else %}<li class="previous disabled">{% endif %}
+        <a href="{{ url_for('rentport.issues', page = issues.next_num, order=order, sort=sort) }}">Prev &rarr;</a>
+    </ul>
+</div>
+{% include "flash.html" %}
+{% endblock %}

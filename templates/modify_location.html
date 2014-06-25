@@ -1,0 +1,21 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page = "rentport.properties"|default('rentport.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<h1>Modify location</h1>
+<form action="{{ url_for('rentport.modify_property', prop_id=location.id) }}" method="POST" name="modify_property_form" role="form">
+  {{ form.hidden_tag() }}
+  {{ wtf.form_errors(form, hiddens="only") }}
+  {{ wtf.form_field(form.location) }}
+  {{ wtf.form_field(form.description) }}
+  {{ wtf.form_field(form.submit) }}
+</form>
+{% include "flash.html" %}
+{% endblock %}

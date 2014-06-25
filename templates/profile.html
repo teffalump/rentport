@@ -1,0 +1,38 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page = "rentport.profile"|default('rentport.home') -%}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading"><h4>Profile</h4></div>
+    <ul class="list-group">
+        <li class="list-group-item">username: {{g.user.username}}</li>
+        <li class="list-group-item">email: {{g.user.email}}</li>
+        {% if g.user.phone %}<li class="list-group-item">phone:{{g.user.phone}}</li>{% endif %}
+        <li class="list-group-item">joined: {{g.user.joined.strftime('%Y/%m/%d')}}</li>
+        {% if g.user.current_landlord() %}
+        <li class="list-group-item">landlord: {{g.user.current_landlord().username}} ... <a href="{{ url_for('rentport.end_relation') }}">End?</a></li>
+        {% endif %}
+        {% if tenants %}
+            <li class="list-group-item">tenants:
+                    {{ tenants|map(attribute='username')|join(', ') }}
+            </li>
+        {% endif %}
+        <li class="list-group-item">last ip: {{g.user.last_login_ip}}</li>
+        <li class="list-group-item">Notify method: {{g.user.notify_method}}</li>
+        <li class="list-group-item">Settings confirmed: {{g.user.notify_confirmed}} {% if not g.user.notify_confirmed %}<form action="{{ url_for('rentport.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">
+            {{ form.hidden_tag() }}
+          {{ wtf.form_errors(form, hiddens="only") }}
+          {{ wtf.form_field(form.resend) }}</form>{% endif %}</li>
+    </ul>
+    </div>
+{% include "flash.html" %}
+</div>
+{% endblock %}

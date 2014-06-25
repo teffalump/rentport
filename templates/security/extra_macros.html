@@ -1,0 +1,28 @@
+{% macro form_field_no_errors(field,
+                    form_type="basic",
+                    horizontal_columns=('lg', 2, 10),
+                    button_map={}) %}
+      {%- if form_type == "inline" %}
+        {{field.label(class="sr-only")|safe}}
+        {{field(class="form-control", placeholder=field.description, **kwargs)|safe}}
+      {% elif form_type == "horizontal" %}
+        {{field.label(class="control-label " + (
+          " col-%s-%s" % horizontal_columns[0:2]
+        ))|safe}}
+        <div class=" col-{{horizontal_columns[0]}}-{{horizontal_columns[2]}}">
+          {{field(class="form-control", **kwargs)|safe}}
+        </div>
+        {%- if field.description -%}
+          {% call _hz_form_wrap(horizontal_columns, form_type) %}
+            <p class="help-block">{{field.description|safe}}</p>
+          {% endcall %}
+        {%- endif %}
+      {%- else -%}
+        {{field.label(class="control-label")|safe}}
+        {{field(class="form-control", **kwargs)|safe}}
+
+        {%- if field.description -%}
+          <p class="help-block">{{field.description|safe}}</p>
+        {%- endif %}
+      {%- endif %}
+{% endmacro %}

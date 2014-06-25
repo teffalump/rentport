@@ -1,0 +1,24 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page="rentport.pay_rent"|default('rentport.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<h1>Pay Landlord</h1>
+<form action="{{ url_for('rentport.pay_rent', amount=amount) }}" method="POST" name="pay_landlord_form" role="form">
+  <script
+    src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+    data-key="{{ landlord.stripe.pub_key }}"
+    data-image=""
+    data-name="{{ landlord.username }}"
+    data-description="pay rent"
+    data-amount="{{ amount*100 }}">
+  </script>
+</form>
+{% include "flash.html" %}
+{% endblock %}
