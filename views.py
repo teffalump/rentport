@@ -229,6 +229,11 @@ def notify():
                     POST:   redirect
     '''
     form = ChangeNotifyForm()
+
+    # If user has confirmed phone, add that notify choice
+    if g.user.phone_confirmed:
+        form.method.choices.extend([('Text', 'Text'), ('Both', 'Both')])
+
     if form.validate_on_submit():
         if request.form['method'] != g.user.notify_method:
             g.user.notify_method = request.form['method']
@@ -245,6 +250,7 @@ def notify():
         else:
             flash('Nothing changed')
         return redirect(url_for('rentport.profile'))
+
     return render_template('change_notify.html', form=form)
 
 @rp.route('/profile/notify/resend', methods=['POST'])

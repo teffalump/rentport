@@ -61,8 +61,6 @@ class AddPhoneNumber(Form):
 
 class ChangeNotifyForm(Form):
     method=SelectField('Method', choices=[('Email', 'Email'),
-                                            ('Text', 'Text'),
-                                            ('All', 'All'),
                                             ('None', 'None')])
     submit=SubmitField('Confirm')
 
