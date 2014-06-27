@@ -1,7 +1,7 @@
 import os
 from flask import Flask, g
 from flask.ext.security import SQLAlchemyUserDatastore, current_user
-from rentport.config import DebugConfig
+from .config import DebugConfig
 
 def before_request():
     g.user = current_user
@@ -15,16 +15,16 @@ def create_app(config=None):
 
     with app.app_context():
 
-        from rentport.extensions import mail, db, security, bootstrap, kvsession, limiter
+        from .extensions import mail, db, security, bootstrap, kvsession, limiter
         mail.init_app(app)
         db.init_app(app)
         bootstrap.init_app(app)
         limiter.init_app(app)
 
-        from rentport.model import User, Role
+        from .model import User, Role
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
-        from rentport.forms import ExtendedRegisterForm, ExtendedLoginForm
+        from .forms import ExtendedRegisterForm, ExtendedLoginForm
         security.init_app(app, user_datastore,
                 register_form=ExtendedRegisterForm,
                 login_form=ExtendedLoginForm,
@@ -39,7 +39,7 @@ def create_app(config=None):
         #bind before request
         app.before_request(before_request)
 
-        from rentport.views import rp
+        from .views import rp
         app.register_blueprint(rp)
 
     os.environ['DEBUG']="1"

@@ -1,5 +1,5 @@
+from .extensions import db
 from datetime import datetime, timedelta
-from rentport.extensions import db
 from flask.ext.security import UserMixin, RoleMixin
 from flask.ext.sqlalchemy import BaseQuery
 from sqlalchemy.dialects.postgresql import INET

@@ -1,13 +1,13 @@
-from rentport.extensions import db, mail
-from rentport.forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
+from .extensions import db, mail
+from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm)
+from .model import (Issue, Property, User, LandlordTenant,
+                            Comment, Fee, Payment, StripeUserInfo)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
-from rentport.model import (Issue, Property, User, LandlordTenant,
-                            Comment, Fee, Payment, StripeUserInfo)
 from flask import (Blueprint, render_template, request, g, redirect, url_for,
                     abort, flash, session, json, jsonify, current_app)
 from itsdangerous import URLSafeTimedSerializer
