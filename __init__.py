@@ -3,6 +3,7 @@ from flask import Flask, g
 from flask.ext.security import SQLAlchemyUserDatastore, current_user
 from .config import DebugConfig
 
+
 def before_request():
     g.user = current_user
 
@@ -14,12 +15,17 @@ def create_app(config=None):
     app.config.from_envvar('RENTPORT_CONFIG', silent=True)
 
     with app.app_context():
+        import logging
+        logging.basicConfig(filename='flask.log', level=10)
 
         from .extensions import mail, db, security, bootstrap, kvsession, limiter
         mail.init_app(app)
         db.init_app(app)
         bootstrap.init_app(app)
         limiter.init_app(app)
+
+        def bffr():
+            db.create_all()
 
         from .model import User, Role
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
@@ -31,12 +37,13 @@ def create_app(config=None):
                 confirm_register_form=ExtendedRegisterForm)
 
 
-        #from redis import StrictRedis
-        #from simplekv.memory.redisstore import RedisStore
-        #kv_store = RedisStore(redis.StrictRedis())
-        #kvsession.init_app(app, kv_store)
+        from redis import StrictRedis
+        from simplekv.memory.redisstore import RedisStore
+        kv_store = RedisStore(StrictRedis())
+        kvsession.init_app(app, kv_store)
 
-        #bind before request
+        #bind before request(s)
+        app.before_first_request(bffr)
         app.before_request(before_request)
 
         from .views import rp
