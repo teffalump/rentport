@@ -35,7 +35,7 @@ class MyTests(TestCase):
         self.assertEqual(u.username,'test')
         self.assertEqual(u.notify_confirmed,False)
 
-    def test_property(self):
+    def test_add_property(self):
         l= User(email='l@example.net', password=encrypt_password('password'), username='l',
                 paid_through=datetime.datetime.utcnow() + datetime.timedelta(weeks=52),
                 confirmed_at=datetime.datetime.utcnow(), active=True)
@@ -54,6 +54,16 @@ class MyTests(TestCase):
         self.assertEqual(l.properties.first().location, 'place_1')
         self.assertEqual(l.properties.first().description, 'blar')
 
+    def test_modify_property(self):
+        l= User(email='l@example.net', password=encrypt_password('password'), username='l',
+                paid_through=datetime.datetime.utcnow() + datetime.timedelta(weeks=52),
+                confirmed_at=datetime.datetime.utcnow(), active=True)
+        db.session.add(l)
+        db.session.commit()
+
+        self.login('l', 'password')
+        r = self.client.post('/landlord/property/add', data=dict(
+            location='place_1', description='blar'), follow_redirects=True)
         r = self.client.post('/landlord/property/1/modify', data=dict(
             location='place_new1', description='blar_new'), follow_redirects=True)
         self.assertTemplateUsed('properties.html')
