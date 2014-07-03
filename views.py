@@ -16,8 +16,6 @@ from werkzeug.security import gen_salt
 from sys import exc_info as er
 from datetime import datetime as dt
 import stripe
-import requests
-import sys
 
 #### Blueprint ####
 
