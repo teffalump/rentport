@@ -16,6 +16,8 @@ from werkzeug.security import gen_salt
 from sys import exc_info as er
 from datetime import datetime as dt
 import stripe
+import requests
+import sys
 
 #### Blueprint ####
 
@@ -469,10 +471,19 @@ def authorized():
         return redirect(url_for('rentport.home'))
     oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
                     state=session['state'])
-    token=oauth.fetch_token(
-                    current_app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
-                    current_app.config['STRIPE_CONSUMER_SECRET'],
-                    authorization_response=request.url)
+    try:
+        token=oauth.fetch_token(
+                        token_url=current_app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
+                        client_secret=current_app.config['STRIPE_CONSUMER_SECRET'],
+                        authorization_response=request.url)
+
+    except InvalidClientError:
+        flash('Invalid authentication')
+        return redirect(url_for('rentport.home'))
+    except:
+        flash('Invalid flow error')
+        return redirect(url_for('rentport.home'))
+
     s = StripeUserInfo(access_token=token['access_token'],
                        refresh_token=token['refresh_token'],
                        user_acct=token['stripe_user_id'],
@@ -715,12 +726,12 @@ def dump():
 @rp.route('/session/add')
 @login_required
 def add():
-    session['add']=gen_salt(1000)
-    return redirect(url_for('.dump'))
+    session['add']+=gen_salt(1000)
+    return redirect(url_for('rentport.dump'))
 
 @rp.route('/session/remove')
 @login_required
 def remove():
     session['add']=None
-    return redirect(url_for('.dump'))
+    return redirect(url_for('rentport.dump'))
 #### /SESSION TESTING ####
