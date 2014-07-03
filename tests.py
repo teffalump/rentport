@@ -266,7 +266,7 @@ class MyTests(TestCase):
         self.assertEqual(t.all_issues().first().status, 'Closed')
         self.assertEqual(t.all_issues().first().closed_because, 'needed to')
 
-    def test_oauth_authorize(self):
+    def oauth_authorize(self):
         l= User(email='l@example.net', password=encrypt_password('password'), username='l',
                 paid_through=datetime.datetime.utcnow() + datetime.timedelta(weeks=52),
                 confirmed_at=datetime.datetime.utcnow(), active=True)
@@ -274,8 +274,8 @@ class MyTests(TestCase):
         db.session.commit()
 
         self.login('l', 'password')
-        r = self.client.get('/oauth/authorize')
-        print(r.headers['Location'])
+        r = self.client.get('/oauth/authorize', follow_redirects=True)
+        print(str(r.data))
 
     def test_add_phone(self):
         l= User(email='l@example.net', password=encrypt_password('password'), username='l',
@@ -307,7 +307,6 @@ class MyTests(TestCase):
         self.assertTemplateUsed('profile.html')
         self.assertEqual(l.phone, '11111111111')
         self.assertEqual(l.phone_confirmed, False)
-
 
     def test_send_payment(self):
         pass
