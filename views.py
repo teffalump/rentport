@@ -467,30 +467,29 @@ def authorized():
     if g.user.stripe:
         flash('Have stripe info already')
         return redirect(url_for('rentport.home'))
-    oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
-                    state=session['state'])
     try:
+        oauth=OAuth2Session(current_app.config['STRIPE_CONSUMER_KEY'],
+                        state=session['state'])
         token=oauth.fetch_token(
                         token_url=current_app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
                         client_secret=current_app.config['STRIPE_CONSUMER_SECRET'],
                         authorization_response=request.url)
-
+        s = StripeUserInfo(access_token=token['access_token'],
+                           refresh_token=token['refresh_token'],
+                           user_acct=token['stripe_user_id'],
+                           pub_key=token['stripe_publishable_key'])
+        g.user.stripe=s
+        db.session.add(s)
+        db.session.commit()
+        flash('Authorized!')
     except InvalidClientError:
         flash('Invalid authentication')
-        return redirect(url_for('rentport.home'))
+    except MismatchingStateError:
+        flash('CSRF mismatch')
     except:
-        flash('Invalid flow error')
+        flash('OAuth2 flow error')
+    finally:
         return redirect(url_for('rentport.home'))
-
-    s = StripeUserInfo(access_token=token['access_token'],
-                       refresh_token=token['refresh_token'],
-                       user_acct=token['stripe_user_id'],
-                       pub_key=token['stripe_publishable_key'])
-    g.user.stripe=s
-    db.session.add(s)
-    db.session.commit()
-    flash('Authorized!')
-    return redirect(url_for('rentport.home'))
 #### /OAUTH ####
 
 #### PAYMENTS ####
@@ -525,7 +524,7 @@ def pay_rent(amount):
                       amount=cents,
                       currency="usd",
                       card=token,
-                      description=':'.join([g.user.id, g.user.username]))
+                      description=': '.join(['From::', g.user.id, g.user.username]))
                 p = Payment(to_user_id=landlord.id, pay_id=charge.id)
                 g.user.sent_payments.append(p)
                 db.session.add(p)
@@ -536,16 +535,14 @@ def pay_rent(amount):
                         format(g.user.username, '$' + amount)
                 mail.send(msg)
                 flash('Landlord notified')
-                return redirect(url_for('rentport.payments'))
             except stripe.error.CardError:
                 flash('Card error')
-                return redirect(url_for('rentport.pay_rent'))
             except stripe.error.AuthenticationError:
                 flash('Authentication error')
-                return redirect(url_for('rentport.pay_rent'))
             except Exception:
-                flash(str(er()))
-                return redirect(url_for('rentport.pay_rent'))
+                flash('Other payment error')
+            finally:
+                return redirect(url_for('rentport.payments'))
         else:
             return render_template('pay_landlord.html', landlord=landlord,
                                                         amount=amount)
@@ -574,16 +571,15 @@ def pay_fee():
             db.session.add(g.user)
             db.session.commit()
             flash('Payment processed')
-            return redirect(url_for('rentport.fees'))
         except stripe.error.CardError:
             flash('Card error')
-            return redirect(url_for('rentport.pay_fee'))
         except stripe.error.AuthenticationError:
             flash('Authentication error')
-            return redirect(url_for('rentport.pay_fee'))
         except Exception:
-            flash(str(er()))
-            return redirect(url_for('rentport.pay_fee'))
+            flash('Other payment error')
+        finally:
+            return redirect(url_for('rentport.fees'))
+
     else:
         return render_template('pay_service_fee.html',
                                 amount=current_app.config['FEE_AMOUNT'],
@@ -661,52 +657,55 @@ def show_fee(pay_id):
 @rp.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
     #TODO Add more hooks
-    event=json.loads(request.data)
-    c = stripe.Event.retrieve(event['id'],
-            api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
-    acct=c.get('user_id', None)
-    if c['type']=='account.application.deauthorized':
-        t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
-        if not t: return ''
-        db.session.delete(t)
-        db.session.commit()
-    elif c['data']['object']=='charge':
-        i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
-                or Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
-        if not i: return ''
-        if c['type']=='charge.succeeded':
-            i.status='Confirmed'
-        elif c['type']=='charge.refunded':
-            i.status='Refunded'
-        elif c['type']=='charge.failed':
-            i.status='Denied'
-        db.session.add(i)
-        db.session.commit()
-    elif c['data']['object']=='dispute':
-        pass
-    elif c['data']['object']=='customer':
-        pass
-    elif c['data']['object']=='card':
-        pass
-    elif c['data']['object']=='subscription':
-        pass
-    elif c['data']['object']=='invoice':
-        pass
-    elif c['data']['object']=='plan':
-        pass
-    elif c['data']['object']=='transfer':
-        pass
-    elif c['data']['object']=='discount':
-        pass
-    elif c['data']['object']=='coupon':
-        pass
-    elif c['data']['object']=='balance':
-        pass
-    elif c['data']['object']=='account':
-        pass
-    else:
-        pass
-    return ''
+    try:
+        event=json.loads(request.data)
+        c = stripe.Event.retrieve(event['id'],
+                api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
+        acct=c.get('user_id', None)
+        if c['type']=='account.application.deauthorized':
+            t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
+            if not t: return ''
+            db.session.delete(t)
+            db.session.commit()
+        elif c['data']['object']=='charge':
+            i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
+                    or Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
+            if not i: return ''
+            if c['type']=='charge.succeeded':
+                i.status='Confirmed'
+            elif c['type']=='charge.refunded':
+                i.status='Refunded'
+            elif c['type']=='charge.failed':
+                i.status='Denied'
+            db.session.add(i)
+            db.session.commit()
+        elif c['data']['object']=='dispute':
+            pass
+        elif c['data']['object']=='customer':
+            pass
+        elif c['data']['object']=='card':
+            pass
+        elif c['data']['object']=='subscription':
+            pass
+        elif c['data']['object']=='invoice':
+            pass
+        elif c['data']['object']=='plan':
+            pass
+        elif c['data']['object']=='transfer':
+            pass
+        elif c['data']['object']=='discount':
+            pass
+        elif c['data']['object']=='coupon':
+            pass
+        elif c['data']['object']=='balance':
+            pass
+        elif c['data']['object']=='account':
+            pass
+        else:
+            pass
+        return ''
+    except:
+        return ''
 
 @rp.route('/hook/twilio')
 def twilio_hook():
