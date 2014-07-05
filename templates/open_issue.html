@@ -15,6 +15,7 @@
       {{ form.hidden_tag() }}
       {{ wtf.form_errors(form, hiddens="only") }}
       {{ wtf.form_field(form.description) }}
+      {{ wtf.form_field(form.type) }}
       {{ wtf.form_field(form.severity) }}
       {{ wtf.form_field(form.submit) }}
     </form>

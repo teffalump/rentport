@@ -232,6 +232,7 @@ class Issue(db.Model):
     landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     description = db.Column(db.Text, nullable=False)
+    area = db.Column(db.Enum('Plumbing', 'Electrical', 'Heating/Air Conditioning', 'Cosmetic', 'Other', name="issue_area"), nullable=False)
     severity = db.Column(db.Enum('Future', 'Low', 'Medium', 'Critical', name='issue_severity'), nullable=False)
     status = db.Column(db.Enum('Open', 'Closed', name='issue_status'), nullable=False, default='Open')
     opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -246,7 +247,7 @@ class Issue(db.Model):
         return self.comments.count()
 
     def __repr__(self):
-        return '<Issue %r %r >' % (self.status, self.severity)
+        return '<Issue %r %r %r >' % (self.status, self.severity, self.area)
 #### /MODELS ####
 
 #### LISTENERS ####

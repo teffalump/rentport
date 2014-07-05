@@ -114,6 +114,7 @@ def open_issue():
         i=g.user.open_issue()
         i.description=request.form['description']
         i.severity=request.form['severity']
+        i.area=request.form['type']
         db.session.add(i)
         db.session.commit()
         flash('Issue opened')
@@ -428,7 +429,7 @@ def confirm_relation(tenant):
                         LandlordTenant.confirmed==False,
                         User.username==tenant).\
                 first_or_404()
-        if request.form.get('confirm', None) == 'True':
+        if request.form.get('confirm', None):
             lt.confirmed=True
             db.session.add(lt)
             db.session.commit()

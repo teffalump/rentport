@@ -19,6 +19,11 @@ class OpenIssueForm(Form):
                                                 ('Medium', 'Medium'),
                                                 ('Low', 'Low'),
                                                 ('Future', 'Future')])
+    type=SelectField('Type', choices=[('Plumbing', 'Plumbing'),
+                                        ('Electrical', 'Electrical'),
+                                        ('Heating/Air Conditioning', 'Heating/Air Conditioning'),
+                                        ('Cosmetic', 'Cosmetic'),
+                                        ('Other', 'Other')])
     description=TextAreaField('Description', [DataRequired()])
     submit=SubmitField('Open')
 

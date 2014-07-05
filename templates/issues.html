@@ -16,6 +16,7 @@
                 <tr>
                     <th>Creator</th>
                     <th>Severity</th>
+                    <th>Type</th>
                     <th>Status</th>
                     <th>Date</th>
                     <th>Actions</th>
@@ -26,6 +27,7 @@
                 <tr>
                     <th>@{{ issue.creator.username}}</th>
                     <th>{{ issue.severity }}</th>
+                    <th>{{ issue.area}}</th>
                     <th>{{ issue.status}}</th>
                     <th>{{ issue.opened.strftime('%Y/%m/%d') }}</th>
                     <th><a class="btn btn-default btn-sm" href="{{ url_for('rentport.show_issue', ident=issue.id) }}">show <span class="badge">{{ issue.num_of_comments() }}</span></a> {% if issue.status != 'Closed' %}{% if issue.landlord_id == g.user.id or issue.creator_id == g.user.id %}<a class="btn btn-default btn-sm" href="{{ url_for('rentport.close_issue', ident=issue.id)}}">close</a>{% endif %}{% endif %}</th>
