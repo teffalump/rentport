@@ -98,7 +98,7 @@ class MyTests(TestCase):
         self.logout()
 
         self.login('l', 'password')
-        k = self.client.post('/tenant/t/confirm', data=dict(confirm='False'),
+        k = self.client.post('/tenant/t/confirm', data=dict(disallow='True'),
                 follow_redirects=True)
 
         self.assertTemplateUsed('home.html')
@@ -174,7 +174,7 @@ class MyTests(TestCase):
 
         self.login('t', 'password')
         r = self.client.post('/issues/open', data=dict(severity='Critical',
-                        description='blar'), follow_redirects=True)
+                        description='blar', type="Plumbing"), follow_redirects=True)
 
         self.assertTemplateUsed('issues.html')
         self.assertTrue(t.current_location_issues().all())
@@ -211,7 +211,7 @@ class MyTests(TestCase):
 
         self.login('t', 'password')
         r = self.client.post('/issues/open', data=dict(severity='Critical',
-                        description='blar'), follow_redirects=True)
+                        description='blar', type="Plumbing"), follow_redirects=True)
 
         k = self.client.post('/issues/1/comment', data=dict(
                 comment="this is a comment"), follow_redirects=True)
@@ -249,7 +249,7 @@ class MyTests(TestCase):
 
         self.login('t', 'password')
         r = self.client.post('/issues/open', data=dict(severity='Critical',
-                        description='blar'), follow_redirects=True)
+                        description='blar', type="Plumbing"), follow_redirects=True)
         self.logout()
 
         self.login('m', 'password')
