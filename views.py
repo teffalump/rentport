@@ -631,9 +631,15 @@ def show_payment(pay_id):
     if not payment:
         flash('No payment with that id')
         return jsonify({'error': 'No payment with that id'})
-    p = stripe.Charge.retrieve(payment.pay_id,
-                    api_key=payment.from_user.stripe.access_token).to_dict()
-    return jsonify({k:v for (k,v) in p.items() if k in \
+    try:
+        p = stripe.Charge.retrieve(payment.pay_id,
+                #api_key=payment.from_user.stripe.access_token)
+                api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
+        m = p.to_dict()
+    except Exception as inst:
+        return jsonify({'error': 'Error retrieving payment', e: inst, t: type(inst)})
+
+    return jsonify({k:v for (k,v) in m.items() if k in \
             ['amount', 'currency', 'paid', 'refunded', 'description']})
 
 @rp.route('/fees', methods=['GET'])
