@@ -528,7 +528,7 @@ def pay_rent(amount):
             token = request.form['stripeToken']
             try:
                 charge = stripe.Charge.create(
-                      api_key=landlord.stripe.access_token,
+                      api_key=lt.landlord.stripe.access_token,
                       amount=cents,
                       currency="usd",
                       card=token,
