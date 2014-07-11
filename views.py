@@ -552,10 +552,10 @@ def pay_rent(amount):
             finally:
                 return redirect(url_for('rentport.payments'))
         else:
-            return render_template('pay_landlord.html', landlord=landlord,
+            return render_template('pay_landlord.html', landlord=lt.landlord,
                                                         amount=amount)
     else:
-        return render_template('get_pay_amount.html', landlord=landlord, user=g.user)
+        return render_template('get_pay_amount.html', landlord=lt.landlord, user=g.user)
 
 # RISK
 @rp.route('/pay/fee', methods=['POST', 'GET'])
