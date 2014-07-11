@@ -139,10 +139,17 @@ def comment(ident):
     form = CommentForm()
     issue=g.user.all_issues().\
             filter(Issue.status=='Open',Issue.id==ident).first()
-    if not g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
-        flash('Need to be confirmed by landlord!')
     if not issue:
         flash('No issue with that id')
+        return redirect(url_for('rentport.issues'))
+    if g.user.id == issue.landlord_id:
+        #Is landlord? Ok
+        pass
+    else:
+        if not getattr(g.user.landlords.filter(LandlordTenant.current==True).first(),'confirmed', None):
+            #Must be confirmed
+            flash('Need to be confirmed by landlord!')
+            return redirect(url_for('rentport.profile'))
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
