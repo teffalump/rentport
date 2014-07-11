@@ -637,7 +637,7 @@ def show_payment(pay_id):
                 api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
         m = p.to_dict()
     except Exception as inst:
-        return jsonify({'error': 'Error retrieving payment', e: inst, t: type(inst)})
+        return jsonify({'error': 'Error retrieving payment', 'e': inst, 't': type(inst)})
 
     return jsonify({k:v for (k,v) in m.items() if k in \
             ['amount', 'currency', 'paid', 'refunded', 'description']})
