@@ -15,7 +15,7 @@
     + flask (web framework)
         + limiter (limit endpoint calls)
         + security (user management, security, email, etc)
-        + kvsession (server-side sessions) (broken!)
+        + kvsession (server-side sessions)
         + sqlalchemy (sql)
     + twilio (text)
     + dwolla (payment)
@@ -25,7 +25,7 @@
 * mailgun (email) - free-ish ( < 10k/month )
 * twilio (sms) - $1/month + $.0075/msg
 * easydns (dns) - $20/yr
-* ? (ssl) - $20/yr (?)
+* namecheap (ssl) - $10/yr
 
 # Roadmap
 1. User system - DONE
