@@ -540,7 +540,7 @@ def pay_rent(amount):
                 flash('Payment processed')
                 msg = Message('Rent payment', recipients=[lt.landlord.email])
                 msg.body = 'Rent from {0}: amt: {1}'.\
-                        format(g.user.username, '$' + amount)
+                        format(g.user.username, '$' + str(amount))
                 mail.send(msg)
                 flash('Landlord notified')
             except stripe.error.CardError:
