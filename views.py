@@ -635,14 +635,10 @@ def show_payment(pay_id):
         p = stripe.Charge.retrieve(payment.pay_id,
                 api_key=payment.to_user.stripe.access_token)
         if not p:
-            return jsonify({'error': 'No such charge'})
+            return jsonify({'error': 'No payment with that charge id'})
         m = p.to_dict()
     except Exception as inst:
-        flash(inst)
-        flash(inst.args)
-        flash(type(inst))
-        return redirect(url_for('rentport.home'))
-        #return jsonify({'error': 'Error retrieving payment'})
+        return jsonify({'error': 'Error retrieving payment'})
 
     return jsonify({k:v for (k,v) in m.items() if k in \
             ['amount', 'currency', 'paid', 'refunded', 'description']})
