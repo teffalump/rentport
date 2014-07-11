@@ -633,7 +633,7 @@ def show_payment(pay_id):
         return jsonify({'error': 'No payment with that id'})
     try:
         p = stripe.Charge.retrieve(payment.pay_id,
-                api_key=payment.from_user.stripe.access_token)
+                api_key=payment.to_user.stripe.access_token)
         if not p:
             return jsonify({'error': 'No such charge'})
         m = p.to_dict()
