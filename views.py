@@ -629,7 +629,6 @@ def show_payment(pay_id):
         returns:    GET: json-ed payment info'''
     payment=Payment.query.filter(Payment.id==pay_id).first()
     if not payment:
-        flash('No payment with that id')
         return jsonify({'error': 'No payment with that id'})
     try:
         p = stripe.Charge.retrieve(payment.pay_id,
