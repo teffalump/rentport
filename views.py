@@ -641,7 +641,7 @@ def show_payment(pay_id):
         flash(inst)
         flash(inst.args)
         flash(type(inst))
-        return redirect('rentport.home')
+        return redirect(url_for('rentport.home'))
         #return jsonify({'error': 'Error retrieving payment'})
 
     return jsonify({k:v for (k,v) in m.items() if k in \
