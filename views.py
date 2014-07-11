@@ -638,7 +638,11 @@ def show_payment(pay_id):
             return jsonify({'error': 'No such charge'})
         m = p.to_dict()
     except Exception as inst:
-        return jsonify({'error': 'Error retrieving payment'})
+        flash(inst)
+        flash(inst.args)
+        flash(type(inst))
+        return redirect('rentport.home')
+        #return jsonify({'error': 'Error retrieving payment'})
 
     return jsonify({k:v for (k,v) in m.items() if k in \
             ['amount', 'currency', 'paid', 'refunded', 'description']})
