@@ -547,7 +547,9 @@ def pay_rent(amount):
                 flash('Card error')
             except stripe.error.AuthenticationError:
                 flash('Authentication error')
-            except Exception:
+            except Exception as inst:
+                flash(type(inst))
+                flash(inst)
                 flash('Other payment error')
             finally:
                 return redirect(url_for('rentport.payments'))
