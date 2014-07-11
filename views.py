@@ -532,7 +532,7 @@ def pay_rent(amount):
                       amount=cents,
                       currency="usd",
                       card=token,
-                      description=': '.join(['From::', g.user.id, g.user.username]))
+                      description=': '.join(['From::', str(g.user.id), g.user.username]))
                 p = Payment(to_user_id=lt.landlord.id, pay_id=charge.id)
                 g.user.sent_payments.append(p)
                 db.session.add(p)
