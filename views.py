@@ -533,12 +533,12 @@ def pay_rent(amount):
                       currency="usd",
                       card=token,
                       description=': '.join(['From::', g.user.id, g.user.username]))
-                p = Payment(to_user_id=landlord.id, pay_id=charge.id)
+                p = Payment(to_user_id=lt.landlord.id, pay_id=charge.id)
                 g.user.sent_payments.append(p)
                 db.session.add(p)
                 db.session.commit()
                 flash('Payment processed')
-                msg = Message('Rent payment', recipients=[landlord.email])
+                msg = Message('Rent payment', recipients=[lt.landlord.email])
                 msg.body = 'Rent from {0}: amt: {1}'.\
                         format(g.user.username, '$' + amount)
                 mail.send(msg)
