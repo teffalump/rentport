@@ -27,7 +27,7 @@
                     <th>@{{ payment.to_user.username }}</th>
                     <th>{{ payment.time.strftime('%Y/%m/%d') }}</th>
                     <th>{{ payment.status}}</th>
-                    <th><a class="btn btn-default btn-sm" href="{{ url_for('rentport.show_payment', ident=payment.id) }}">show</th>
+                    <th><a class="btn btn-default btn-sm" href="{{ url_for('rentport.show_payment', pay_id=payment.id) }}">show</th>
                 </tr>
         {% endfor %}
             </tbody>
