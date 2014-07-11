@@ -9,12 +9,30 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <h1>Payments</h1>
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3 class="panel-title">Payments</h3></div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
         {% for payment in payments.items %}
-        <p>
-            {{ payment }}
-        </p>
+                <tr>
+                    <th>@{{ payment.from_user.username }}</th>
+                    <th>@{{ payment.to_user.username }}</th>
+                    <th>{{ payment.time.strftime('%Y/%m/%d') }}</th>
+                    <th>{{ payment.status}}</th>
+                    <th><a class="btn btn-default btn-sm" href="{{ url_for('rentport.show_payment', ident=payment.id) }}">show</th>
+                </tr>
         {% endfor %}
-    {% include "flash.html" %}
+            </tbody>
+        </table>
+    </div>
 </div>
+{% include "flash.html" %}
 {% endblock %}
