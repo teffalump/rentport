@@ -19,6 +19,7 @@
         + sqlalchemy (sql)
     + twilio (text)
     + dwolla (payment)
+    + geopy (location)
 
 # Infrastructure
 * linode (hosting) - $10/month
@@ -30,14 +31,15 @@
 # Roadmap
 1. User system - DONE
 2. Issue tracking system - DONE
-3. Payment system(s)
+3. Payment system(s) --- PUT ON HOLD!
     + Stripe - NEEDS TESTING
     + Dwolla - TODO (optional)
     + Bitcoin - TODO (optional)
 4. Notification system(s)
     + Mailgun for email - NEEDS TESTING
-    + Twilio for sms - TODO (optional)
-5. Prettify
+    + Twilio for sms - TODO
+5. Location services
+6. Prettify
     + Good, robust templates - Almost there
     + Add searching along issues and comments - TODO
     + Ajax-ify - TODO

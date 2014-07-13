@@ -248,6 +248,20 @@ class Issue(db.Model):
 
     def __repr__(self):
         return '<Issue %r %r %r >' % (self.status, self.severity, self.area)
+
+class Address(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    coords=db.Column(db.Point, nullable=False)
+    number=db.Column(db.Integer)
+    street=db.Column(db.Text)
+    neighborhood=db.Column(db.Text)
+    city=db.Column(db.Text)
+    county=db.Column(db.Text)
+    state=db.Column(db.Text)
+    postcode=db.Column(db.Text)
+    country=db.Column(db.Text)
+    location = db.relationship("Property", backref=db.backref('addresses', lazy='dynamic'), foreign_keys="Address.location_id")
 #### /MODELS ####
 
 #### LISTENERS ####
