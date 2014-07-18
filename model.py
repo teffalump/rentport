@@ -9,6 +9,14 @@ from sqlalchemy import or_
 
 make_searchable()
 
+#### Created data types ####
+issue_area = db.Enum('Plumbing', 'Electrical', 'Heating/Air Conditioning', 'Cosmetic', 'Other', name="issue_area")
+issue_severity=db.Enum('Future', 'Low', 'Medium', 'Critical', name='issue_severity')
+issue_status = db.Enum('Open', 'Closed', name='issue_status')
+payment_status = db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status')
+payment_method = db.Enum('Dwolla', 'Stripe', name='payment_method')
+notification_method = db.Enum('Email', 'Text', 'All', 'None', name='notification_method')
+rating_level = db.Enum(1,2,3,4,5, name='rating_level')
 #### MODELS ####
 roles_users = db.Table('roles_users',
         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
@@ -33,7 +41,7 @@ class User(db.Model, UserMixin):
     phone_confirmed = db.Column(db.Boolean, default=False)
 
     notify_confirmed = db.Column(db.Boolean, default=False)
-    notify_method = db.Column(db.Enum('Email', 'Text', 'All', 'None', name='notification_methods'))
+    notify_method = db.Column(notification_method)
 
     last_login_at=db.Column(db.DateTime)
     current_login_at=db.Column(db.DateTime)
@@ -147,11 +155,12 @@ class LandlordTenant(db.Model):
 
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     location = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
-
     owner = db.relationship("User", backref=db.backref('properties', order_by=id, lazy='dynamic'))
+    address = db.relationship("Address", backref=db.backref('properties', lazy='dynamic'), foreign_keys="Property.address_id")
 
     def current_tenants(self):
         return User.query.join(User.landlords).\
@@ -189,8 +198,8 @@ class Fee(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     paid_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     length = db.Column(db.Interval, nullable=False, default=timedelta(days=365))
-    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
-    method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
+    status = db.Column(payment_status, nullable=False, default='Pending')
+    method = db.Column(payment_method, nullable=False, default='Stripe')
     pay_id = db.Column(db.Text, nullable=False)
     user = db.relationship("User", backref=db.backref("fees", lazy='dynamic', order_by=id))
 
@@ -200,8 +209,8 @@ class Payment(db.Model):
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     pay_id = db.Column(db.Text, nullable=False, unique=True)
-    method = db.Column(db.Enum('Dwolla', 'Stripe', name='payment_method'), nullable=False, default='Stripe')
-    status = db.Column(db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status'), nullable=False, default='Pending')
+    method = db.Column(payment_method, nullable=False, default='Stripe')
+    status = db.Column(payment_status, nullable=False, default='Pending')
     from_user=db.relationship("User", backref=db.backref("sent_payments", lazy='dynamic'), foreign_keys="Payment.from_user_id")
     to_user=db.relationship("User", backref=db.backref("rec_payments", lazy='dynamic'), foreign_keys="Payment.to_user_id")
 
@@ -232,9 +241,9 @@ class Issue(db.Model):
     landlord_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    area = db.Column(db.Enum('Plumbing', 'Electrical', 'Heating/Air Conditioning', 'Cosmetic', 'Other', name="issue_area"), nullable=False)
-    severity = db.Column(db.Enum('Future', 'Low', 'Medium', 'Critical', name='issue_severity'), nullable=False)
-    status = db.Column(db.Enum('Open', 'Closed', name='issue_status'), nullable=False, default='Open')
+    area = db.Column(issue_area, nullable=False)
+    severity = db.Column(issue_severity, nullable=False)
+    status = db.Column(issue_status, nullable=False, default='Open')
     opened = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     closed_at = db.Column(db.DateTime)
     closed_because = db.Column(db.Text)
@@ -251,8 +260,8 @@ class Issue(db.Model):
 
 class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    location_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    coords=db.Column(db.Point, nullable=False)
+    lon=db.Column(db.Float, nullable=False)
+    lat=db.Column(db.Float, nullable=False)
     number=db.Column(db.Integer)
     street=db.Column(db.Text)
     neighborhood=db.Column(db.Text)
@@ -261,7 +270,32 @@ class Address(db.Model):
     state=db.Column(db.Text)
     postcode=db.Column(db.Text)
     country=db.Column(db.Text)
-    location = db.relationship("Property", backref=db.backref('addresses', lazy='dynamic'), foreign_keys="Address.location_id")
+
+class Contact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.Text, nullable=False)
+    phone = db.Column(db.Text)
+    website = db.Column(db.Text)
+    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
+
+class Provider(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    service = db.Column(issue_area, nullable=False)
+    name = db.Column(db.Text, nullable=False)
+    contact = db.relationship("Contact", backref='provider', uselist=False)
+
+class WorkOrder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(rating_level)
+    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
+    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
+    issue = db.relationship("Issue", backref=db.backref('work_orders', lazy='dynamic'), nullable=False, foreign_keys='WorkOrder.issue_id')
+    provider = db.relationship("Provider", backref=db.backref('work_orders', lazy='dynamic'), nullable=False, foreign_keys='WorkOrder.provider_id')
+
+    __table_args__=(db.Index('one_order_per_provider_per_issue',
+            issue_id,
+            provider_id,
+            unique=True),)
 #### /MODELS ####
 
 #### LISTENERS ####
