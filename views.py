@@ -2,10 +2,11 @@ from .extensions import db, mail
 from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm)
+                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
+                        AddProviderForm)
 from .model import (Issue, Property, User, LandlordTenant,
                             Comment, Fee, Payment, StripeUserInfo,
-                            Address)
+                            Address, Provider)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -417,7 +418,6 @@ def add_property():
 def modify_property(prop_id):
     '''modify existing property
         params:     POST: <description> new property description
-                    POST: <location> new location id
                     GET/POST: <prop_id> absolute location id
         returns:    POST: Redirect
                     GET: Modify property form
@@ -428,17 +428,38 @@ def modify_property(prop_id):
         return redirect(url_for('rentport.properties'))
     form=ModifyPropertyForm()
     if form.validate_on_submit():
-        location=request.form['location']
         description=request.form['description']
-        prop.location=location
         prop.description=description
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
         return redirect(url_for('rentport.properties'))
-    form.location.data=prop.location
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
+
+
+@rp.route('/landlord/property/<int(min=1):prop_id>/provider/add', methods=['GET', 'POST'])
+@login_required
+def add_provider(prop_id):
+    form=AddProviderForm()
+    prop=g.user.properties.filter(Property.id==prop_id).first()
+    if not prop:
+        flash('Not a valid property id')
+        return redirect(url_for('rentport.properties'))
+    if form.validate_on_submit():
+        p=Provider()
+        p.service=request.form['area']
+        p.name=requst.form['name']
+        p.email=request.form['email']
+        p.website=request.form['website']
+        p.phone=request.form['phone']
+        prop.providers.append(p)
+        db.session.add(p)
+        db.session.commit()
+        flash('Provider added')
+        return redirect(url_for('rentport.properties'))
+    return redirect(url_for('rentport.properties'))
+
 #### /PROPERTIES ####
 
 #### TENANTS ####

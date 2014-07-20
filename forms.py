@@ -4,7 +4,7 @@ from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
                 HiddenField, FileField, RadioField, SelectField, IntegerField)
-from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional
+from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
 
 class ExtendedRegisterForm(RegisterForm):
     username=StringField('Username', [DataRequired(),
@@ -57,7 +57,21 @@ class AddPropertyForm(Form):
     description=TextAreaField('Description:', [DataRequired()])
     submit=SubmitField('Add Property')
 
-class ModifyPropertyForm(AddPropertyForm):
+class AddProviderForm(Form):
+    name=StringField('Name:', [DataRequired()])
+    area=SelectField('Area:', choices=[('Plumbing', 'Plumbing'),
+                                        ('Electrical', 'Electrical'),
+                                        ('Heating/Air Conditioning', 'Heating/Air Conditioning'),
+                                        ('Cleaning', 'Cleaning'),
+                                        ('Other', 'Other')])
+    email=StringField('Email:', [Email(), DataRequired()])
+    phone=StringField('Phone #:', [Optional(), Length(min=10)])
+    website=StringField('Website:', [Optional(), URL()])
+    submit=SubmitField('Add Provider')
+
+
+class ModifyPropertyForm(Form):
+    description=TextAreaField('Description:', [DataRequired()])
     submit=SubmitField('Modify Property')
 
 class AddPhoneNumber(Form):

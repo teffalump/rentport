@@ -10,7 +10,7 @@ from sqlalchemy import or_
 make_searchable()
 
 #### Created data types ####
-issue_area = db.Enum('Plumbing', 'Electrical', 'Heating/Air Conditioning', 'Cosmetic', 'Other', name="issue_area")
+issue_area = db.Enum('Plumbing', 'Electrical', 'Heating/Air Conditioning', 'Cleaning', 'Other', name="issue_area")
 issue_severity=db.Enum('Future', 'Low', 'Medium', 'Critical', name='issue_severity')
 issue_status = db.Enum('Open', 'Closed', name='issue_status')
 payment_status = db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status')
@@ -161,6 +161,7 @@ class Property(db.Model):
     description = db.Column(db.Text)
     owner = db.relationship("User", backref=db.backref('properties', order_by=id, lazy='dynamic'))
     address = db.relationship("Address", backref=db.backref('properties', lazy='dynamic'), foreign_keys="Property.address_id")
+    providers = db.relationship("Provider", secondary=provs_props, backref="properties")
 
     def current_tenants(self):
         return User.query.join(User.landlords).\
@@ -270,6 +271,10 @@ class Address(db.Model):
     state=db.Column(db.Text)
     postcode=db.Column(db.Text)
     country=db.Column(db.Text)
+
+provs_props = db.Table('providers_properties',
+        db.Column('provider_id', db.Integer(), db.ForeignKey('provider.id')),
+        db.Column('property_id', db.Integer(), db.ForeignKey('property.id')))
 
 class Provider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
