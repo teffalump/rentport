@@ -3,8 +3,8 @@
 from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
-                HiddenField, FileField, RadioField, SelectField)
-from wtforms.validators import Length, DataRequired, AnyOf, Regexp
+                HiddenField, FileField, RadioField, SelectField, IntegerField)
+from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional
 
 class ExtendedRegisterForm(RegisterForm):
     username=StringField('Username', [DataRequired(),
@@ -22,7 +22,7 @@ class OpenIssueForm(Form):
     type=SelectField('Type', choices=[('Plumbing', 'Plumbing'),
                                         ('Electrical', 'Electrical'),
                                         ('Heating/Air Conditioning', 'Heating/Air Conditioning'),
-                                        ('Cosmetic', 'Cosmetic'),
+                                        ('Cleaning', 'Cleaning'),
                                         ('Other', 'Other')])
     description=TextAreaField('Description', [DataRequired()])
     submit=SubmitField('Open')
@@ -52,7 +52,8 @@ class CommentForm(Form):
     submit=SubmitField('Add Comment')
 
 class AddPropertyForm(Form):
-    location=StringField('Location:', [DataRequired()])
+    unit=IntegerField('Unit:', [Optional(), NumberRange(min=1)])
+    address=StringField('Address:', [DataRequired()])
     description=TextAreaField('Description:', [DataRequired()])
     submit=SubmitField('Add Property')
 

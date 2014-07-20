@@ -13,7 +13,16 @@
         <div class="panel-heading"><h1>Properties</h1></div>
         {% for property in props %}
         <p>
-        {{ property.location}} {{ property.description }} {{ property.current_tenants()|map(attribute='username')|join(', ') }}
+        #{{ property.apt_number }} 
+        {{ property.address.number }} 
+        {{ property.address.street }}
+        {{ property.address.neighborhood}} 
+        {{ property.address.city}} 
+        {{ property.address.county}} 
+        {{ property.address.postcode}} 
+        {{ property.address.country}} 
+        {{ property.description }} 
+        {{ property.current_tenants()|map(attribute='username')|join(', ') }}
         </p>
         {% endfor %}
     </div>

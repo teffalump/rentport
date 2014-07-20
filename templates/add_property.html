@@ -18,8 +18,9 @@
             <form action="{{ url_for('rentport.add_property') }}" method="POST" name="add_location_form" role="form">
               {{ form.hidden_tag() }}
               {{ wtf.form_errors(form, hiddens="only")}}
-              {{ wtf.form_field(form.location, placeholder='Short identifier') }}
-              {{ wtf.form_field(form.description, placeholder='Longer description') }}
+              {{ wtf.form_field(form.unit, placeholder='Unit # or leave blank') }}
+              {{ wtf.form_field(form.address, placeholder='Address') }}
+              {{ wtf.form_field(form.description, placeholder='Description') }}
               {{ wtf.form_field(form.submit) }}
             </form>
         </div>

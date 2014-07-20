@@ -4,7 +4,8 @@ from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm)
 from .model import (Issue, Property, User, LandlordTenant,
-                            Comment, Fee, Payment, StripeUserInfo)
+                            Comment, Fee, Payment, StripeUserInfo,
+                            Address)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -15,6 +16,7 @@ from sqlalchemy import or_
 from werkzeug.security import gen_salt
 from sys import exc_info as er
 from datetime import datetime as dt
+from geopy.geocoders import Nominatim
 import stripe
 
 #### Blueprint ####
@@ -376,15 +378,38 @@ def add_property():
         return redirect(url_for('rentport.properties'))
     form=AddPropertyForm()
     if form.validate_on_submit():
-        location=request.form['location']
-        description=request.form['description']
-        p=Property(location=location,
-                description=description)
-        g.user.properties.append(p)
-        db.session.add(p)
-        db.session.commit()
-        flash("Property added")
-        return redirect(url_for('rentport.properties'))
+        address=request.form['address']
+        n = Nominatim()
+        loc = n.geocode(address)
+        if not loc:
+            flash("Address not found")
+            return render_template('add_property.html', form=form)
+        else:
+            #TODO Check full length returned
+            coords=loc[1]
+            ad = [x.strip() for x in loc[0].split(',')]
+            a=Address(lat=coords[0], lon=coords[1],
+                    number=ad[0],
+                    street=ad[1],
+                    neighborhood=ad[2],
+                    city=ad[3],
+                    county=ad[4],
+                    state=ad[5],
+                    postcode=ad[6],
+                    country=ad[7])
+            unit=request.form['unit']
+            description=request.form['description']
+            if unit:
+                p=Property(apt_number=int(unit),
+                        description=description)
+            else:
+                p=Property(description=description)
+            p.address=a
+            g.user.properties.append(p)
+            db.session.add(p)
+            db.session.commit()
+            flash("Property added")
+            return redirect(url_for('rentport.properties'))
     return render_template('add_property.html', form=form)
 
 @rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])

@@ -16,7 +16,7 @@ issue_status = db.Enum('Open', 'Closed', name='issue_status')
 payment_status = db.Enum('Pending', 'Confirmed', 'Refunded', 'Denied', name='payment_status')
 payment_method = db.Enum('Dwolla', 'Stripe', name='payment_method')
 notification_method = db.Enum('Email', 'Text', 'All', 'None', name='notification_method')
-rating_level = db.Enum(1,2,3,4,5, name='rating_level')
+rating_level = db.Enum('1','2','3','4','5', name='rating_level')
 #### MODELS ####
 roles_users = db.Table('roles_users',
         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
@@ -157,7 +157,7 @@ class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    location = db.Column(db.Text, nullable=False)
+    apt_number=db.Column(db.Integer)
     description = db.Column(db.Text)
     owner = db.relationship("User", backref=db.backref('properties', order_by=id, lazy='dynamic'))
     address = db.relationship("Address", backref=db.backref('properties', lazy='dynamic'), foreign_keys="Property.address_id")
@@ -176,12 +176,12 @@ class Property(db.Model):
         return User.query.join(User.landlords).\
                 filter(LandlordTenant.location_id == self.id)
 
-    def __init__(self, location, description):
-        self.location=location
+    def __init__(self, description, apt_number=None):
+        self.apt_number=apt_number
         self.description=description
 
     def __repr__(self):
-        return '<Property %r %r >' % (self.location, self.description)
+        return '<Property %r %r >' % (self.apt_number, self.description)
 
 class StripeUserInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -260,9 +260,8 @@ class Issue(db.Model):
 
 class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    lon=db.Column(db.Float, nullable=False)
     lat=db.Column(db.Float, nullable=False)
-    apt_number=db.Column(db.Integer)
+    lon=db.Column(db.Float, nullable=False)
     number=db.Column(db.Integer)
     street=db.Column(db.Text)
     neighborhood=db.Column(db.Text)
@@ -285,8 +284,8 @@ class WorkOrder(db.Model):
     rating = db.Column(rating_level)
     issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
     provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-    issue = db.relationship("Issue", backref=db.backref('work_orders', lazy='dynamic'), nullable=False, foreign_keys='WorkOrder.issue_id')
-    provider = db.relationship("Provider", backref=db.backref('work_orders', lazy='dynamic'), nullable=False, foreign_keys='WorkOrder.provider_id')
+    issue = db.relationship("Issue", backref=db.backref('work_orders', lazy='dynamic'), foreign_keys='WorkOrder.issue_id')
+    provider = db.relationship("Provider", backref=db.backref('work_orders', lazy='dynamic'), foreign_keys='WorkOrder.provider_id')
 
     __table_args__=(db.Index('one_order_per_provider_per_issue',
             issue_id,
