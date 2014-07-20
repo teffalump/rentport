@@ -262,6 +262,7 @@ class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lon=db.Column(db.Float, nullable=False)
     lat=db.Column(db.Float, nullable=False)
+    apt_number=db.Column(db.Integer)
     number=db.Column(db.Integer)
     street=db.Column(db.Text)
     neighborhood=db.Column(db.Text)
@@ -271,18 +272,13 @@ class Address(db.Model):
     postcode=db.Column(db.Text)
     country=db.Column(db.Text)
 
-class Contact(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.Text, nullable=False)
-    phone = db.Column(db.Text)
-    website = db.Column(db.Text)
-    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-
 class Provider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     service = db.Column(issue_area, nullable=False)
     name = db.Column(db.Text, nullable=False)
-    contact = db.relationship("Contact", backref='provider', uselist=False)
+    email = db.Column(db.Text, nullable=False)
+    phone = db.Column(db.Text)
+    website = db.Column(db.Text)
 
 class WorkOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
