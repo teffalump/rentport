@@ -1,0 +1,32 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page = "rentport.add_provider"|default('rentport.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">Add provider</h3>
+        </div>
+        <div class="panel-body">
+            <form action="{{ url_for('rentport.add_provider') }}" method="POST" name="add_provider_form" role="form">
+              {{ form.hidden_tag() }}
+              {{ wtf.form_errors(form, hiddens="only")}}
+              {{ wtf.form_field(form.name, placeholder='Provider name') }}
+              {{ wtf.form_field(form.area, placeholder='Service') }}
+              {{ wtf.form_field(form.email, placeholder='Email') }}
+              {{ wtf.form_field(form.phone, placeholder='Phone') }}
+              {{ wtf.form_field(form.website, placeholder='Website') }}
+              {{ wtf.form_field(form.submit) }}
+            </form>
+        </div>
+    </div>
+{% include "flash.html" %}
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@ from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm)
+                        AddProviderForm, ConnectProviderForm)
 from .model import (Issue, Property, User, LandlordTenant,
                             Comment, Fee, Payment, StripeUserInfo,
                             Address, Provider)
@@ -438,7 +438,7 @@ def modify_property(prop_id):
     return render_template('modify_location.html', form=form, location=prop)
 
 
-@rp.route('/landlord/property/<int(min=1):prop_id>/provider/<int(min=1):prov_id/connect', methods=['GET', 'POST'])
+@rp.route('/landlord/property/<int(min=1):prop_id>/provider/<int(min=1):prov_id>/connect', methods=['GET', 'POST'])
 @login_required
 def connect_provider(prop_id, prov_id):
     form=ConnectProviderForm()
@@ -457,16 +457,20 @@ def connect_provider(prop_id, prov_id):
             db.session.commit()
             flash('Provider connected')
         return redirect(url_for('rentport.properties'))
-    return render_template('connect_provider.html')
+    return render_template('connect_provider.html', form=form,
+                                                    prop=prop,
+                                                    prov=prov)
+#### /PROPERTIES ####
 
-@rp.route('/landlord/property/provider/add', methods=['GET', 'POST'])
+#### PROVIDERS ####
+@rp.route('/landlord/provider/add', methods=['GET', 'POST'])
 @login_required
-def add_provider(prop_id):
+def add_provider():
     form=AddProviderForm()
     if form.validate_on_submit():
         p=Provider()
         p.service=request.form['area']
-        p.name=requst.form['name']
+        p.name=request.form['name']
         p.email=request.form['email']
         p.website=request.form['website']
         p.phone=request.form['phone']
@@ -474,10 +478,10 @@ def add_provider(prop_id):
         db.session.add(p)
         db.session.commit()
         flash('Provider added')
-        return redirect(url_for('connect_provider'))
-    return render_template('add_provider.html')
+        return redirect(url_for('rentport.properties'))
+    return render_template('add_provider.html', form=form)
+#### /PROVIDERS ####
 
-#### /PROPERTIES ####
 
 #### TENANTS ####
 # ALERT USER(S)

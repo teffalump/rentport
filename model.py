@@ -22,6 +22,10 @@ roles_users = db.Table('roles_users',
         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
         db.Column('role_id', db.Integer(), db.ForeignKey('role.id')))
 
+provs_props = db.Table('providers_properties',
+        db.Column('provider_id', db.Integer(), db.ForeignKey('provider.id')),
+        db.Column('property_id', db.Integer(), db.ForeignKey('property.id')))
+
 class Role(db.Model, RoleMixin):
     '''Roles'''
     id = db.Column(db.Integer, primary_key=True)
@@ -271,10 +275,6 @@ class Address(db.Model):
     state=db.Column(db.Text)
     postcode=db.Column(db.Text)
     country=db.Column(db.Text)
-
-provs_props = db.Table('providers_properties',
-        db.Column('provider_id', db.Integer(), db.ForeignKey('provider.id')),
-        db.Column('property_id', db.Integer(), db.ForeignKey('property.id')))
 
 class Provider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
