@@ -278,11 +278,13 @@ provs_props = db.Table('providers_properties',
 
 class Provider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service = db.Column(issue_area, nullable=False)
     name = db.Column(db.Text, nullable=False)
     email = db.Column(db.Text, nullable=False)
     phone = db.Column(db.Text)
     website = db.Column(db.Text)
+    by_user = db.relationship("User", backref=db.backref('providers', lazy='dynamic'))
 
 class WorkOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)

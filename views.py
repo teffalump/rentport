@@ -438,14 +438,31 @@ def modify_property(prop_id):
     return render_template('modify_location.html', form=form, location=prop)
 
 
-@rp.route('/landlord/property/<int(min=1):prop_id>/provider/add', methods=['GET', 'POST'])
+@rp.route('/landlord/property/<int(min=1):prop_id>/provider/<int(min=1):prov_id/connect', methods=['GET', 'POST'])
 @login_required
-def add_provider(prop_id):
-    form=AddProviderForm()
+def connect_provider(prop_id, prov_id):
+    form=ConnectProviderForm()
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
         flash('Not a valid property id')
         return redirect(url_for('rentport.properties'))
+    prov=Provider.query.filter(Provider.id==prov_id).first()
+    if not prov:
+        flash('Not a valid provider')
+        return redirect(url_for('rentport.properties'))
+    if form.validate_on_submit():
+        if request.form.get('connect', None):
+            prop.providers.append(prov)
+            db.session.add(prop)
+            db.session.commit()
+            flash('Provider connected')
+        return redirect(url_for('rentport.properties'))
+    return render_template('connect_provider.html')
+
+@rp.route('/landlord/property/provider/add', methods=['GET', 'POST'])
+@login_required
+def add_provider(prop_id):
+    form=AddProviderForm()
     if form.validate_on_submit():
         p=Provider()
         p.service=request.form['area']
@@ -453,12 +470,12 @@ def add_provider(prop_id):
         p.email=request.form['email']
         p.website=request.form['website']
         p.phone=request.form['phone']
-        prop.providers.append(p)
+        p.by_user_id=g.user.id
         db.session.add(p)
         db.session.commit()
         flash('Provider added')
-        return redirect(url_for('rentport.properties'))
-    return redirect(url_for('rentport.properties'))
+        return redirect(url_for('connect_provider'))
+    return render_template('add_provider.html')
 
 #### /PROPERTIES ####
 
