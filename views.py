@@ -388,7 +388,7 @@ def add_property():
         coords=loc[1]
         ad = [x.strip() for x in loc[0].split(',')]
         l = len(ad)
-        if l != 8 or l != 7:
+        if l != 8 and l != 7:
             flash("Ambiguous address")
             return render_template('add_property.html', form=form)
         else:
