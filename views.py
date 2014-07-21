@@ -380,7 +380,7 @@ def add_property():
     form=AddPropertyForm()
     if form.validate_on_submit():
         address=request.form['address']
-        n = Nominatim()
+        n = Nominatim(timeout=5)
         loc = n.geocode(address)
         if not loc:
             flash("Address not found")
