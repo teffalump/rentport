@@ -387,19 +387,30 @@ def add_property():
             return render_template('add_property.html', form=form)
         coords=loc[1]
         ad = [x.strip() for x in loc[0].split(',')]
-        if len(ad) != 8:
+        l = len(ad)
+        if l != 8 or l != 7:
             flash("Ambiguous address")
             return render_template('add_property.html', form=form)
         else:
-            a=Address(lat=coords[0], lon=coords[1],
-                    number=ad[0],
-                    street=ad[1],
-                    neighborhood=ad[2],
-                    city=ad[3],
-                    county=ad[4],
-                    state=ad[5],
-                    postcode=ad[6],
-                    country=ad[7])
+            if l == 8:
+                a=Address(lat=coords[0], lon=coords[1],
+                        number=ad[0],
+                        street=ad[1],
+                        neighborhood=ad[2],
+                        city=ad[3],
+                        county=ad[4],
+                        state=ad[5],
+                        postcode=ad[6],
+                        country=ad[7])
+            else:
+                a=Address(lat=coords[0], lon=coords[1],
+                        number=ad[0],
+                        street=ad[1],
+                        city=ad[2],
+                        county=ad[3],
+                        state=ad[4],
+                        postcode=ad[5],
+                        country=ad[6])
             unit=request.form['unit']
             description=request.form['description']
             if unit:
