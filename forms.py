@@ -54,6 +54,8 @@ class CommentForm(Form):
 class AddPropertyForm(Form):
     unit=IntegerField('Unit:', [Optional(), NumberRange(min=1)])
     address=StringField('Address:', [DataRequired()])
+    city=StringField('City:', [DataRequired()])
+    state=StringField('State:', [DataRequired()])
     description=TextAreaField('Description:', [DataRequired()])
     submit=SubmitField('Add Property')
 

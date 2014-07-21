@@ -380,50 +380,46 @@ def add_property():
     form=AddPropertyForm()
     if form.validate_on_submit():
         address=request.form['address']
-        n = Nominatim(timeout=5)
+        city=request.form['city']
+        state=request.form['state']
+        fs=', '.join(['%s', city, state])
+        n = Nominatim(format_string=fs, timeout=5)
         loc = n.geocode(address)
         if not loc:
             flash("Address not found")
             return render_template('add_property.html', form=form)
-        coords=loc[1]
         ad = [x.strip() for x in loc[0].split(',')]
-        l = len(ad)
-        if l != 8 and l != 7:
+        try:
+            int(ad[0])
+        except:
+            #no number
             flash("Ambiguous address")
             return render_template('add_property.html', form=form)
+        if len(ad) != 8:
+            #no neighborhood
+            ad.insert(2, None)
+        a=Address(lat=loc.latitude, lon=loc.longitude,
+                number=ad[0],
+                street=ad[1],
+                neighborhood=ad[2],
+                city=ad[3],
+                county=ad[4],
+                state=ad[5],
+                postcode=ad[6],
+                country=ad[7])
+        unit=request.form['unit']
+        description=request.form['description']
+        if unit:
+            p=Property(apt_number=int(unit),
+                    description=description)
         else:
-            if l == 8:
-                a=Address(lat=coords[0], lon=coords[1],
-                        number=ad[0],
-                        street=ad[1],
-                        neighborhood=ad[2],
-                        city=ad[3],
-                        county=ad[4],
-                        state=ad[5],
-                        postcode=ad[6],
-                        country=ad[7])
-            else:
-                a=Address(lat=coords[0], lon=coords[1],
-                        number=ad[0],
-                        street=ad[1],
-                        city=ad[2],
-                        county=ad[3],
-                        state=ad[4],
-                        postcode=ad[5],
-                        country=ad[6])
-            unit=request.form['unit']
-            description=request.form['description']
-            if unit:
-                p=Property(apt_number=int(unit),
-                        description=description)
-            else:
-                p=Property(description=description)
-            p.address=a
-            g.user.properties.append(p)
-            db.session.add(p)
-            db.session.commit()
-            flash("Property added")
-            return redirect(url_for('rentport.properties'))
+            p=Property(description=description)
+        p.address=a
+        g.user.properties.append(p)
+        db.session.add(p)
+        db.session.commit()
+        flash("Property added")
+        return redirect(url_for('rentport.properties'))
     return render_template('add_property.html', form=form)
 
 @rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
