@@ -1,0 +1,29 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% set active_page = "rentport.connect_provider"|default('rentport.home') %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">Disconnect provider</h3>
+        </div>
+        {{ prov.name}} {{ prov.website }} {{ prov.email }}
+        {{ prop.description }}
+        <div class="panel-body">
+            <form action="{{ url_for('rentport.disconnect_provider', prop_id=prop.id, prov_id=prov.id) }}" method="POST" name="disconnect_provider_form" role="form">
+              {{ form.hidden_tag() }}
+              {{ wtf.form_errors(form, hiddens="only")}}
+              {{ wtf.form_field(form.disconnect) }}
+            </form>
+        </div>
+    </div>
+{% include "flash.html" %}
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@ from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm)
+                        AddProviderForm, ConnectProviderForm, DisconnectProviderForm)
 from .model import (Issue, Property, User, LandlordTenant,
                             Comment, Fee, Payment, StripeUserInfo,
                             Address, Provider)
@@ -385,10 +385,12 @@ def add_property():
         if not loc:
             flash("Address not found")
             return render_template('add_property.html', form=form)
+        coords=loc[1]
+        ad = [x.strip() for x in loc[0].split(',')]
+        if len(ad) != 7:
+            flash("Ambiguous address")
+            return render_template('add_property.html', form=form)
         else:
-            #TODO Check full length returned
-            coords=loc[1]
-            ad = [x.strip() for x in loc[0].split(',')]
             a=Address(lat=coords[0], lon=coords[1],
                     number=ad[0],
                     street=ad[1],
@@ -450,6 +452,9 @@ def connect_provider(prop_id, prov_id):
     if not prov:
         flash('Not a valid provider')
         return redirect(url_for('rentport.properties'))
+    if prov in prop.providers:
+        flash("Provider already connected")
+        return redirect(url_for('rentport.properties'))
     if form.validate_on_submit():
         if request.form.get('connect', None):
             prop.providers.append(prov)
@@ -458,6 +463,30 @@ def connect_provider(prop_id, prov_id):
             flash('Provider connected')
         return redirect(url_for('rentport.properties'))
     return render_template('connect_provider.html', form=form,
+                                                    prop=prop,
+                                                    prov=prov)
+
+
+@rp.route('/landlord/property/<int(min=1):prop_id>/provider/<int(min=1):prov_id>/disconnect', methods=['GET', 'POST'])
+@login_required
+def disconnect_provider(prop_id, prov_id):
+    form=DisconnectProviderForm()
+    prop=g.user.properties.filter(Property.id==prop_id).first()
+    if not prop:
+        flash('Not a valid property id')
+        return redirect(url_for('rentport.properties'))
+    prov=Provider.query.filter(Provider.id==prov_id).first()
+    if not prov:
+        flash('Not a valid provider')
+        return redirect(url_for('rentport.properties'))
+    if form.validate_on_submit():
+        if request.form.get('disconnect', None):
+            prop.providers.remove(prov)
+            db.session.add(prop)
+            db.session.commit()
+            flash('Provider disconnected')
+        return redirect(url_for('rentport.properties'))
+    return render_template('disconnect_provider.html', form=form,
                                                     prop=prop,
                                                     prov=prov)
 #### /PROPERTIES ####
@@ -481,7 +510,6 @@ def add_provider():
         return redirect(url_for('rentport.properties'))
     return render_template('add_provider.html', form=form)
 #### /PROVIDERS ####
-
 
 #### TENANTS ####
 # ALERT USER(S)
