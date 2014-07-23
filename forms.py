@@ -5,6 +5,7 @@ from flask.ext.security.forms import RegisterForm, LoginForm
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
                 HiddenField, FileField, RadioField, SelectField, IntegerField)
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
+from flask.ext.wtf.file import FileAllowed, FileField
 
 class ExtendedRegisterForm(RegisterForm):
     username=StringField('Username', [DataRequired(),
@@ -24,6 +25,7 @@ class OpenIssueForm(Form):
                                         ('Heating/Air Conditioning', 'Heating/Air Conditioning'),
                                         ('Cleaning', 'Cleaning'),
                                         ('Other', 'Other')])
+    photos=FileField('Photo', validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Images only!')])
     description=TextAreaField('Description', [DataRequired()])
     submit=SubmitField('Open')
 

@@ -11,12 +11,13 @@
 {% block content %}
 <div class="container-fluid">
     <h1>Open Issue</h1>
-    <form action="{{ url_for('rentport.open_issue')}}" method="POST" name="open_issue_form" role="form">
+    <form action="{{ url_for('rentport.open_issue')}}" method="POST" enctype="multipart/form-data" name="open_issue_form" role="form">
       {{ form.hidden_tag() }}
       {{ wtf.form_errors(form, hiddens="only") }}
-      {{ wtf.form_field(form.description) }}
       {{ wtf.form_field(form.type) }}
       {{ wtf.form_field(form.severity) }}
+      {{ wtf.form_field(form.photos, multiple="") }}
+      {{ wtf.form_field(form.description) }}
       {{ wtf.form_field(form.submit) }}
     </form>
     {% include "flash.html" %}

@@ -15,9 +15,11 @@ from flask import (Blueprint, render_template, request, g, redirect, url_for,
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
+from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
 from geopy.geocoders import Nominatim
+from os import path as fs
 import stripe
 
 #### Blueprint ####
@@ -118,12 +120,17 @@ def open_issue():
         i.description=request.form['description']
         i.severity=request.form['severity']
         i.area=request.form['type']
+        return str(form.photos.data.__dict__)
+        if form.photos.data:
+            filename=secure_filename(form.photos.data.filename)
+            form.photos.data.save(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+            flash('File uploaded')
         db.session.add(i)
         db.session.commit()
         flash('Issue opened')
         msg = Message('New issue', recipients=[i.landlord.email])
         msg.body = 'New issue @ {0}: {1} ::: {2}'.\
-                format(i.location.location, i.severity, i.description)
+                format(i.location.address.street, i.severity, i.description)
         mail.send(msg)
         flash('Landlord notified')
         return redirect(url_for('rentport.issues'))
@@ -314,7 +321,7 @@ def add_landlord(landlord):
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
-    form.location.choices=[(x.id, x.location) for x in landlord.properties.all()]
+    form.location.choices=[(x.id, ' '.join([str(x.address.number), x.address.street])) for x in landlord.properties.all()]
     if form.validate_on_submit():
         loc_id=int(request.form['location'])
         landlord.properties.filter(Property.id==loc_id).first_or_404()
