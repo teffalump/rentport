@@ -23,7 +23,7 @@
         {% for tenant in tenants %}
                 <tr>
                     <th>@{{ tenant.username}}</th>
-                    <th>{{ tenant.current_location().location }}</th>
+                    <th>{{ tenant.current_location().address.street }}</th>
                     <th>
                         <form class="form-inline" action="{{ url_for('rentport.confirm_relation', tenant=tenant.username) }}" method="POST" name="confirm_relation_form" role="form">
                           {{ form.hidden_tag() }}
