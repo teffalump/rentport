@@ -35,6 +35,10 @@ def get_url(endpoint, **kw):
         return request.args['next']
     except:
         return url_for(endpoint, **kw)
+
+def allowed_file(filename):
+    return '.' in filename and \
+       filename.rsplit('.', 1)[1] in current_app.config['ALLOWED_EXTENSIONS']
 #### /UTILS ####
 
 
@@ -120,11 +124,12 @@ def open_issue():
         i.description=request.form['description']
         i.severity=request.form['severity']
         i.area=request.form['type']
-        return str(form.photos.data.__dict__)
-        if form.photos.data:
-            filename=secure_filename(form.photos.data.filename)
-            form.photos.data.save(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
-            flash('File uploaded')
+        files=request.files.getlist("photos")
+        for f in files:
+            if allowed_file(f.filename):
+                filename=secure_filename(f.filename)
+                f.save(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+                flash('File uploaded')
         db.session.add(i)
         db.session.commit()
         flash('Issue opened')

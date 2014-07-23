@@ -16,6 +16,7 @@
       {{ wtf.form_errors(form, hiddens="only") }}
       {{ wtf.form_field(form.type) }}
       {{ wtf.form_field(form.severity) }}
+      {# <input type="file" name="photos" multiple=""> #}
       {{ wtf.form_field(form.photos, multiple="") }}
       {{ wtf.form_field(form.description) }}
       {{ wtf.form_field(form.submit) }}
