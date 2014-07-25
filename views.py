@@ -22,6 +22,11 @@ from geopy.geocoders import Nominatim
 from os import path as fs
 import stripe
 
+try:
+    from gi.repository import GExiv2 as exif_tool
+    EXIF=True
+except:
+    EXIF=False
 #### Blueprint ####
 
 rp = Blueprint('rentport', __name__, template_folder = 'templates', static_folder='static')
@@ -129,6 +134,14 @@ def open_issue():
             if allowed_file(f.filename):
                 filename=secure_filename(f.filename)
                 f.save(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+                f.close()
+                if EXIF:
+                    #optimize this eventually
+                    # can't figure how to get GExiv2 to create save file
+                    ex = exif_tool.Metadata()
+                    ex.open_path(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+                    ex.clear()
+                    ex.save_file(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
                 flash('File uploaded')
         db.session.add(i)
         db.session.commit()
