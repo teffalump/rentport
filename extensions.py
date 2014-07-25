@@ -6,6 +6,7 @@ from flask.ext.security import Security
 from flask.ext.limiter import Limiter
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.kvsession import KVSessionExtension
+#from flask.ext.images import Images
 
 # SQLAlchemy
 db = SQLAlchemy()
@@ -24,3 +25,6 @@ bootstrap = Bootstrap()
 
 # KVSession
 kvsession = KVSessionExtension()
+
+# Images
+#images=Images()

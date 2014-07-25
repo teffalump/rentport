@@ -48,5 +48,7 @@
         </ul>
     </div>
 </div>
+{#{% for im in issue.images %}#}
+{#<img src="{{url_for('images.crop', filename={{ im.filename }}, width=400, height=300, quality=50)}}"/>#}
 {% include "flash.html" %}
 {% endblock %}

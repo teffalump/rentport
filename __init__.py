@@ -19,10 +19,12 @@ def create_app(config=None):
         logging.basicConfig(filename='flask.log', level=10)
 
         from .extensions import mail, db, security, bootstrap, kvsession, limiter
+        #from .extensions import images
         mail.init_app(app)
         db.init_app(app)
         bootstrap.init_app(app)
         limiter.init_app(app)
+        #images.init_app(app)
 
         def bffr():
             db.create_all()

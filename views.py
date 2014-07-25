@@ -6,7 +6,7 @@ from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddProviderForm, ConnectProviderForm, DisconnectProviderForm)
 from .model import (Issue, Property, User, LandlordTenant,
                             Comment, Fee, Payment, StripeUserInfo,
-                            Address, Provider)
+                            Address, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -20,6 +20,7 @@ from sys import exc_info as er
 from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
+from uuid import uuid4
 import stripe
 
 try:
@@ -130,9 +131,13 @@ def open_issue():
         i.severity=request.form['severity']
         i.area=request.form['type']
         files=request.files.getlist("photos")
+        db.session.add(i)
+        db.session.commit()
         for f in files:
             if allowed_file(f.filename):
-                filename=secure_filename(f.filename)
+                #filename=secure_filename(f.filename)
+                name=secure_filename(f.filename)
+                filename='.'.join([uuid4().hex, name.split('.')[-1]])
                 f.save(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
                 f.close()
                 if EXIF:
@@ -142,9 +147,13 @@ def open_issue():
                     ex.open_path(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
                     ex.clear()
                     ex.save_file(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+                m=Image()
+                m.filename=filename
+                m.uploader_id=g.user.id
+                i.images.append(m)
+                db.session.add(m)
+                db.session.commit()
                 flash('File uploaded')
-        db.session.add(i)
-        db.session.commit()
         flash('Issue opened')
         msg = Message('New issue', recipients=[i.landlord.email])
         msg.body = 'New issue @ {0}: {1} ::: {2}'.\
