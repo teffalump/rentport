@@ -873,10 +873,11 @@ def show_img(image_id):
     im=Image.query.filter(Image.id==image_id).first()
     if im is None:
         abort(404)
-    fs_path='/'.join([current_app.config['UPLOAD_FOLDER'], im.filename])
-    ur_redirect=''.join(['/srv/images', fs_path])
+    #fs_path='/'.join([current_app.config['UPLOAD_FOLDER'], im.filename])
+    #ur_redirect=''.join(['/srv/images', fs_path])
     response=make_response("")
-    response.headers['X-Accel-Redirect']=ur_redirect
+    #response.headers['X-Accel-Redirect']=ur_redirect
+    response.headers['X-Accel-Redirect']='/'+im.filename
     return response
 
 #### SESSION TESTING ####
