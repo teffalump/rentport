@@ -11,7 +11,7 @@ from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
 from flask import (Blueprint, render_template, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app)
+                    abort, flash, session, json, jsonify, current_app, make_response)
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
