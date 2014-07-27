@@ -866,6 +866,19 @@ def twilio_hook():
     return ''
 #### /PAYMENTS ####
 
+@rp.route('/img/<int:image_id>', methods=['GET'])
+@login_required
+def show_img(image_id):
+    '''Use X-Accel-Redirect to let nginx handle static files'''
+    im=Image.query.filter(Image.id==image_id).first()
+    if im is None:
+        abort(404)
+    fs_path='/'.join([current_app.config['UPLOAD_FOLDER'], im.filename])
+    ur_redirect=''.join(['/srv/images', fs_path])
+    response=make_response("")
+    response.headers['X-Accel-Redirect']=ur_redirect
+    return response
+
 #### SESSION TESTING ####
 @rp.route('/session/dump')
 @login_required
