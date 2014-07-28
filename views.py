@@ -870,6 +870,7 @@ def twilio_hook():
 @login_required
 def show_img(image_id):
     '''Use X-Accel-Redirect to let nginx handle static files'''
+    #TODO What images should be able to be seen by what users
     im=Image.query.filter(Image.id==image_id).first()
     if im is None:
         abort(404)
