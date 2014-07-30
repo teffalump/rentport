@@ -3,15 +3,15 @@ from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, DisconnectProviderForm)
-from .model import (Issue, Property, User, LandlordTenant,
-                            Comment, Fee, Payment, StripeUserInfo,
-                            Address, Provider, Image)
+                        AddProviderForm, ConnectProviderForm)
+from .model import (Issue, Property, User, LandlordTenant, Comment,
+                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
 from flask import (Blueprint, render_template, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app, make_response)
+                    abort, flash, session, json, jsonify, current_app,
+                    make_response)
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import or_
 from werkzeug.security import gen_salt
@@ -136,8 +136,9 @@ def open_issue():
         for f in files:
             if allowed_file(f.filename):
                 #filename=secure_filename(f.filename)
-                name=secure_filename(f.filename)
-                filename='.'.join([uuid4().hex, name.split('.')[-1]])
+                original_name=secure_filename(f.filename)
+                uuid=uuid4().hex
+                filename='.'.join([uuid, original_name.split('.')[-1]])
                 f.save(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
                 f.close()
                 if EXIF:
@@ -148,7 +149,9 @@ def open_issue():
                     ex.clear()
                     ex.save_file(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
                 m=Image()
+                m.uuid=uuid
                 m.filename=filename
+                m.original_filename=original_name
                 m.uploader_id=g.user.id
                 i.images.append(m)
                 db.session.add(m)
@@ -164,7 +167,7 @@ def open_issue():
     return render_template('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
-@rp.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
+@rp.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
 @login_required
 def comment(ident):
     '''comment on issue
@@ -172,32 +175,27 @@ def comment(ident):
                     POST: <ident> absolute id
         returns:    POST: Redirect to main issues page
     '''
-    #TODO Jsonify?
     form = CommentForm()
     issue=g.user.all_issues().\
             filter(Issue.status=='Open',Issue.id==ident).first()
     if not issue:
-        flash('No issue with that id')
-        return redirect(url_for('rentport.issues'))
-    if g.user.id == issue.landlord_id:
-        #Is landlord? Ok
-        pass
-    else:
+        return jsonify({'error': 'No issue'})
+    if g.user != issue.landlord:
         if not getattr(g.user.landlords.filter(LandlordTenant.current==True).first(),'confirmed', None):
-            #Must be confirmed
-            flash('Need to be confirmed by landlord!')
-            return redirect(url_for('rentport.profile'))
+            return jsonify({'error': 'Need to be confirmed by landlord!'})
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
         issue.comments.append(comment)
         db.session.add(comment)
         db.session.commit()
-        flash('Commented on issue')
-        return redirect(url_for('rentport.show_issue', ident=ident))
-    return redirect(url_for('rentport.issues'))
+        return jsonify({'success': 'Commented on issue',
+                        'comment': comment.text,
+                        'time': comment.posted.strftime('%Y/%m/%d'),
+                        'username': comment.user.username})
+    return render_template('comment_issue.html', issue=issue, comment=comment)
 
-@rp.route('/issues/<int(min=1):ident>/close', methods=['POST'])
+@rp.route('/issues/<int(min=1):ident>/close', methods=['GET', 'POST'])
 @login_required
 def close_issue(ident):
     '''close issue - only opener or landlord can
@@ -205,24 +203,22 @@ def close_issue(ident):
                     POST: <ident> absolute id
         returns:    POST: Redirect to main issues page
     '''
-    #TODO Jsonify?
     issue=Issue.query.filter(or_(Issue.landlord_id==g.user.id,
                 Issue.creator_id==g.user.id),
                 Issue.status == 'Open',
                 Issue.id == ident).first()
     form=CloseIssueForm()
     if not issue:
-        flash('No close-able issue with that id')
-        return redirect(url_for('rentport.issues'))
+        return jsonify({'error': 'No issue'})
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
         issue.closed_because=reason
         db.session.add(issue)
         db.session.commit()
-        flash('Issue closed')
-        return redirect(url_for('rentport.issues'))
-    return redirect(url_for('rentport.issues', ident=ident))
+        return jsonify({'success': 'Issue closed',
+                        'reason': reason})
+    return render_template('close_issue.html', close=form, issue=issue)
 
 #### /ISSUES ####
 
@@ -471,8 +467,7 @@ def modify_property(prop_id):
         return redirect(url_for('rentport.properties'))
     form=ModifyPropertyForm()
     if form.validate_on_submit():
-        description=request.form['description']
-        prop.description=description
+        prop.description=request.form['description']
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
@@ -480,62 +475,46 @@ def modify_property(prop_id):
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
 
+#### /PROPERTIES ####
 
-@rp.route('/landlord/property/<int(min=1):prop_id>/provider/<int(min=1):prov_id>/connect', methods=['GET', 'POST'])
+#### PROVIDERS ####
+# TODO Eventually minimize the redundant code and ajax these sections
+
+@rp.route('/provider/connect/<int:prop_id>/<int:prov_id>', methods=['GET', 'POST'])
 @login_required
 def connect_provider(prop_id, prov_id):
+    '''(Dis)Connect provider with property'''
     form=ConnectProviderForm()
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
-        flash('Not a valid property id')
-        return redirect(url_for('rentport.properties'))
+        return jsonify({'error': 'No property'})
     prov=Provider.query.filter(Provider.id==prov_id).first()
     if not prov:
-        flash('Not a valid provider')
-        return redirect(url_for('rentport.properties'))
-    if prov in prop.providers:
-        flash("Provider already connected")
-        return redirect(url_for('rentport.properties'))
+        return jsonify({'error': 'No provider'})
     if form.validate_on_submit():
-        if request.form.get('connect', None):
-            prop.providers.append(prov)
-            db.session.add(prop)
-            db.session.commit()
-            flash('Provider connected')
-        return redirect(url_for('rentport.properties'))
+        if request.form.get('action', None):
+            if prov in prop.providers:
+                prop.providers.remove(prov)
+                db.session.add(prop)
+                db.session.commit()
+                return jsonify({'success': 'Provider disconnected'})
+            else:
+                prop.providers.append(prov)
+                db.session.add(prop)
+                db.session.commit()
+                return jsonify({'success': 'Provider connected'})
+        else:
+            return jsonify({'error': 'Bad request'})
+    if prov in prop.providers:
+        form.action.label.text = 'Disconnect'
     return render_template('connect_provider.html', form=form,
                                                     prop=prop,
                                                     prov=prov)
 
-
-@rp.route('/landlord/property/<int(min=1):prop_id>/provider/<int(min=1):prov_id>/disconnect', methods=['GET', 'POST'])
-@login_required
-def disconnect_provider(prop_id, prov_id):
-    form=DisconnectProviderForm()
-    prop=g.user.properties.filter(Property.id==prop_id).first()
-    if not prop:
-        flash('Not a valid property id')
-        return redirect(url_for('rentport.properties'))
-    prov=Provider.query.filter(Provider.id==prov_id).first()
-    if not prov:
-        flash('Not a valid provider')
-        return redirect(url_for('rentport.properties'))
-    if form.validate_on_submit():
-        if request.form.get('disconnect', None):
-            prop.providers.remove(prov)
-            db.session.add(prop)
-            db.session.commit()
-            flash('Provider disconnected')
-        return redirect(url_for('rentport.properties'))
-    return render_template('disconnect_provider.html', form=form,
-                                                    prop=prop,
-                                                    prov=prov)
-#### /PROPERTIES ####
-
-#### PROVIDERS ####
-@rp.route('/landlord/provider/add', methods=['GET', 'POST'])
+@rp.route('/provider/add', methods=['GET', 'POST'])
 @login_required
 def add_provider():
+    '''Add provider'''
     form=AddProviderForm()
     if form.validate_on_submit():
         p=Provider()
@@ -547,9 +526,34 @@ def add_provider():
         p.by_user_id=g.user.id
         db.session.add(p)
         db.session.commit()
-        flash('Provider added')
-        return redirect(url_for('rentport.properties'))
+        return jsonify({'success': 'Provider added'})
     return render_template('add_provider.html', form=form)
+
+@rp.route('/provider', defaults={'prov_id': None}, methods=['GET'])
+@rp.route('/provider/<int:prov_id>', methods=['GET'])
+@login_required
+def show_providers(prov_id):
+    '''Show providers'''
+    if prov_id:
+        b=g.user.providers.filter(Provider.id==prov_id).first()
+        if not b:
+            return jsonify({'error': 'No provider'})
+        return jsonify({'success': 'Provider found',
+                        'name': b.name,
+                        'email': b.email,
+                        'service': b.service,
+                        'phone': b.phone,
+                        'website': b.website})
+    else:
+        a=[]
+        for b in g.user.providers.all():
+            a.append({'name': b.name,
+                        'email': b.email,
+                        'service': b.service,
+                        'phone': b.phone,
+                        'website': b.website})
+        return jsonify({'success': 'Providers found',
+                        'providers': a})
 #### /PROVIDERS ####
 
 #### TENANTS ####
@@ -588,195 +592,6 @@ def confirm_relation(tenant):
         return redirect(url_for('rentport.home'))
     return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /TENANTS ####
-
-#### OAUTH ####
-@rp.route('/oauth/authorize', methods=['GET'])
-@login_required
-def authorize():
-    '''Authorize Stripe, or refresh'''
-    if g.user.stripe:
-        flash('Have stripe info already')
-        return redirect(url_for('rentport.home'))
-    oauth=OAuth2Session(current_app.config['STRIPE_CLIENT_ID'],
-        redirect_uri=url_for('rentport.authorized', _external=True),
-        scope=current_app.config['STRIPE_OAUTH_CONFIG']['scope'])
-    auth_url, state=oauth.authorization_url(
-            current_app.config['STRIPE_OAUTH_CONFIG']['authorize_url'])
-    session['state']=state
-    return redirect(auth_url)
-
-@rp.route('/oauth/authorized', methods=['GET'])
-@login_required
-def authorized():
-    if g.user.stripe:
-        flash('Have stripe info already')
-        return redirect(url_for('rentport.home'))
-    try:
-        oauth=OAuth2Session(current_app.config['STRIPE_CLIENT_ID'],
-                        state=session['state'])
-        token=oauth.fetch_token(
-                        token_url=current_app.config['STRIPE_OAUTH_CONFIG']['access_token_url'],
-                        client_secret=current_app.config['STRIPE_CONSUMER_SECRET'],
-                        authorization_response=request.url)
-        s = StripeUserInfo(access_token=token['access_token'],
-                           refresh_token=token['refresh_token'],
-                           user_acct=token['stripe_user_id'],
-                           pub_key=token['stripe_publishable_key'])
-        g.user.stripe=s
-        db.session.add(s)
-        db.session.commit()
-        flash('Authorized!')
-    except InvalidClientError:
-        flash('Invalid authentication')
-    except MismatchingStateError:
-        flash('CSRF mismatch')
-    except:
-        flash('OAuth2 flow error')
-    finally:
-        return redirect(url_for('rentport.home'))
-#### /OAUTH ####
-
-#### PAYMENTS ####
-# RISK
-# PAID ENDPOINT
-# MUST BE CONFIRMED
-# ALERT USER(S)
-@rp.route('/pay/landlord', defaults={'amount': None}, methods=['GET'])
-@rp.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
-@login_required
-def pay_rent(amount):
-    lt=g.user.landlords.filter(LandlordTenant.current==True).first()
-    if not lt:
-        flash('No current landlord')
-        return redirect(url_for('rentport.payments'))
-    if not lt.confirmed:
-        flash('Need to be confirmed!')
-        return redirect(url_for('rentport.payments'))
-    if not lt.landlord.fee_paid():
-        flash('Landlord has not paid service fee')
-        return redirect(url_for('rentport.payments'))
-    if not lt.landlord.stripe:
-        flash('Landlord cannot accept CC')
-        return redirect(url_for('rentport.payments'))
-    if amount:
-        cents=amount*100
-        if request.method == 'POST':
-            token = request.form['stripeToken']
-            try:
-                charge = stripe.Charge.create(
-                      api_key=lt.landlord.stripe.access_token,
-                      amount=cents,
-                      currency="usd",
-                      card=token,
-                      description=': '.join(['From::', str(g.user.id), g.user.username]))
-                p = Payment(to_user_id=lt.landlord.id, pay_id=charge.id)
-                g.user.sent_payments.append(p)
-                db.session.add(p)
-                db.session.commit()
-                flash('Payment processed')
-                msg = Message('Rent payment', recipients=[lt.landlord.email])
-                msg.body = 'Rent from {0}: amt: {1}'.\
-                        format(g.user.username, '$' + str(amount))
-                mail.send(msg)
-                flash('Landlord notified')
-            except stripe.error.CardError:
-                flash('Card error')
-            except stripe.error.AuthenticationError:
-                flash('Authentication error')
-            except Exception as inst:
-                flash(type(inst))
-                flash(inst)
-                flash('Other payment error')
-            finally:
-                return redirect(url_for('rentport.payments'))
-        else:
-            return render_template('pay_landlord.html', landlord=lt.landlord,
-                                                        amount=amount)
-    else:
-        return render_template('get_pay_amount.html', landlord=lt.landlord, user=g.user)
-
-# RISK
-@rp.route('/pay/fee', methods=['POST', 'GET'])
-@login_required
-def pay_fee():
-    if request.method == 'POST':
-        token = request.form['stripeToken']
-        try:
-            charge = stripe.Charge.create(
-                  api_key=current_app.config['STRIPE_CONSUMER_SECRET'],
-                  amount=current_app.config['FEE_AMOUNT'],
-                  currency="usd",
-                  card=token,
-                  description=':'.join([str(g.user.id), g.user.username])
-                  )
-            c = Fee(pay_id=charge.id)
-            g.user.fees.append(c)
-            db.session.add(c)
-            db.session.commit()
-            g.user.paid_through=max(g.user.paid_through,dt.utcnow())+c.length
-            db.session.add(g.user)
-            db.session.commit()
-            flash('Payment processed')
-        except stripe.error.CardError:
-            flash('Card error')
-        except stripe.error.AuthenticationError:
-            flash('Authentication error')
-        except Exception:
-            flash('Other payment error')
-        finally:
-            return redirect(url_for('rentport.fees'))
-
-    else:
-        return render_template('pay_service_fee.html',
-                                amount=current_app.config['FEE_AMOUNT'],
-                                key=current_app.config['STRIPE_CONSUMER_KEY'])
-
-@rp.route('/payments', methods=['GET'])
-@rp.route('/payments/<int(min=1):page>', methods=['GET'])
-@rp.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
-@login_required
-def payments(page=1, per_page=current_app.config['PAYMENTS_PER_PAGE']):
-    '''main payments page
-        params:     GET: <page> page to show
-                    GET: <per_page> items per page
-        returns:    GET: template'''
-    allowed_sort={'id': Payment.id,
-            'date': Payment.time,
-            'status': Payment.status,
-            'from': Payment.from_user,
-            'to': Payment.to_user}
-    sort_key=request.args.get('sort', 'id')
-    sort = allowed_sort.get(sort_key, Payment.id)
-    order_key = request.args.get('order', 'desc')
-    if order_key =='asc':
-        payments=g.user.payments().order_by(sort.asc()).\
-                paginate(page, per_page, False)
-    else:
-        order_key='desc'
-        payments=g.user.payments().order_by(sort.desc()).\
-                paginate(page, per_page, False)
-    return render_template('payments.html', payments=payments, sort=sort_key, order=order_key)
-
-@rp.route('/payments/<int:pay_id>/show', methods=['GET'])
-@login_required
-def show_payment(pay_id):
-    '''show extended payment info
-        params:     GET: <pay_id> payment id
-        returns:    GET: json-ed payment info'''
-    payment=Payment.query.filter(Payment.id==pay_id).first()
-    if not payment:
-        return jsonify({'error': 'No payment with that id'})
-    try:
-        p = stripe.Charge.retrieve(payment.pay_id,
-                api_key=payment.to_user.stripe.access_token)
-        if not p:
-            return jsonify({'error': 'No payment with that charge id'})
-        m = p.to_dict()
-    except Exception as inst:
-        return jsonify({'error': 'Error retrieving payment'})
-
-    return jsonify({k:v for (k,v) in m.items() if k in \
-            ['amount', 'currency', 'paid', 'refunded', 'description']})
 
 @rp.route('/fees', methods=['GET'])
 @rp.route('/fees/<int(min=1):page>', methods=['GET'])
@@ -866,12 +681,13 @@ def twilio_hook():
     return ''
 #### /PAYMENTS ####
 
-@rp.route('/img/<int:image_id>', methods=['GET'])
+#### IMAGES ####
+@rp.route('/img/<image_uuid>', methods=['GET'])
 @login_required
-def show_img(image_id):
+def show_img(image_uuid):
     '''Use X-Accel-Redirect to let nginx handle static files'''
     #TODO What images should be able to be seen by what users
-    im=Image.query.filter(Image.id==image_id).first()
+    im=Image.query.filter(Image.uuid==image_uuid).first()
     if im is None:
         abort(404)
     #fs_path='/'.join([current_app.config['UPLOAD_FOLDER'], im.filename])
@@ -879,6 +695,7 @@ def show_img(image_id):
     response=make_response("")
     response.headers['X-Accel-Redirect']=ur_redirect
     return response
+#### /IMAGES ####
 
 #### SESSION TESTING ####
 @rp.route('/session/dump')

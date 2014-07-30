@@ -74,10 +74,7 @@ class AddProviderForm(Form):
     submit=SubmitField('Add Provider')
 
 class ConnectProviderForm(Form):
-    connect=SubmitField('Connect', default='True')
-
-class DisconnectProviderForm(Form):
-    disconnect=SubmitField('Disconnect', default='True')
+    action=SubmitField('Connect')
 
 class ModifyPropertyForm(Form):
     description=TextAreaField('Description:', [DataRequired()])

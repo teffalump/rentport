@@ -1,0 +1,7 @@
+{% import "bootstrap/wtf.html" as wtf %}
+<form action="{{ url_for('rentport.comment', ident=issue.id) }}" method="POST" name="comment_form" role="form">
+  {{ comment.hidden_tag() }}
+  {{ wtf.form_errors(comment, hiddens="only") }}
+  {{ wtf.form_field(comment.comment) }}
+  {{ wtf.form_field(comment.submit) }}
+</form>

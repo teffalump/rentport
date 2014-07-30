@@ -1,22 +1,7 @@
-{% extends "bootstrap/base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-{% block styles %}
-    {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
-{% endblock %}
-{% block navbar %}
-    {% set active_page = "add_landlord"|default('home') -%}
-    {% include "base_nav.html" %}
-{% endblock %}
-{% block content %}
-<div class="container-fluid">
-<h3>Add {{ landlord.username }}</h3>
 <form action="{{ url_for('rentport.add_landlord', landlord=landlord.username) }}" method="POST" name="add_landlord_form" role="form">
   {{ form.hidden_tag() }}
   {{ wtf.form_errors(form, hiddens="only") }}
   {{ wtf.form_field(form.location) }}
   {{ wtf.form_field(form.submit) }}
 </form>
-{% include "flash.html" %}
-</div>
-{% endblock %}

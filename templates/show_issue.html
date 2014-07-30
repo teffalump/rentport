@@ -21,26 +21,6 @@
         <div class="panel-body">
             <b>{{ issue.description}}</b>
         </div>
-        {% if comment %}
-        <div class="well">
-            <form action="{{ url_for('rentport.comment', ident=issue.id) }}" method="POST" name="comment_form" role="form">
-              {{ comment.hidden_tag() }}
-              {{ wtf.form_errors(comment, hiddens="only") }}
-              {{ wtf.form_field(comment.comment) }}
-              {{ wtf.form_field(comment.submit) }}
-            </form>
-        </div>
-        {% endif %}
-        {% if close %}
-        <div class="well">
-            <form action="{{ url_for('rentport.close_issue', ident=issue.id) }}" method="POST" name="close_issue_form" role="form">
-              {{ close.hidden_tag() }}
-              {{ wtf.form_errors(close, hiddens="only") }}
-              {{ wtf.form_field(close.reason) }}
-              {{ wtf.form_field(close.submit) }}
-            </form>
-        </div>
-        {% endif %}
         <ul class="list-group">
             {% for comment in issue.comments %}
             <li class="list-group-item">@{{ comment.user.username }} ({{ comment.posted.strftime('%Y/%m/%d')}}): {{ comment.text }}</li>
@@ -48,8 +28,8 @@
         </ul>
     </div>
 </div>
-{#{% for im in issue.images %}#}
-{#<img src="{{ url_for('rentport.show_img', image_id=im.id) }}"/>#}
-{#{% endfor %}#}
+{#{% for im in issue.images %}
+<img src="{{ url_for('rentport.show_img', image_id=im.id) }}"/>
+{% endfor %}#}
 {% include "flash.html" %}
 {% endblock %}

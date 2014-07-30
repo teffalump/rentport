@@ -264,10 +264,11 @@ class Issue(db.Model):
         return '<Issue %r %r %r >' % (self.status, self.severity, self.area)
 
 class Image(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.Text, primary_key=True)
     issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
     uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     filename=db.Column(db.Text, nullable=False)
+    original_filename=db.Column(db.Text, nullable=False)
     issue = db.relationship("Issue", backref=db.backref('images', lazy='dynamic'), foreign_keys='Image.issue_id')
     uploader = db.relationship("User", backref=db.backref('images', lazy='dynamic'), foreign_keys='Image.uploader_id')
 

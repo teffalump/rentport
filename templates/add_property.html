@@ -1,32 +1,11 @@
-{% extends "bootstrap/base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-{% block styles %}
-    {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
-{% endblock %}
-{% block navbar %}
-    {% set active_page = "rentport.add_property"|default('rentport.home') %}
-    {% include "base_nav.html" %}
-{% endblock %}
-{% block content %}
-<div class="container-fluid">
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <h3 class="panel-title">Add property</h3>
-        </div>
-        <div class="panel-body">
-            <form action="{{ url_for('rentport.add_property') }}" method="POST" name="add_location_form" role="form">
-              {{ form.hidden_tag() }}
-              {{ wtf.form_errors(form, hiddens="only")}}
-              {{ wtf.form_field(form.unit, placeholder='Unit # or leave blank') }}
-              {{ wtf.form_field(form.address, placeholder='Address') }}
-              {{ wtf.form_field(form.city, placeholder='City') }}
-              {{ wtf.form_field(form.state, placeholder='State') }}
-              {{ wtf.form_field(form.description, placeholder='Description') }}
-              {{ wtf.form_field(form.submit) }}
-            </form>
-        </div>
-    </div>
-{% include "flash.html" %}
-</div>
-{% endblock %}
+<form action="{{ url_for('rentport.add_property') }}" method="POST" name="add_location_form" role="form">
+  {{ form.hidden_tag() }}
+  {{ wtf.form_errors(form, hiddens="only")}}
+  {{ wtf.form_field(form.unit, placeholder='Unit # or leave blank') }}
+  {{ wtf.form_field(form.address, placeholder='Address') }}
+  {{ wtf.form_field(form.city, placeholder='City') }}
+  {{ wtf.form_field(form.state, placeholder='State') }}
+  {{ wtf.form_field(form.description, placeholder='Description') }}
+  {{ wtf.form_field(form.submit) }}
+</form>

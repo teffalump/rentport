@@ -1,0 +1,27 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading"><h1>Providers</h1></div>
+        {% for prov in providers %}
+        <p>
+        {{ prov.service }} 
+        {{ prov.name }}
+        {{ prov.email }}
+        {{ prov.phone }}
+        {{ prov.website }}
+        {{ prov.properties|map(attribute='id')|join(', ') }}
+        </p>
+        {% endfor %}
+    </div>
+    {% include "flash.html" %}
+</div>
+{% endblock %}
