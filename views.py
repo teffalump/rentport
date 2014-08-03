@@ -135,7 +135,6 @@ def open_issue():
         db.session.commit()
         for f in files:
             if allowed_file(f.filename):
-                #filename=secure_filename(f.filename)
                 original_name=secure_filename(f.filename)
                 uuid=uuid4().hex
                 filename='.'.join([uuid, original_name.split('.')[-1]])
@@ -167,7 +166,7 @@ def open_issue():
     return render_template('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
-@rp.route('/issues/<int(min=1):ident>/comment', methods=['GET', 'POST'])
+@rp.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
 @login_required
 def comment(ident):
     '''comment on issue
@@ -193,7 +192,8 @@ def comment(ident):
                         'comment': comment.text,
                         'time': comment.posted.strftime('%Y/%m/%d'),
                         'username': comment.user.username})
-    return render_template('comment_issue.html', issue=issue, comment=comment)
+    else:
+        return jsonify({'error': 'Invalid input'})
 
 @rp.route('/issues/<int(min=1):ident>/close', methods=['GET', 'POST'])
 @login_required

@@ -8,10 +8,20 @@
     {% set active_page="rentport.open_issue"|default('rentport.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
+{% block scripts %}
+{{ super() }}
+$( "#open_issue_form").submit(function(event) {
+    event.preventDefault();
+    var $form = $( this ),
+        url=$form.attr("action"),
+        data=$form.serialize();
+    var return = $.post(url, data);
+    });
+{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <h1>Open Issue</h1>
-    <form action="{{ url_for('rentport.open_issue')}}" method="POST" enctype="multipart/form-data" name="open_issue_form" role="form">
+    <form action="{{ url_for('rentport.open_issue')}}" method="POST" enctype="multipart/form-data" id="open_issue_form" name="open_issue_form" role="form">
       {{ form.hidden_tag() }}
       {{ wtf.form_errors(form, hiddens="only") }}
       {{ wtf.form_field(form.type) }}
@@ -23,4 +33,5 @@
     </form>
     {% include "flash.html" %}
 </div>
+<div id="result"></div>
 {% endblock %}
