@@ -73,6 +73,10 @@ class AddProviderForm(Form):
     website=StringField('Website:', [Optional(), URL()])
     submit=SubmitField('Add Provider')
 
+class SelectProviderForm(Form):
+    provider=SelectField('Provider:', choices=[])
+    submit=SubmitField('Select Provider')
+
 class ConnectProviderForm(Form):
     action=SubmitField('Connect')
 

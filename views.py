@@ -3,8 +3,8 @@ from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm)
-from .model import (Issue, Property, User, LandlordTenant, Comment,
+                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
+from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
                         Fee, Payment, StripeUserInfo, Address, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
@@ -46,6 +46,21 @@ def allowed_file(filename):
     return '.' in filename and \
        filename.rsplit('.', 1)[1] in current_app.config['ALLOWED_EXTENSIONS']
 #### /UTILS ####
+
+#### EMAIL STRINGS ####
+def new_issue_email(issue):
+    new_issue_email='New issue! Unit: {0}, Address: {1}\n\nArea: {2}\n\nSeverity: {3}\n\nDescription: {4}\n\nURL: {5}'
+    num = issue.location.apt_number or 'N/A'
+    ad = ' '.join([str(issue.location.address.number), issue.location.address.street])
+    nw=new_issue_email.format(
+            str(num),
+            ad,
+            issue.area,
+            issue.severity,
+            issue.description,
+            url_for('rentport.show_issue', ident=issue.id, _external=True))
+    print(nw)
+    return nw
 
 
 #### DEFAULT ####
@@ -90,17 +105,29 @@ def show_issue(ident):
         returns:    GET: detailed issue page
     '''
     issue=g.user.all_issues().filter(Issue.status=='Open',
-            Issue.id==ident).first()
+                    Issue.id==ident).first()
     comment = None
     close = None
+    provider = None
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('rentport.issues'))
-    if issue.landlord_id == g.user.id or g.user.landlords.filter(LandlordTenant.current==True).first().confirmed:
-        comment=CommentForm()
-    if issue.creator_id == g.user.id or issue.landlord_id == g.user.id:
+    if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
-    return render_template('show_issue.html', issue=issue, comment=comment, close=close)
+        comment=CommentForm()
+        if issue.work_orders.first() is None:
+            ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
+            if ps:
+                provider=SelectProviderForm()
+                provider.provider.choices=ps
+    if getattr(g.user.landlords.filter(LandlordTenant.current==True).first(), 'confirmed', None):
+        comment=CommentForm()
+    if issue.creator_id == g.user.id:
+        close=CloseIssueForm()
+    return render_template('show_issue.html', issue=issue,
+                                            comment=comment,
+                                            close=close,
+                                            provider=provider)
 
 # PAID ENDPOINT
 # MUST BE CONFIRMED
@@ -158,8 +185,7 @@ def open_issue():
                 flash('File uploaded')
         flash('Issue opened')
         msg = Message('New issue', recipients=[i.landlord.email])
-        msg.body = 'New issue @ {0}: {1} ::: {2}'.\
-                format(i.location.address.street, i.severity, i.description)
+        msg.body = new_issue_email(i)
         mail.send(msg)
         flash('Landlord notified')
         return redirect(url_for('rentport.issues'))
@@ -220,6 +246,30 @@ def close_issue(ident):
                         'reason': reason})
     return render_template('close_issue.html', close=form, issue=issue)
 
+@rp.route('/issues/<int(min=1):ident>/provider', methods=['GET', 'POST'])
+@login_required
+def authorize_provider(ident):
+    issue=Issue.query.filter(Issue.landlord_id==g.user.id,
+                Issue.status == 'Open',
+                Issue.id == ident).first()
+    if not issue:
+        return jsonify({'error': 'No issue'})
+    if issue.work_orders.first():
+        return jsonify({'error': 'Provider already selected'})
+    form=SelectProviderForm()
+    ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
+    if not ps:
+        return jsonify({'error': 'No relevant providers'})
+    form.provider.choices=ps
+    if form.validate_on_submit():
+        w=WorkOrder()
+        w.provider_id=int(request.form['provider'])
+        issue.work_orders.append(w)
+        db.session.add(w)
+        db.session.commit()
+        return jsonify({'success': 'Selected provider',
+                        'provider': w.provider.name})
+    return render_template('select_issue_provider.html', issue=issue, form=form)
 #### /ISSUES ####
 
 #### PROFILE ####
@@ -552,8 +602,10 @@ def show_providers(prov_id):
                         'service': b.service,
                         'phone': b.phone,
                         'website': b.website})
-        return jsonify({'success': 'Providers found',
-                        'providers': a})
+        if a:
+            return jsonify({'success': 'Providers found',
+                            'providers': a})
+        return jsonify({'error': 'No provider'})
 #### /PROVIDERS ####
 
 #### TENANTS ####

@@ -30,6 +30,21 @@ $( "#comment_form" ).submit(function(event) {
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
+    {% if provider %}
+    <form action="{{ url_for('rentport.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
+      {{ provider.hidden_tag() }}
+      {{ wtf.form_errors(provider, hiddens="only") }}
+      {{ wtf.form_field(provider.provider) }}
+      {{ wtf.form_field(provider.submit) }}
+    </form>
+    {% endif %}
+    {% if close %}
+    <form action="{{ url_for('rentport.close_issue', ident=issue.id) }}" method="POST" id="close_issue_form" name="close_issue_form" role="form">
+      {{ close.hidden_tag() }}
+      {{ wtf.form_errors(close, hiddens="only") }}
+      {{ wtf.form_field(close.reason) }}
+      {{ wtf.form_field(close.submit) }}
+    {% endif %}
     <div class="panel panel-default">
         <div class="panel-heading">
                 <div class="btn-group">
@@ -37,6 +52,7 @@ $( "#comment_form" ).submit(function(event) {
                     <b class="btn btn-default">{{issue.severity}}</b>
                     <b class="btn btn-default">{{issue.area}}</b>
                     <b class="btn btn-default">{{ issue.opened.strftime('%Y/%m/%d') }}</b>
+                    <b class="btn btn-default">{% if issue.work_orders.first() %}{{ issue.work_orders.first().provider.name }}{% else %}No provider selected{% endif %}</b>
                 </div>
         </div>
         <div class="panel-body">
@@ -49,15 +65,17 @@ $( "#comment_form" ).submit(function(event) {
         </ul>
     </div>
 </div>
+{% if comment %}
 <form action="{{ url_for('rentport.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
   {{ comment.hidden_tag() }}
   {{ wtf.form_errors(comment, hiddens="only") }}
   {{ wtf.form_field(comment.comment) }}
   {{ wtf.form_field(comment.submit) }}
 </form>
-{#{% for im in issue.images %}
-<img src="{{ url_for('rentport.show_img', image_id=im.id) }}"/>
-{% endfor %}#}
+{% endif %}
+{% for im in issue.images %}
+<img src="{{ url_for('rentport.show_img', image_uuid=im.uuid) }}"/>
+{% endfor %}
 <div id='messages'></div>
 {% include "flash.html" %}
 {% endblock %}
