@@ -1,0 +1,7 @@
+{% import "bootstrap/wtf.html" as wtf %}
+<form action="{{ url_for('rentport.authorize_provider', ident=issue.id) }}" method="POST" name="select_provider_form" role="form">
+  {{ form.hidden_tag() }}
+  {{ wtf.form_errors(form, hiddens="only") }}
+  {{ wtf.form_field(form.provider) }}
+  {{ wtf.form_field(form.submit) }}
+</form>
