@@ -18,7 +18,8 @@ from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
-from geopy.geocoders import Nominatim
+#from geopy.geocoders import Nominatim, OpenMapQuest
+from geopy.geocoders import OpenMapQuest
 from os import path as fs
 from uuid import uuid4
 
@@ -59,9 +60,9 @@ def add_property():
         address=request.form['address']
         city=request.form['city']
         state=request.form['state']
-        fs=', '.join(['%s', city, state])
-        n = Nominatim(format_string=fs, timeout=5)
-        loc = n.geocode(address)
+        fs=', '.join([address, city, state])
+        n = OpenMapQuest(timeout=5)
+        loc = n.geocode(fs)
         if not loc:
             flash("Address not found")
             return render_template('add_property.html', form=form)
