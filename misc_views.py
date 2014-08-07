@@ -23,14 +23,8 @@ from os import path as fs
 from uuid import uuid4
 import stripe
 
-try:
-    from gi.repository import GExiv2 as exif_tool
-    EXIF=True
-except:
-    EXIF=False
-
 #### Blueprint ####
-rp = Blueprint('rentport', __name__, template_folder = 'templates', static_folder='static')
+rp = Blueprint('misc', __name__, template_folder = 'templates', static_folder='static')
 #### /Blueprint ####
 
 #### UTILS ####
@@ -45,31 +39,6 @@ def allowed_file(filename):
     return '.' in filename and \
        filename.rsplit('.', 1)[1] in current_app.config['ALLOWED_EXTENSIONS']
 #### /UTILS ####
-
-#### EMAIL STRINGS ####
-def new_issue_email(issue):
-    email='New issue! Unit: {0}, Address: {1}\n\nArea: {2}\n\nSeverity: {3}\n\nDescription: {4}\n\nURL: {5}'
-    num = issue.location.apt_number or 'N/A'
-    ad = ' '.join([str(issue.location.address.number), issue.location.address.street])
-    nw=email.format(
-            str(num),
-            ad,
-            issue.area,
-            issue.severity,
-            issue.description,
-            url_for('rentport.show_issue', ident=issue.id, _external=True))
-    return nw
-
-def provider_issue_email(work_order):
-    email='The landlord has picked a provider. Contact them about fixing the issue - {0}:\n\nName: {1}\n\nEmail: {2}\n\nPhone: {3}\n\nWebsite: {4}'
-    t = email.format(
-            url_for('rentport.show_issue', ident=work_order.issue.id, _external=True),
-            work_order.provider.name,
-            work_order.provider.email,
-            work_order.provider.phone,
-            work_order.provider.website)
-    return t
-#### /EMAIL STRINGS ####
 
 #### DEFAULT ####
 @rp.route('/')

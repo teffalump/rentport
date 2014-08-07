@@ -1,4 +1,28 @@
 
+from .extensions import db, mail
+from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
+                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
+                        CommentForm, AddPropertyForm, ModifyPropertyForm,
+                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
+                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
+from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
+                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+from flask.ext.mail import Message
+from flask.ext.security import login_required
+from requests_oauthlib import OAuth2Session
+from flask import (Blueprint, render_template, request, g, redirect, url_for,
+                    abort, flash, session, json, jsonify, current_app,
+                    make_response)
+from itsdangerous import URLSafeTimedSerializer
+from sqlalchemy import or_
+from werkzeug.security import gen_salt
+from werkzeug import secure_filename
+from sys import exc_info as er
+from datetime import datetime as dt
+from geopy.geocoders import Nominatim
+from os import path as fs
+from uuid import uuid4
+import stripe
 #### Blueprint ####
 rp = Blueprint('relation', __name__, template_folder = 'templates', static_folder='static')
 #### /Blueprint ####
@@ -16,7 +40,7 @@ def add_landlord(landlord):
     '''
     if g.user.current_landlord():
         flash('End relationship with current landlord first')
-        return redirect(url_for('rentport.end_relation', next=url_for('rentport.add_landlord', landlord=landlord)))
+        return redirect(url_for('.end_relation', next=url_for('.add_landlord', landlord=landlord)))
     landlord=User.query.filter(User.username==landlord).first_or_404()
     landlord.properties.first_or_404()
     form=AddLandlordForm()
@@ -30,7 +54,7 @@ def add_landlord(landlord):
         db.session.add(lt)
         db.session.commit()
         flash('Added landlord')
-        return redirect(url_for('rentport.home'))
+        return redirect(url_for('misc.home'))
     return render_template('add_landlord.html', form=form, landlord=landlord)
 
 # ALERT USER(S)
@@ -49,13 +73,13 @@ def end_relation():
             first()
     if not lt:
         flash('No relationship to end')
-        return redirect(url_for('rentport.home'))
+        return redirect(url_for('misc.home'))
     if form.validate_on_submit():
         lt.current=False
         db.session.add(lt)
         db.session.commit()
         flash('Ended landlord relationship')
-        return redirect(get_url('rentport.home'))
+        return redirect(get_url('misc.home'))
     return render_template('end_relation.html', form=form, landlord=lt.landlord)
 
 # ALERT USER(S)
@@ -86,10 +110,10 @@ def confirm_relation(tenant):
             db.session.delete(lt)
             db.session.commit()
             flash('Disallowed tenant request')
-        return redirect(url_for('rentport.home'))
+        return redirect(url_for('misc.home'))
     tenants=g.user.unconfirmed_tenants().all()
     if not tenants:
         flash('No unconfirmed tenant requests')
-        return redirect(url_for('rentport.home'))
+        return redirect(url_for('misc.home'))
     return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /LANDLORD ####

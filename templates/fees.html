@@ -2,17 +2,17 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block styles %}
     {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page = "rentport.fees"|default('rentport.home') %}
+    {% set active_page = "fee.fees"|default('rentport.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
 <h1>Fees</h1>
     {% for fee in fees.items %}
     <p>
-    {{ fee.status }} | {{ fee.length}} | {{ fee.paid_on }} | <a href="{{ url_for('rentport.show_fee', pay_id=fee.id)}}">View</a>
+    {{ fee.status }} | {{ fee.length}} | {{ fee.paid_on }} | <a href="{{ url_for('fee.show_fee', pay_id=fee.id)}}">View</a>
     </p>
     {% endfor %}
 {% include "flash.html" %}

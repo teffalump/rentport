@@ -1,10 +1,10 @@
 {% extends "bootstrap/base.html" %}
 {% block styles %}
     {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page = "rentport.properties"|default('rentport.home') %}
+    {% set active_page = ".properties"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}

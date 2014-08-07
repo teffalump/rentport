@@ -2,7 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block styles %}
     {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
     {% include "base_nav.html" %}
@@ -31,7 +31,7 @@ $( "#comment_form" ).submit(function(event) {
 {% block content %}
 <div class="container-fluid">
     {% if provider %}
-    <form action="{{ url_for('rentport.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
+    <form action="{{ url_for('.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
       {{ provider.hidden_tag() }}
       {{ wtf.form_errors(provider, hiddens="only") }}
       {{ wtf.form_field(provider.provider) }}
@@ -39,7 +39,7 @@ $( "#comment_form" ).submit(function(event) {
     </form>
     {% endif %}
     {% if close %}
-    <form action="{{ url_for('rentport.close_issue', ident=issue.id) }}" method="POST" id="close_issue_form" name="close_issue_form" role="form">
+    <form action="{{ url_for('.close_issue', ident=issue.id) }}" method="POST" id="close_issue_form" name="close_issue_form" role="form">
       {{ close.hidden_tag() }}
       {{ wtf.form_errors(close, hiddens="only") }}
       {{ wtf.form_field(close.reason) }}
@@ -66,7 +66,7 @@ $( "#comment_form" ).submit(function(event) {
     </div>
 </div>
 {% if comment %}
-<form action="{{ url_for('rentport.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
+<form action="{{ url_for('.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
   {{ comment.hidden_tag() }}
   {{ wtf.form_errors(comment, hiddens="only") }}
   {{ wtf.form_field(comment.comment) }}
@@ -74,7 +74,7 @@ $( "#comment_form" ).submit(function(event) {
 </form>
 {% endif %}
 {% for im in issue.images %}
-<img src="{{ url_for('rentport.show_img', image_uuid=im.uuid) }}"/>
+<img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
 {% endfor %}
 <div id='messages'></div>
 {% include "flash.html" %}

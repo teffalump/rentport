@@ -1,5 +1,5 @@
 {% import "bootstrap/wtf.html" as wtf %}
-<form action="{{ url_for('rentport.add_provider') }}" method="POST" name="add_provider_form" role="form">
+<form action="{{ url_for('property.add_provider') }}" method="POST" name="add_provider_form" role="form">
   {{ form.hidden_tag() }}
   {{ wtf.form_errors(form, hiddens="only")}}
   {{ wtf.form_field(form.name, placeholder='Provider name') }}

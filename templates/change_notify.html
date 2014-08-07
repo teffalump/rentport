@@ -2,7 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block styles %}
     {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
     {% set active_page=".notify"|default('.home') %}
@@ -15,7 +15,7 @@
             <h3 class="panel-title">Change notifications</h3>
         </div>
     <div class="panel-body">
-    <form action="{{ url_for('rentport.notify') }}" method="POST" name="change_notify_form" role="form">
+    <form action="{{ url_for('profile.notify') }}" method="POST" name="change_notify_form" role="form">
       {{ form.hidden_tag() }}
       {{ wtf.form_errors(form, hiddens="only") }}
       {{ wtf.form_field(form.method) }}

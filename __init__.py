@@ -48,8 +48,18 @@ def create_app(config=None):
         app.before_first_request(bffr)
         app.before_request(before_request)
 
-        from .views import rp
-        app.register_blueprint(rp)
+        from .misc_views import rp as m
+        from .relation_views import rp as r
+        from .property_views import rp as p
+        from .profile_views import rp as c
+        from .fee_views import rp as f
+        from .issue_views import rp as i
+        app.register_blueprint(m)
+        app.register_blueprint(r)
+        app.register_blueprint(p)
+        app.register_blueprint(c)
+        app.register_blueprint(f)
+        app.register_blueprint(i)
 
     os.environ['DEBUG']="1"
 

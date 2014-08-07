@@ -1,4 +1,28 @@
 
+from .extensions import db, mail
+from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
+                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
+                        CommentForm, AddPropertyForm, ModifyPropertyForm,
+                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
+                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
+from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
+                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+from flask.ext.mail import Message
+from flask.ext.security import login_required
+from requests_oauthlib import OAuth2Session
+from flask import (Blueprint, render_template, request, g, redirect, url_for,
+                    abort, flash, session, json, jsonify, current_app,
+                    make_response)
+from itsdangerous import URLSafeTimedSerializer
+from sqlalchemy import or_
+from werkzeug.security import gen_salt
+from werkzeug import secure_filename
+from sys import exc_info as er
+from datetime import datetime as dt
+from geopy.geocoders import Nominatim
+from os import path as fs
+from uuid import uuid4
+import stripe
 #### Blueprint ####
 rp = Blueprint('property', __name__, template_folder = 'templates', static_folder='static')
 #### /Blueprint ####
@@ -26,7 +50,7 @@ def add_property():
     '''
     if not g.user.fee_paid():
         flash('You need to pay to access this endpoint')
-        return redirect(url_for('rentport.properties'))
+        return redirect(url_for('.properties'))
     form=AddPropertyForm()
     if form.validate_on_submit():
         address=request.form['address']
@@ -69,7 +93,7 @@ def add_property():
         db.session.add(p)
         db.session.commit()
         flash("Property added")
-        return redirect(url_for('rentport.properties'))
+        return redirect(url_for('.properties'))
     return render_template('add_property.html', form=form)
 
 @rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
@@ -84,14 +108,14 @@ def modify_property(prop_id):
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
         flash('Not a valid property id')
-        return redirect(url_for('rentport.properties'))
+        return redirect(url_for('.properties'))
     form=ModifyPropertyForm()
     if form.validate_on_submit():
         prop.description=request.form['description']
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
-        return redirect(url_for('rentport.properties'))
+        return redirect(url_for('.properties'))
     form.description.data=prop.description
     return render_template('modify_location.html', form=form, location=prop)
 

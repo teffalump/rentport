@@ -29,6 +29,31 @@ try:
 except:
     EXIF=False
 
+#### EMAIL STRINGS ####
+def new_issue_email(issue):
+    email='New issue! Unit: {0}, Address: {1}\n\nArea: {2}\n\nSeverity: {3}\n\nDescription: {4}\n\nURL: {5}'
+    num = issue.location.apt_number or 'N/A'
+    ad = ' '.join([str(issue.location.address.number), issue.location.address.street])
+    nw=email.format(
+            str(num),
+            ad,
+            issue.area,
+            issue.severity,
+            issue.description,
+            url_for('.show_issue', ident=issue.id, _external=True))
+    return nw
+
+def provider_issue_email(work_order):
+    email='The landlord has picked a provider. Contact them about fixing the issue - {0}:\n\nName: {1}\n\nEmail: {2}\n\nPhone: {3}\n\nWebsite: {4}'
+    t = email.format(
+            url_for('.show_issue', ident=work_order.issue.id, _external=True),
+            work_order.provider.name,
+            work_order.provider.email,
+            work_order.provider.phone,
+            work_order.provider.website)
+    return t
+#### /EMAIL STRINGS ####
+
 #### Blueprint ####
 rp = Blueprint('issue', __name__, template_folder = 'templates', static_folder='static')
 #### /Blueprint ####
@@ -74,7 +99,7 @@ def show_issue(ident):
     provider = None
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('rentport.issues'))
+        return redirect(url_for('.issues'))
     if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
         comment=CommentForm()
@@ -107,13 +132,13 @@ def open_issue():
     lt = g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
-        return redirect(url_for('rentport.issues'))
+        return redirect(url_for('.issues'))
     if not lt.confirmed:
         flash('Need to be confirmed!')
-        return redirect(url_for('rentport.profile'))
+        return redirect(url_for('.issues'))
     if not lt.landlord.fee_paid():
         flash('Landlord needs to pay fee')
-        return redirect(url_for('rentport.issues'))
+        return redirect(url_for('.issues'))
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -151,7 +176,7 @@ def open_issue():
         msg.body = new_issue_email(i)
         mail.send(msg)
         flash('Landlord notified')
-        return redirect(url_for('rentport.issues'))
+        return redirect(url_for('.issues'))
     return render_template('open_issue.html', form=form)
 
 # MUST BE CONFIRMED

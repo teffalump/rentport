@@ -2,10 +2,10 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block styles %}
     {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page="rentport.open_issue"|default('rentport.home') %}
+    {% set active_page=".open_issue"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block scripts %}
@@ -21,7 +21,7 @@ $( "#open_issue_form").submit(function(event) {
 {% block content %}
 <div class="container-fluid">
     <h1>Open Issue</h1>
-    <form action="{{ url_for('rentport.open_issue')}}" method="POST" enctype="multipart/form-data" id="open_issue_form" name="open_issue_form" role="form">
+    <form action="{{ url_for('.open_issue')}}" method="POST" enctype="multipart/form-data" id="open_issue_form" name="open_issue_form" role="form">
       {{ form.hidden_tag() }}
       {{ wtf.form_errors(form, hiddens="only") }}
       {{ wtf.form_field(form.type) }}
