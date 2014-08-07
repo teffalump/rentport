@@ -64,7 +64,6 @@ $( "#comment_form" ).submit(function(event) {
             {% endfor %}
         </ul>
     </div>
-</div>
 {% if comment %}
 <form action="{{ url_for('.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
   {{ comment.hidden_tag() }}
@@ -73,6 +72,7 @@ $( "#comment_form" ).submit(function(event) {
   {{ wtf.form_field(comment.submit) }}
 </form>
 {% endif %}
+</div>
 {% for im in issue.images %}
 <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
 {% endfor %}
