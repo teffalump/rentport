@@ -34,8 +34,12 @@ def properties():
         params:     NONE
         returns:    GET: List of properties
     '''
+    if g.user.fee_paid():
+        form=AddPropertyForm()
+    else:
+        form=None
     props = g.user.properties.all()
-    return render_template('properties.html', props=props)
+    return render_template('properties.html', props=props, form=form)
 
 # PAID ENDPOINT
 @rp.route('/landlord/property/add', methods=['GET', 'POST'])
