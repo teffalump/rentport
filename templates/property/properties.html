@@ -12,20 +12,38 @@
 <div class="container-fluid">
     <div class="panel panel-default">
         <div class="panel-heading"><h1>Properties</h1></div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Apt #</th>
+                    <th>Street #</th>
+                    <th>Street</th>
+                    <th>Neighborhood</th>
+                    <th>City</th>
+                    <th>County</th>
+                    <th>Postcode</th>
+                    <th>Country</th>
+                    <th>Descripton</th>
+                    <th>Tenants</th>
+                </tr>
+            </thead>
+            <tbody>
         {% for property in props %}
-        <p>
-        #{{ property.apt_number }} 
-        {{ property.address.number }} 
-        {{ property.address.street }}
-        {{ property.address.neighborhood}} 
-        {{ property.address.city}} 
-        {{ property.address.county}} 
-        {{ property.address.postcode}} 
-        {{ property.address.country}} 
-        {{ property.description }} 
-        {{ property.current_tenants()|map(attribute='username')|join(', ') }}
-        </p>
+        <tr>
+            <th>#{{ property.apt_number }}</th>
+            <th>{{ property.address.number }}</th>
+            <th>{{ property.address.street }}</th>
+            <th>{{ property.address.neighborhood}}</th>
+            <th>{{ property.address.city}}</th>
+            <th>{{ property.address.county}}</th>
+            <th>{{ property.address.postcode}}</th>
+            <th>{{ property.address.country}}</th>
+            <th>{{ property.description }}</th>
+            <th>{{ property.current_tenants()|map(attribute='username')|join(', ') }}</th>
+        </tr>
         {% endfor %}
+        </tbody>
+        </table>
     </div>
     {% if form %}
     <div class="spanForm">
