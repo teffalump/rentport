@@ -75,7 +75,6 @@ $( "#comment_form" ).submit(function(event) {
   {{ wtf.form_field(comment.submit) }}
 </form>
 {% endif %}
-</div>
 <div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
   <!-- Indicators -->
   <ol class="carousel-indicators">
@@ -100,6 +99,7 @@ $( "#comment_form" ).submit(function(event) {
   <a class="right carousel-control" href="#carousel-example-generic" role="button" data-slide="next">
     <span class="glyphicon glyphicon-chevron-right"></span>
   </a>
+</div>
 </div>
 <div id='messages'></div>
 {% include "flash.html" %}
