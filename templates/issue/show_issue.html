@@ -79,7 +79,7 @@ $( "#comment_form" ).submit(function(event) {
 <div class="row">
     {% for im in issue.images %}
     <div class="col-xs-6 col-md-3">
-        <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
+        <img class="img-responsive" src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
     </div>
     {% endfor %}
 <div class="row">
