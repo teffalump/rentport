@@ -23,13 +23,13 @@
             </thead>
             <tbody>
         {% for issue in issues.items %}
-                <tr>
+        {# show <span class="badge">{{ issue.num_of_comments() }}</span></a> {% if issue.status != 'Closed' %}{% if issue.landlord_id == g.user.id or issue.creator_id == g.user.id %}<a class="btn btn-default btn-sm" href="{{ url_for('.close_issue', ident=issue.id)}}">close</a>{% endif %}{% endif %}</th>#}
+                <tr class='clickableRow' href="{{ url_for('.show_issue', ident=issue.id) }}">
                     <th>@{{ issue.creator.username}}</th>
                     <th>{{ issue.severity }}</th>
                     <th>{{ issue.area}}</th>
                     <th>{{ issue.status}}</th>
                     <th>{{ issue.opened.strftime('%Y/%m/%d') }}</th>
-                    {#<th><a class="btn btn-default btn-sm" href="{{ url_for('.show_issue', ident=issue.id) }}">show <span class="badge">{{ issue.num_of_comments() }}</span></a> {% if issue.status != 'Closed' %}{% if issue.landlord_id == g.user.id or issue.creator_id == g.user.id %}<a class="btn btn-default btn-sm" href="{{ url_for('.close_issue', ident=issue.id)}}">close</a>{% endif %}{% endif %}</th>#}
                 </tr>
         {% endfor %}
             </tbody>
@@ -43,4 +43,8 @@
     </ul>
 </div>
 {% include "flash.html" %}
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
 {% endblock %}
