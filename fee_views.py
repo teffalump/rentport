@@ -24,7 +24,7 @@ from os import path as fs
 from uuid import uuid4
 import stripe
 #### Blueprint ####
-rp = Blueprint('fee', __name__, template_folder = 'templates', static_folder='static')
+rp = Blueprint('fee', __name__, template_folder = 'templates/fee', static_folder='static')
 #### /Blueprint ####
 
 

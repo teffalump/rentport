@@ -1,5 +1,9 @@
 ## Payment/Oauth routes
 
+#### Blueprint ####
+rp = Blueprint('payment', __name__, template_folder = 'templates/payment', static_folder='static')
+#### /Blueprint ####
+
 #### PAYMENTS ####
 # RISK
 # PAID ENDPOINT

@@ -24,7 +24,7 @@ from uuid import uuid4
 import stripe
 
 #### Blueprint ####
-rp = Blueprint('misc', __name__, template_folder = 'templates', static_folder='static')
+rp = Blueprint('misc', __name__, template_folder = 'templates/misc', static_folder='static')
 #### /Blueprint ####
 
 #### UTILS ####

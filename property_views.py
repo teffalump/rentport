@@ -1,4 +1,3 @@
-
 from .extensions import db, mail
 from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
@@ -22,9 +21,9 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-import stripe
+
 #### Blueprint ####
-rp = Blueprint('property', __name__, template_folder = 'templates', static_folder='static')
+rp = Blueprint('property', __name__, template_folder = 'templates/property', static_folder='static')
 #### /Blueprint ####
 
 ##### PROPERTIES #####

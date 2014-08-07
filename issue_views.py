@@ -55,7 +55,7 @@ def provider_issue_email(work_order):
 #### /EMAIL STRINGS ####
 
 #### Blueprint ####
-rp = Blueprint('issue', __name__, template_folder = 'templates', static_folder='static')
+rp = Blueprint('issue', __name__, template_folder = 'templates/issue', static_folder='static')
 #### /Blueprint ####
 
 #### ISSUES ####

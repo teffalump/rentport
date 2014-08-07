@@ -26,7 +26,7 @@
 
         <li class="list-group-item">joined: {{g.user.joined.strftime('%Y/%m/%d')}}</li>
         {% if g.user.current_landlord() %}
-        <li class="list-group-item">landlord: {{g.user.current_landlord().username}} ... <a href="{{ url_for('.end_relation') }}">End?</a></li>
+        <li class="list-group-item">landlord: {{g.user.current_landlord().username}} ... <a href="{{ url_for('relation.end_relation') }}">End?</a></li>
         {% endif %}
         {% if tenants %}
             <li class="list-group-item">tenants:
