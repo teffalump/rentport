@@ -36,7 +36,7 @@
                     {%- if g.user.properties.count() >= 1 %}
                         {{ render_link('property.properties', 'Show properties', active=active_page) }}
                         {{ render_link('property.show_providers', 'Show providers', active=active_page) }}
-                        {{ render_link('propert.add_provider', 'Add provider', active=active_page) }}
+                        {{ render_link('property.add_provider', 'Add provider', active=active_page) }}
                     {%- endif %}
                     {%- if g.user.fee_paid() %}
                         {{ render_link('property.add_property', 'Add property', active=active_page) }}
