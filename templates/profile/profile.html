@@ -34,6 +34,7 @@
             </li>
         {% endif %}
         <li class="list-group-item">last ip: {{g.user.last_login_ip}}</li>
+        <li class="list-group-item">paid through: {{g.user.paid_through.strftime('%Y/%m/%d')}}</li>
         <li class="list-group-item">Notify method: {{g.user.notify_method}} {% if g.user.notify_confirmed %}<b class="glyphicon glyphicon-check"></b>
         {% else %}<b class="glyphicon glyphicon-unchecked"></b><form action="{{ url_for('.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">
         {{ resend_form.hidden_tag() }}

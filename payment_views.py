@@ -63,42 +63,6 @@ def pay_rent(amount):
     else:
         return render_template('get_pay_amount.html', landlord=lt.landlord, user=g.user)
 
-# RISK
-@rp.route('/pay/fee', methods=['POST', 'GET'])
-@login_required
-def pay_fee():
-    if request.method == 'POST':
-        token = request.form['stripeToken']
-        try:
-            charge = stripe.Charge.create(
-                  api_key=current_app.config['STRIPE_CONSUMER_SECRET'],
-                  amount=current_app.config['FEE_AMOUNT'],
-                  currency="usd",
-                  card=token,
-                  description=':'.join([str(g.user.id), g.user.username])
-                  )
-            c = Fee(pay_id=charge.id)
-            g.user.fees.append(c)
-            db.session.add(c)
-            db.session.commit()
-            g.user.paid_through=max(g.user.paid_through,dt.utcnow())+c.length
-            db.session.add(g.user)
-            db.session.commit()
-            flash('Payment processed')
-        except stripe.error.CardError:
-            flash('Card error')
-        except stripe.error.AuthenticationError:
-            flash('Authentication error')
-        except Exception:
-            flash('Other payment error')
-        finally:
-            return redirect(url_for('rentport.fees'))
-
-    else:
-        return render_template('pay_service_fee.html',
-                                amount=current_app.config['FEE_AMOUNT'],
-                                key=current_app.config['STRIPE_CONSUMER_KEY'])
-
 @rp.route('/payments', methods=['GET'])
 @rp.route('/payments/<int(min=1):page>', methods=['GET'])
 @rp.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])

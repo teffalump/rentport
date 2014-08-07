@@ -1,4 +1,3 @@
-
 from .extensions import db, mail
 from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
@@ -23,6 +22,7 @@ from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
 import stripe
+
 #### Blueprint ####
 rp = Blueprint('fee', __name__, template_folder = 'templates/fee', static_folder='static')
 #### /Blueprint ####
@@ -40,6 +40,42 @@ def fees(page=1, per_page=current_app.config['PAYMENTS_PER_PAGE']):
         returns:    GET: template'''
     fees=g.user.fees.paginate(page, per_page, False)
     return render_template('fees.html', fees=fees)
+
+# RISK
+@rp.route('/fees/pay', methods=['POST', 'GET'])
+@login_required
+def pay_fee():
+    if request.method == 'POST':
+        token = request.form['stripeToken']
+        try:
+            charge = stripe.Charge.create(
+                  api_key=current_app.config['STRIPE_CONSUMER_SECRET'],
+                  amount=current_app.config['FEE_AMOUNT'],
+                  currency="usd",
+                  card=token,
+                  description=':'.join([str(g.user.id), g.user.username])
+                  )
+            c = Fee(pay_id=charge.id)
+            g.user.fees.append(c)
+            db.session.add(c)
+            db.session.commit()
+            g.user.paid_through=max(g.user.paid_through,dt.utcnow())+c.length
+            db.session.add(g.user)
+            db.session.commit()
+            flash('Payment processed')
+        except stripe.error.CardError:
+            flash('Card error')
+        except stripe.error.AuthenticationError:
+            flash('Authentication error')
+        except Exception:
+            flash('Other payment error')
+        finally:
+            return redirect(url_for('rentport.fees'))
+
+    else:
+        return render_template('pay_service_fee.html',
+                                amount=current_app.config['FEE_AMOUNT'],
+                                key=current_app.config['STRIPE_CONSUMER_KEY'])
 
 @rp.route('/fees/<int:pay_id>/show', methods=['GET'])
 @login_required
