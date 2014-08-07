@@ -117,7 +117,8 @@ def show_issue(ident):
         close=CloseIssueForm()
         comment=CommentForm()
         if issue.work_orders.first() is None:
-            ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
+            #ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
+            ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
             if ps:
                 provider=SelectProviderForm()
                 provider.provider.choices=ps
