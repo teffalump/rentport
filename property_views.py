@@ -65,14 +65,14 @@ def add_property():
         loc = n.geocode(fs)
         if not loc:
             flash("Address not found")
-            return render_template('add_property.html', form=form)
+            return redirect(url_for('.properties'))
         ad = [x.strip() for x in loc[0].split(',')]
         try:
             int(ad[0])
         except:
             #no number
             flash("Ambiguous address")
-            return render_template('add_property.html', form=form)
+            return redirect(url_for('.properties'))
         if len(ad) != 8:
             #no neighborhood
             ad.insert(2, None)
