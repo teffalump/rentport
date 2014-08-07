@@ -258,7 +258,8 @@ def authorize_provider(ident):
     if issue.work_orders.first():
         return jsonify({'error': 'Provider already selected'})
     form=SelectProviderForm()
-    ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
+    #ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
+    ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
     if not ps:
         return jsonify({'error': 'No relevant providers'})
     form.provider.choices=ps
