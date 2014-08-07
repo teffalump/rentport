@@ -29,10 +29,6 @@ class OpenIssueForm(Form):
     description=TextAreaField('Description', [DataRequired()])
     submit=SubmitField('Open')
 
-class PostCommentForm(Form):
-    text=TextAreaField('Comment', [DataRequired()])
-    submit=SubmitField('Respond')
-
 class CloseIssueForm(Form):
     reason=TextAreaField('Reason', [DataRequired()])
     submit=SubmitField('Close')

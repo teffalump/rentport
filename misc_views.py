@@ -1,5 +1,5 @@
 from .extensions import db, mail
-from .forms import (OpenIssueForm, PostCommentForm, CloseIssueForm,
+from .forms import (OpenIssueForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,

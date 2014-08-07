@@ -10,6 +10,7 @@
 {% block scripts %}
 {{ super() }}
 <script type="text/javascript">
+jQuery(document).ready(function($) {
 $( "#comment_form" ).submit(function(event) {
     event.preventDefault();
     var $form = $( this ),
@@ -26,6 +27,7 @@ $( "#comment_form" ).submit(function(event) {
         });
     $('#comment').val('');
     });
+});
 </script>
 {% endblock %}
 {% block content %}
@@ -44,6 +46,7 @@ $( "#comment_form" ).submit(function(event) {
       {{ wtf.form_errors(close, hiddens="only") }}
       {{ wtf.form_field(close.reason) }}
       {{ wtf.form_field(close.submit) }}
+    </form>
     {% endif %}
     <div class="panel panel-default">
         <div class="panel-heading">
