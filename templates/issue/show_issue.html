@@ -87,8 +87,8 @@ $( "#comment_form" ).submit(function(event) {
   <!-- Wrapper for slides -->
   <div class="carousel-inner">
   {% for im in issue.images %}
-    <div class="item">
-      <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
+    <div class="item active">
+      <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}">
     </div>
   {% endfor %}
   </div>
