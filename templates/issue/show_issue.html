@@ -76,9 +76,13 @@ $( "#comment_form" ).submit(function(event) {
 </form>
 {% endif %}
 </div>
-{% for im in issue.images %}
-<img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
-{% endfor %}
+<div class="row">
+    {% for im in issue.images %}
+    <div class="col-xs-6 col-md-3">
+        <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
+    </div>
+    {% endfor %}
+<div class="row">
 <div id='messages'></div>
 {% include "flash.html" %}
 {% endblock %}
