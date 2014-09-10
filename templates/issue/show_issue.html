@@ -75,10 +75,12 @@ $( "#comment_form" ).submit(function(event) {
   {{ wtf.form_field(comment.submit) }}
 </form>
 {% endif %}
+{% with ims = issue.images %}
+{% if ims.count() > 0 %}
 <div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
   <!-- Indicators -->
   <ol class="carousel-indicators">
-      {% for im in issue.images %}
+      {% for im in ims %}
           {% if loop.first %}
               <li data-target="#carousel-example-generic" data-slide-to="{{ loop.index0 }}" class="active"></li>
           {% else %}
@@ -88,17 +90,17 @@ $( "#comment_form" ).submit(function(event) {
   </ol>
 
   <!-- Wrapper for slides -->
-  <div class="carousel-inner">
-  {% for im in issue.images %}
-      {% if loop.first %}
-        <div class="item active">
-    {% else %}
-        <div class="item">
-    {% endif %}
-      <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}">
-    </div>
-  {% endfor %}
-  </div>
+      <div class="carousel-inner">
+      {% for im in ims %}
+          {% if loop.first %}
+            <div class="item active">
+          {% else %}
+            <div class="item">
+          {% endif %}
+          <img src="{{ url_for('misc.show_img', image_uuid=im.uuid) }}"/>
+            </div>
+      {% endfor %}
+      </div>
 
   <!-- Controls -->
   <a class="left carousel-control" href="#carousel-example-generic" role="button" data-slide="prev">
@@ -108,7 +110,10 @@ $( "#comment_form" ).submit(function(event) {
     <span class="glyphicon glyphicon-chevron-right"></span>
   </a>
 </div>
+{% endif %}
+{% endwith %}
 </div>
+
 <div id='messages'></div>
 {% include "flash.html" %}
 {% endblock %}

@@ -105,7 +105,7 @@ def show_issue(ident):
         params:     GET: <ident> absolute id
         returns:    GET: detailed issue page
     '''
-    issue=g.user.all_issues().filter(Issue.status=='Open',
+    issue=g.user.all_issues().filter(
                     Issue.id==ident).first()
     comment = None
     close = None
@@ -113,6 +113,12 @@ def show_issue(ident):
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('.issues'))
+    if issue.status == 'Closed':
+        #flash('That issue is closed')
+        return render_template('show_issue.html', issue=issue,
+                                            comment=comment,
+                                            close=close,
+                                            provider=provider)
     if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
         comment=CommentForm()

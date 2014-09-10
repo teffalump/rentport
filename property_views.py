@@ -189,15 +189,16 @@ def show_providers(prov_id):
                         'phone': b.phone,
                         'website': b.website})
     else:
-        a=[]
-        for b in g.user.providers.all():
-            a.append({'name': b.name,
-                        'email': b.email,
-                        'service': b.service,
-                        'phone': b.phone,
-                        'website': b.website})
-        if a:
-            return jsonify({'success': 'Providers found',
-                            'providers': a})
-        return jsonify({'error': 'No provider'})
+        #a=[]
+        #for b in g.user.providers.all():
+            #a.append({'name': b.name,
+                        #'email': b.email,
+                        #'service': b.service,
+                        #'phone': b.phone,
+                        #'website': b.website})
+        #if a:
+            #return jsonify({'success': 'Providers found',
+                            #'providers': a})
+        #return jsonify({'error': 'No provider'})
+        return render_template('show_providers.html', providers=g.user.providers.all())
 #### /PROPERTIES ####

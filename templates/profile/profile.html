@@ -15,14 +15,14 @@
     <ul class="list-group">
         <li class="list-group-item">username: {{g.user.username}}</li>
         <li class="list-group-item">email: {{g.user.email}}</li>
-        {% if g.user.phone %}<li class="list-group-item">phone: {{ '+'+'-'.join([g.user.phone[:-10], g.user.phone[-10:-7], g.user.phone[-7:-4], g.user.phone[-4:]])}}{% if g.user.phone_confirmed %} <b class="glyphicon glyphicon-check"></b>{% else %} <b class="glyphicon glyphicon-unchecked"></b></li>{% endif %}{% endif %}
+        {#{% if g.user.phone %}<li class="list-group-item">phone: {{ '+'+'-'.join([g.user.phone[:-10], g.user.phone[-10:-7], g.user.phone[-7:-4], g.user.phone[-4:]])}}{% if g.user.phone_confirmed %} <b class="glyphicon glyphicon-check"></b>{% else %} <b class="glyphicon glyphicon-unchecked"></b></li>{% endif %}{% endif %}
         <form action="{{ url_for('.phone') }}" method="POST" role="form" class="form-inline">
           {{ phone_form.hidden_tag() }}
           {{ wtf.form_errors(phone_form, hiddens="only") }}
           {{ wtf.form_field(phone_form.phone) }}
           {{ wtf.form_field(phone_form.country) }}
           {{ wtf.form_field(phone_form.submit) }}
-      </form>
+        </form>#}
 
         <li class="list-group-item">joined: {{g.user.joined.strftime('%Y/%m/%d')}}</li>
         {% if g.user.current_landlord() %}

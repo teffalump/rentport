@@ -21,14 +21,6 @@
                         {{ render_link(end, text, active=active_page)}}
                     {%- endfor %}
                 </ul>
-            <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Fees <b class="caret"></b></a>
-                <ul class="dropdown-menu">
-                    {%- for end, text in [ ('fee.pay_fee', 'Pay fee')] %}
-                        {{ render_link(end, text, active=active_page)}}
-                    {%- endfor %}
-                </ul>
-            </li>
             {% if g.user.fees.count() >= 1 or g.user.fee_paid() %}
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Properties <b class="caret"></b></a>
@@ -42,7 +34,7 @@
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
                 <ul class="dropdown-menu">
-                    {%- for end, text in [('profile.profile', 'Profile'), ('security.change_password', 'Change password'), ('profile.notify', 'Change notifications')] %}
+                    {%- for end, text in [('profile.profile', 'Profile'), ('security.change_password', 'Change password'), ('profile.notify', 'Change notifications'), ('fee.pay_fee', 'Pay fee')] %}
                         {{ render_link(end, text, active=active_page) }}
                     {%- endfor %}
                 </ul>

@@ -10,6 +10,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+{#<script type="text/javascript">
 $( "#open_issue_form").submit(function(event) {
     event.preventDefault();
     var $form = $( this ),
@@ -17,6 +18,7 @@ $( "#open_issue_form").submit(function(event) {
         data=$form.serialize();
     var return = $.post(url, data);
     });
+</script>#}
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
