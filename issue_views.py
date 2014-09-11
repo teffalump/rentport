@@ -72,11 +72,11 @@ rp = Blueprint('issue', __name__, template_folder = 'templates/issue', static_fo
 #### /Blueprint ####
 
 #### ISSUES ####
-@rp.route('/issues', methods=['GET'])
-@rp.route('/issues/<int(min=1):page>', methods=['GET'])
+@rp.route('/issues', defaults={'page':1, 'per_page':current_app.config['ISSUES_PER_PAGE']}, methods=['GET'])
+@rp.route('/issues/<int(min=1):page>', defaults={'per_page':current_app.config['ISSUES_PER_PAGE']}, methods=['GET'])
 @rp.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
-def issues(page=1, per_page=current_app.config['ISSUES_PER_PAGE']):
+def issues(page, per_page):
     '''display main issues page
         params:     GET: <page> page number (optional)
                     GET: <per_page> # of issues per page (optional)
