@@ -21,24 +21,12 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
+from .utils import get_url, allowed_file
 import stripe
 
 #### Blueprint ####
 rp = Blueprint('misc', __name__, template_folder = 'templates/misc', static_folder='static')
 #### /Blueprint ####
-
-#### UTILS ####
-def get_url(endpoint, **kw):
-    '''Return endpoint url, or next arg url'''
-    try:
-        return request.args['next']
-    except:
-        return url_for(endpoint, **kw)
-
-def allowed_file(filename):
-    return '.' in filename and \
-       filename.rsplit('.', 1)[1] in current_app.config['ALLOWED_EXTENSIONS']
-#### /UTILS ####
 
 #### DEFAULT ####
 @rp.route('/')

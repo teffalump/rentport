@@ -1,0 +1,35 @@
+{% extends "bootstrap/base.html" %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
+    {% include "base_nav.html" %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3>Unconfirmed tenants</h3></div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Landlord</th>
+                    <th>Location</th>
+                    <th>Confirm?</th>
+                </tr>
+            </thead>
+            <tbody>
+        {% for l, p, c, d in urls %}
+                <tr>
+                    <th>@{{ l }}</th>
+                    <th>{{ p }}</th>
+                    <th><a class="btn-primary btn" href="{{c}}">Confirm</a><a class="btn-danger btn" href="{{ d }}">Decline</a></th>
+                </tr>
+        {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </ul>
+{% include "flash.html" %}
+</div>
+{% endblock %}

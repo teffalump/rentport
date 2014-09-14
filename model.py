@@ -92,7 +92,8 @@ class User(db.Model, UserMixin):
  
     def current_landlord(self):
         '''Return user's current landlord else None'''
-        return getattr(self.landlords.filter(LandlordTenant.current==True).first(), 'landlord', None)
+        return getattr(self.landlords.filter(LandlordTenant.current==True,
+                                            LandlordTenant.confirmed==True).first(), 'landlord', None)
 
     def current_location_issues(self):
         '''Return issues at user's current rental location'''
@@ -128,6 +129,12 @@ class User(db.Model, UserMixin):
     def unconfirmed_tenants(self):
         return User.query.join(User.landlords).\
                 filter(LandlordTenant.landlord_id==self.id,
+                        LandlordTenant.current==True,
+                        LandlordTenant.confirmed==False)
+
+    def unconfirmed_requests(self):
+        return User.query.join(User.landlords).\
+                filter(LandlordTenant.tenant_id==self.id,
                         LandlordTenant.current==True,
                         LandlordTenant.confirmed==False)
 

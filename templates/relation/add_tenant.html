@@ -1,0 +1,8 @@
+{% import "bootstrap/wtf.html" as wtf %}
+<form action="{{ url_for('relation.add_tenant') }}" method="POST" name="add_tenant_form" role="form">
+  {{ form.hidden_tag() }}
+  {{ wtf.form_errors(form, hiddens="only") }}
+  {{ wtf.form_field(form.user) }}
+  {{ wtf.form_field(form.apt) }}
+  {{ wtf.form_field(form.submit) }}
+</form>

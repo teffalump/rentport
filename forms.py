@@ -45,6 +45,11 @@ class ConfirmTenantForm(Form):
     confirm=SubmitField('Confirm', default='True')
     disallow=SubmitField('Disallow', default='False')
 
+class AddTenantForm(Form):
+    user=StringField('User', [DataRequired()])
+    apt=SelectField('Property', coerce=int)
+    submit=SubmitField('Invite')
+
 class CommentForm(Form):
     comment=TextAreaField('Comment', [DataRequired()])
     submit=SubmitField('Add Comment')
