@@ -46,13 +46,13 @@ def stripe_hook():
         acct=c.get('user_id', None)
         if c['type']=='account.application.deauthorized':
             t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
-            if not t: return ''
+            if not t: return 'not a user'
             db.session.delete(t)
             db.session.commit()
-        elif c['data']['object']=='charge':
-            i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
-                    or Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
-            if not i: return ''
+        elif c['type']['object']=='charge':
+            #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
+            i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
+            if not i: return 'no fee'
             if c['type']=='charge.succeeded':
                 i.status='Confirmed'
             elif c['type']=='charge.refunded':
@@ -87,7 +87,7 @@ def stripe_hook():
             pass
         return ''
     except:
-        return ''
+        return 'error'
 
 @rp.route('/hook/twilio')
 def twilio_hook():
