@@ -126,9 +126,6 @@ def confirm_invite(token):
         else:
             flash('No outstanding requests')
             return redirect(url_for('misc.home'))
-    if g.user.current_landlord():
-        flash('End relationship with current landlord first')
-        return redirect(url_for('.end_relation', next=url_for('.confirm_invite', token=token)))
     s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['INVITE_CONFIRM_SALT'])
     sig_okay, payload = s.loads_unsafe(token, max_age=current_app.config['INVITE_CONFIRM_WITHIN'])
     if sig_okay:
@@ -138,6 +135,9 @@ def confirm_invite(token):
                 flash('Already confirmed')
             else:
                 if payload[2] == 'Confirm':
+                    if g.user.current_landlord():
+                        flash('End relationship with current landlord first')
+                        return redirect(url_for('.end_relation', next=url_for('.confirm_invite', token=token)))
                     lt.confirmed=True
                     db.session.add(lt)
                     db.session.commit()
