@@ -12,7 +12,8 @@
 <div class="container-fluid">
     <div class="panel panel-default">
         <div class="panel-heading"><h3>Properties</h3></div>
-        <table class="table table-responsive table-condensed">
+        <div class="table-responsive">
+            <table class="table table-condensed">
             <thead>
                 <tr>
                     <th>Apt #</th>
@@ -44,7 +45,7 @@
         {% endfor %}
         </tbody>
     </table>
-    </div>
+    </div></div>
     {% if form %}
     <div class="spanForm">
         <button class="btn btn-default" data-toggle="collapse" data-target="#propForm">Add property form</button>
