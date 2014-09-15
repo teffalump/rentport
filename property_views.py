@@ -155,7 +155,7 @@ def modify_property(prop_id):
                                                     #prop=prop,
                                                     #prov=prov)
 
-@rp.route('/landlord/provider/add', methods=['GET', 'POST'])
+@rp.route('/landlord/provider/add', methods=['POST'])
 @login_required
 def add_provider():
     '''Add provider'''
@@ -189,6 +189,7 @@ def show_providers(prov_id):
                         'phone': b.phone,
                         'website': b.website})
     else:
+        form=AddProviderForm()
         #a=[]
         #for b in g.user.providers.all():
             #a.append({'name': b.name,
@@ -200,5 +201,6 @@ def show_providers(prov_id):
             #return jsonify({'success': 'Providers found',
                             #'providers': a})
         #return jsonify({'error': 'No provider'})
-        return render_template('show_providers.html', providers=g.user.providers.all())
+        return render_template('show_providers.html', providers=g.user.providers.all(), form=form,
+                action=url_for('.add_provider'))
 #### /PROPERTIES ####
