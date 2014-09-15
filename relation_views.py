@@ -15,6 +15,7 @@ from flask import (Blueprint, render_template, request, g, redirect, url_for,
                     make_response)
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
@@ -76,15 +77,18 @@ def add_tenant():
             if tenant.current_landlord():
                 flash('That tenant already has a landlord')
                 return redirect(url_for('.add_tenant'))
-            lt=LandlordTenant(location_id=loc_id)
-            lt.tenant=tenant
-            g.user.tenants.append(lt)
-            db.session.add(lt)
-            db.session.commit()
-            msg = Message('Tenant invite', recipients=[tenant.email])
-            msg.body=user_email_invite(lt)
-            mail.send(msg)
-            flash('Invited tenant')
+            try:
+                lt=LandlordTenant(location_id=loc_id)
+                lt.tenant=tenant
+                g.user.tenants.append(lt)
+                db.session.add(lt)
+                db.session.commit()
+                msg = Message('Tenant invite', recipients=[tenant.email])
+                msg.body=user_email_invite(lt)
+                mail.send(msg)
+                flash('Invited tenant')
+            except IntegrityError:
+                flash('Invite already sent')
             return redirect(url_for('misc.home'))
         else:
             flash('No user with that info')
@@ -107,7 +111,7 @@ def confirm_invite(token):
         if requests:
             urls=[]
             for req in requests:
-                #slow?
+                #ugly? I mean, I could move it to POST but w/e
                 s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['INVITE_CONFIRM_SALT'])
                 confirm=s.dumps([req.landlord.id, req.id, 'Confirm'])
                 s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['INVITE_CONFIRM_SALT'])
@@ -185,68 +189,4 @@ def end_relation():
         return redirect(get_url('misc.home'))
     return render_template('end_relation.html', form=form, landlord=lt.landlord)
 
-# ALERT USER(S)
-#@rp.route('/landlord/<landlord>/add', methods=['GET', 'POST'])
-#@login_required
-#def add_landlord(landlord):
-    #'''make landlord request
-        #params:     POST:       <location> location id
-                    #GET/POST:   <landlord> landlord username
-        #returns:    POST:       Redirect
-                    #GET:        Request form
-    #'''
-    #if g.user.current_landlord():
-        #flash('End relationship with current landlord first')
-        #return redirect(url_for('.end_relation', next=url_for('.add_landlord', landlord=landlord)))
-    #landlord=User.query.filter(User.username==landlord).first_or_404()
-    #landlord.properties.first_or_404()
-    #form=AddLandlordForm()
-    #form.location.choices=[(x.id, ' '.join([str(x.address.number), x.address.street])) for x in landlord.properties.all()]
-    #if form.validate_on_submit():
-        #loc_id=int(request.form['location'])
-        #landlord.properties.filter(Property.id==loc_id).first_or_404()
-        #lt=LandlordTenant(location_id=loc_id)
-        #lt.tenant=g.user
-        #landlord.tenants.append(lt)
-        #db.session.add(lt)
-        #db.session.commit()
-        #flash('Added landlord')
-        #return redirect(url_for('misc.home'))
-    #return render_template('add_landlord.html', form=form, landlord=landlord)
-
-
-# ALERT USER(S)
-#@rp.route('/landlord/confirm', defaults={'tenant': None}, methods=['GET'])
-#@rp.route('/landlord/<tenant>/confirm', methods=['POST'])
-#@login_required
-#def confirm_relation(tenant):
-    #'''confirm tenant request
-        #params:     GET: tenant
-                    #POST: confirm
-        #returns:    GET: list of unconfirmed
-                    #POST: redirect
-    #'''
-    #form=ConfirmTenantForm()
-    #if form.validate_on_submit():
-        #lt=LandlordTenant.query.\
-                #join(User.landlords).filter(LandlordTenant.landlord_id==g.user.id,
-                        #LandlordTenant.current==True,
-                        #LandlordTenant.confirmed==False,
-                        #User.username==tenant).\
-                #first_or_404()
-        #if request.form.get('confirm', None):
-            #lt.confirmed=True
-            #db.session.add(lt)
-            #db.session.commit()
-            #flash('Confirmed tenant request')
-        #else:
-            #db.session.delete(lt)
-            #db.session.commit()
-            #flash('Disallowed tenant request')
-        #return redirect(url_for('misc.home'))
-    #tenants=g.user.unconfirmed_tenants().all()
-    #if not tenants:
-        #flash('No unconfirmed tenant requests')
-        #return redirect(url_for('misc.home'))
-    #return render_template('unconfirmed_tenants.html', tenants=tenants, form=form)
 #### /LANDLORD ####
