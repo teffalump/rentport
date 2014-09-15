@@ -44,8 +44,8 @@ def stripe_hook():
             c = stripe.Event.retrieve(event['id'],
                     api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
             if not c: return 'No event'
-            acct=c.get('user_id', None)
-            if not acct: return 'No acct'
+            #acct=c.get('user_id', None)
+            #if not acct: return 'No acct'
             if c['type']['object']=='charge':
                 #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
                 i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
