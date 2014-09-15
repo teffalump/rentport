@@ -93,7 +93,15 @@ def add_tenant():
         else:
             flash('No user with that info')
             return redirect(url_for('.add_tenant'))
-    return render_template('add_tenant.html', form=form)
+    try:
+        i=int(request.args['ident'])
+        options=[(x,y) for x, y in form.apt.choices if x == i]
+        if options:
+            form.apt.choices=options
+    except:
+        pass
+    finally:
+        return render_template('add_tenant.html', form=form)
 
 #FIX I'm breaking the rule of no GET side-effects
 @rp.route('/landlord/confirm', defaults={'token': None}, methods=['GET'])

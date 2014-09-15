@@ -30,7 +30,7 @@
             </thead>
             <tbody>
         {% for property in props %}
-        <tr>
+        <tr class='clickableRow' href="{{ url_for('relation.add_tenant', ident=property.id) }}">
             <th>{% if property.apt_number %}#{{ property.apt_number }}{% else %}---{% endif %}</th>
             <th>{{ property.address.number }}</th>
             <th>{{ property.address.street }}</th>
@@ -65,4 +65,8 @@
     {% endif %}
     {% include "flash.html" %}
 </div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
 {% endblock %}
