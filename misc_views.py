@@ -87,7 +87,7 @@ def stripe_hook():
             pass
         return ''
     except:
-        return er()
+        return str(er())
 
 @rp.route('/hook/twilio')
 def twilio_hook():
