@@ -38,56 +38,67 @@ def home():
 #### HOOKS ####
 @rp.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
-    #TODO Add more hooks
     try:
         event=json.loads(request.data)
-        c = stripe.Event.retrieve(event['id'],
-                api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
-        acct=c.get('user_id', None)
-        if c['type']=='account.application.deauthorized':
-            t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
-            if not t: return 'not a user'
-            db.session.delete(t)
-            db.session.commit()
-        elif c['type']['object']=='charge':
-            #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
-            i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
-            if not i: return 'no fee'
-            if c['type']=='charge.succeeded':
-                i.status='Confirmed'
-            elif c['type']=='charge.refunded':
-                i.status='Refunded'
-            elif c['type']=='charge.failed':
-                i.status='Denied'
-            db.session.add(i)
-            db.session.commit()
-        elif c['data']['object']=='dispute':
-            pass
-        elif c['data']['object']=='customer':
-            pass
-        elif c['data']['object']=='card':
-            pass
-        elif c['data']['object']=='subscription':
-            pass
-        elif c['data']['object']=='invoice':
-            pass
-        elif c['data']['object']=='plan':
-            pass
-        elif c['data']['object']=='transfer':
-            pass
-        elif c['data']['object']=='discount':
-            pass
-        elif c['data']['object']=='coupon':
-            pass
-        elif c['data']['object']=='balance':
-            pass
-        elif c['data']['object']=='account':
-            pass
-        else:
-            pass
-        return ''
+        if event:
+            c = stripe.Event.retrieve(event['id'],
+                    api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
+            print(c)
+            acct=c.get('user_id', None)
+            print(acct)
+            if c:
+                if acct:
+                    print(acct)
+                    if c['type']['object']=='charge':
+                        #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
+                        i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
+                        if not i: return 'no fee'
+                        if c['type']=='charge.succeeded':
+                            i.status='Confirmed'
+                        elif c['type']=='charge.refunded':
+                            i.status='Refunded'
+                        elif c['type']=='charge.failed':
+                            i.status='Denied'
+                        else:
+                            return 'Type not supported'
+                        db.session.add(i)
+                        db.session.commit()
+                        return 'Success'
+        return 'Error'
     except:
-        return str(er())
+        return print(er())
+        #if c['type']=='account.application.deauthorized':
+            #t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
+            #if not t: return 'not a user'
+            #db.session.delete(t)
+            #db.session.commit()
+        #elif c['data']['object']=='dispute':
+            #pass
+        #elif c['data']['object']=='customer':
+            #pass
+        #elif c['data']['object']=='card':
+            #pass
+        #elif c['data']['object']=='subscription':
+            #pass
+        #elif c['data']['object']=='invoice':
+            #pass
+        #elif c['data']['object']=='plan':
+            #pass
+        #elif c['data']['object']=='transfer':
+            #pass
+        #elif c['data']['object']=='discount':
+            #pass
+        #elif c['data']['object']=='coupon':
+            #pass
+        #elif c['data']['object']=='balance':
+            #pass
+        #elif c['data']['object']=='account':
+            #pass
+        #else:
+            #pass
+        #return ''
+    #except:
+        #return str(er())
 
 @rp.route('/hook/twilio')
 def twilio_hook():
