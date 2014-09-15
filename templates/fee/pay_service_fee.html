@@ -1,15 +1,15 @@
 {% extends "bootstrap/base.html" %}
 {% block styles %}
     {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page = "rentport.pay_fee"|default('rentport.home') %}
+    {% set active_page = "fee.pay_fee"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
 <h1>Pay Service Fee</h1>
-<form action="{{ url_for('rentport.pay_fee') }}" method="POST" role="form" name="pay_service_form">
+<form action="{{ url_for('fee.pay_fee') }}" method="POST" role="form" name="pay_service_form">
   <script
     src="https://checkout.stripe.com/checkout.js" class="stripe-button"
     data-key="{{ key }}"

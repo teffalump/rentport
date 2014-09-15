@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page = "fee.fees"|default('rentport.home') %}
+    {% set active_page = "fee.fees"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
