@@ -5,7 +5,8 @@ from .forms import (OpenIssueForm, CloseIssueForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
                         AddProviderForm, ConnectProviderForm, SelectProviderForm)
 from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
-                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+                        Fee, Payment, StripeUserInfo, Address, Provider, Image,
+                        StripeEvent)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -39,32 +40,32 @@ def home():
 @rp.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
     try:
-        event=json.loads(request.data)
-        if not event: return 'No event'
-        c = stripe.Event.retrieve(event['id'],
+        event=json.loads(request.data)['object']['id']
+        m = StripeEvent.query.filter(StripeEvent.event==event).first()
+        if m: return 'Event already processed'
+        c = stripe.Event.retrieve(event,
                 api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
-        if not c: return 'No event'
-        #acct=c.get('user_id', None)
-        #if not acct: return 'No acct'
-        if c['type']['object']=='charge':
-            #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
-            i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
-            if not i: return 'no fee'
-            if c['type']=='charge.succeeded':
-                i.status='Confirmed'
-            elif c['type']=='charge.refunded':
-                i.status='Refunded'
-            elif c['type']=='charge.failed':
-                i.status='Denied'
-            else:
-                return 'Type not supported'
-            db.session.add(i)
-            db.session.commit()
-            return 'Success'
+        i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
+        if not i: return 'Charge not found.'
+        if c['type']=='charge.succeeded':
+            i.status='Confirmed'
+        elif c['type']=='charge.refunded':
+            i.status='Refunded'
+        elif c['type']=='charge.failed':
+            i.status='Denied'
         else:
-            return 'Not supported type'
+            return 'Type not handled.'
+        ev = StripeEvent(event=event)
+        db.session.add(i)
+        db.session.add(ev)
+        db.session.commit()
+        return 'Success'
+    except KeyError:
+        return 'Not an event or charge object'
+    except ValueError:
+        return 'Not valid JSON structure'
     except:
-        return print(er())
+        return 'An exception occurred'
         #if c['type']=='account.application.deauthorized':
             #t=StripeUserInfo.query.filter(StripeUserInfo.user_acct==acct).first()
             #if not t: return 'not a user'
