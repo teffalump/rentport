@@ -40,29 +40,29 @@ def home():
 def stripe_hook():
     try:
         event=json.loads(request.data)
-        if event:
-            c = stripe.Event.retrieve(event['id'],
-                    api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
-            if not c: return 'No event'
-            #acct=c.get('user_id', None)
-            #if not acct: return 'No acct'
-            if c['type']['object']=='charge':
-                #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
-                i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
-                if not i: return 'no fee'
-                if c['type']=='charge.succeeded':
-                    i.status='Confirmed'
-                elif c['type']=='charge.refunded':
-                    i.status='Refunded'
-                elif c['type']=='charge.failed':
-                    i.status='Denied'
-                else:
-                    return 'Type not supported'
-                db.session.add(i)
-                db.session.commit()
-                return 'Success'
+        if not event: return 'No event'
+        c = stripe.Event.retrieve(event['id'],
+                api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
+        if not c: return 'No event'
+        #acct=c.get('user_id', None)
+        #if not acct: return 'No acct'
+        if c['type']['object']=='charge':
+            #i=Payment.query.filter(Payment.pay_id==c['data']['object']['id']).first() \
+            i=Fee.query.filter(Fee.pay_id==c['data']['object']['id']).first()
+            if not i: return 'no fee'
+            if c['type']=='charge.succeeded':
+                i.status='Confirmed'
+            elif c['type']=='charge.refunded':
+                i.status='Refunded'
+            elif c['type']=='charge.failed':
+                i.status='Denied'
             else:
-                return 'Not supported type'
+                return 'Type not supported'
+            db.session.add(i)
+            db.session.commit()
+            return 'Success'
+        else:
+            return 'Not supported type'
     except:
         return print(er())
         #if c['type']=='account.application.deauthorized':
