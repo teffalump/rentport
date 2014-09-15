@@ -37,8 +37,12 @@ def profile():
     '''
     resend_form = ResendNotifyForm()
     phone_form = AddPhoneNumber()
+    end_landlord_form=EndLandlordForm()
     tenants = g.user.current_tenants().all()
-    return render_template('profile.html', tenants=tenants, resend_form=resend_form, phone_form=phone_form)
+    return render_template('profile.html',
+            tenants=tenants,
+            end_landlord_form=end_landlord_form,
+            resend_form=resend_form, phone_form=phone_form)
 
 @rp.route('/profile/phone', methods=['POST'])
 @login_required

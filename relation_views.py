@@ -137,7 +137,7 @@ def confirm_invite(token):
                 if payload[2] == 'Confirm':
                     if g.user.current_landlord():
                         flash('End relationship with current landlord first')
-                        return redirect(url_for('.end_relation', next=url_for('.confirm_invite', token=token)))
+                        return redirect(url_for('profile.profile', next=url_for('.confirm_invite', token=token)))
                     lt.confirmed=True
                     db.session.add(lt)
                     db.session.commit()
@@ -186,7 +186,6 @@ def end_relation():
         db.session.add(lt)
         db.session.commit()
         flash('Ended landlord relationship')
-        return redirect(get_url('misc.home'))
+        return redirect(get_url('profile.profile'))
     return render_template('end_relation.html', form=form, landlord=lt.landlord)
-
 #### /LANDLORD ####

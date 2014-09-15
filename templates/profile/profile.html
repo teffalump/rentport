@@ -26,7 +26,8 @@
 
         <li class="list-group-item">joined: {{g.user.joined.strftime('%Y/%m/%d')}}</li>
         {% if g.user.current_landlord() %}
-        <li class="list-group-item">landlord: {{g.user.current_landlord().username}} ... <a href="{{ url_for('relation.end_relation') }}">End?</a></li>
+        <li class="list-group-item">
+            <form action={{ url_for('relation.end_relation') }} method="POST" role="form" class="form-inline">landlord: {{g.user.current_landlord().username}} {{ end_landlord_form.hidden_tag()}} {{wtf.form_errors(end_landlord_form, hiddens="only") }} {{ wtf.form_field(end_landlord_form.submit, button_map={'submit': 'danger'}) }}</form></li>
         {% endif %}
         {% if tenants %}
             <li class="list-group-item">tenants:
@@ -35,11 +36,13 @@
         {% endif %}
         <li class="list-group-item">last ip: {{g.user.last_login_ip}}</li>
         <li class="list-group-item">paid through: {{g.user.paid_through.strftime('%Y/%m/%d')}}</li>
-        <li class="list-group-item">Notify method: {{g.user.notify_method}} {% if g.user.notify_confirmed %}<b class="glyphicon glyphicon-check"></b>
-        {% else %}<b class="glyphicon glyphicon-unchecked"></b><form action="{{ url_for('.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">
+        <li class="list-group-item">
+            {% if g.user.notify_confirmed %}Notify method: {{g.user.notify_method}} <b class="glyphicon glyphicon-check"></b>
+            {% else %}<form action="{{ url_for('.resend_notify_confirm') }}" method="POST" role="form" class="form-inline">Notify method: {{ g.user.notify_method }} <b class="glyphicon glyphicon-unchecked"></b>
         {{ resend_form.hidden_tag() }}
           {{ wtf.form_errors(resend_form, hiddens="only") }}
-          {{ wtf.form_field(resend_form.resend) }}</form>{% endif %}</li>
+          {{ wtf.form_field(resend_form.resend) }}</form>
+        {% endif %}</li>
     </ul>
     </div>
 {% include "flash.html" %}
