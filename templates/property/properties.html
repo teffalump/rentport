@@ -11,8 +11,8 @@
 {% block content %}
 <div class="container-fluid">
     <div class="panel panel-default">
-        <div class="panel-heading"><h1>Properties</h1></div>
-        <table class="table">
+        <div class="panel-heading"><h3>Properties</h3></div>
+        <table class="table table-responsive table-condensed">
             <thead>
                 <tr>
                     <th>Apt #</th>
@@ -30,7 +30,7 @@
             <tbody>
         {% for property in props %}
         <tr>
-            <th>#{{ property.apt_number }}</th>
+            <th>{% if property.apt_number %}#{{ property.apt_number }}{% else %}---{% endif %}</th>
             <th>{{ property.address.number }}</th>
             <th>{{ property.address.street }}</th>
             <th>{{ property.address.neighborhood}}</th>
@@ -43,7 +43,7 @@
         </tr>
         {% endfor %}
         </tbody>
-        </table>
+    </table>
     </div>
     {% if form %}
     <div class="spanForm">
