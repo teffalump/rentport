@@ -215,6 +215,11 @@ class Fee(db.Model):
     pay_id = db.Column(db.Text, nullable=False)
     user = db.relationship("User", backref=db.backref("fees", lazy='dynamic', order_by=id))
 
+class StripeEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    paid_on = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    event = db.Column(db.Text, nullable=False)
+
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
