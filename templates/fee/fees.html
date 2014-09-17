@@ -10,12 +10,33 @@
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-<h1>Fees</h1>
-    {% for fee in fees.items %}
-    <p>
-    {{ fee.status }} | {{ fee.length}} | {{ fee.paid_on }} | <a href="{{ url_for('fee.show_fee', pay_id=fee.id)}}">View</a>
-    </p>
-    {% endfor %}
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3>Fees</h3></div>
+        <div class="table-responsive">
+            <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Length</th>
+                    <th>Paid On</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fee in fees.items %}
+                <tr class="clickableRow" href="{{ url_for('fee.show_fee', pay_id=fee.id)}}">
+                    <th>{{ fee.status }}</th>
+                    <th>{{ fee.length}}</th>
+                    <th>{{ fee.paid_on }}</th>
+                 </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
 {% include "flash.html" %}
 </div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
 {% endblock %}
