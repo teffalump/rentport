@@ -21,7 +21,7 @@ $( "#open_issue_form").submit(function(event) {
 </script>#}
 {% endblock %}
 {% block content %}
-<div class="container-fluid">
+<div id="main" class="container-fluid">
     <h1>Open Issue</h1>
     <form action="{{ url_for('.open_issue')}}" method="POST" enctype="multipart/form-data" id="open_issue_form" name="open_issue_form" role="form">
       {{ form.hidden_tag() }}

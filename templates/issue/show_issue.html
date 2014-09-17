@@ -31,7 +31,7 @@ $( "#comment_form" ).submit(function(event) {
 </script>
 {% endblock %}
 {% block content %}
-<div class="container-fluid">
+<div id="main" class="container-fluid">
     {% if provider %}
     <form action="{{ url_for('.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
       {{ provider.hidden_tag() }}

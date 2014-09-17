@@ -8,6 +8,7 @@
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
+<div id="main" class="container-fluid">
 <h1>Pay Service Fee</h1>
 <form action="{{ url_for('fee.pay_fee') }}" method="POST" role="form" name="pay_service_form">
   <script
@@ -20,4 +21,5 @@
   </script>
 </form>
 {% include "flash.html" %}
+</div>
 {% endblock %}

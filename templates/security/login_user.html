@@ -28,7 +28,7 @@
 </nav>
 {% endblock %}
 {% block content %}
-<div class="container-fluid">
+<div id='main' class="container-fluid">
     <form action="{{ url_for('security.login') }}" method="POST" name="login_user_form" role="form">
       {{ login_user_form.hidden_tag() }}
       {{ wtf.form_errors(login_user_form, hiddens='only') }}
@@ -50,4 +50,8 @@
     </form>
     {% include "flash.html" %}
 </div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}

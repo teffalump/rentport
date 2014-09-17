@@ -5,11 +5,11 @@
     <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page = ".properties"|default('misc.home') %}
+    {% set active_page = "property.properties"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
-<div class="container-fluid">
+<div id="main" class="container-fluid">
     <div class="panel panel-default">
         <div class="panel-heading"><h3>Properties</h3></div>
         <div class="table-responsive">
@@ -30,7 +30,7 @@
             </thead>
             <tbody>
         {% for property in props %}
-        <tr class='clickableRow' href="{{ url_for('relation.add_tenant', ident=property.id) }}">
+        <tr class="clickableRow" href="{{ url_for('relation.add_tenant', ident=property.id) }}">
             <th>{% if property.apt_number %}#{{ property.apt_number }}{% else %}---{% endif %}</th>
             <th>{{ property.address.number }}</th>
             <th>{{ property.address.street }}</th>

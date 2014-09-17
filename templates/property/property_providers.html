@@ -5,11 +5,11 @@
     <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page = "rentport.property_providers"|default('rentport.home') %}
+    {% set active_page = "property.property_providers"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
-<div class="container-fluid">
+<div id="main" class="container-fluid">
     <div class="panel panel-default">
         <div class="panel-heading">
             <h3 class="panel-title">Property providers</h3>

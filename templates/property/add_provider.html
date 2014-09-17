@@ -1,11 +1,13 @@
 {% import "bootstrap/wtf.html" as wtf %}
-<form action="{{ url_for('property.add_provider') }}" method="POST" name="add_provider_form" role="form">
-  {{ form.hidden_tag() }}
-  {{ wtf.form_errors(form, hiddens="only")}}
-  {{ wtf.form_field(form.name, placeholder='Provider name') }}
-  {{ wtf.form_field(form.area, placeholder='Service') }}
-  {{ wtf.form_field(form.email, placeholder='Email') }}
-  {{ wtf.form_field(form.phone, placeholder='Phone') }}
-  {{ wtf.form_field(form.website, placeholder='Website') }}
-  {{ wtf.form_field(form.submit) }}
-</form>
+<div id="main">
+    <form action="{{ url_for('property.add_provider') }}" method="POST" name="add_provider_form" role="form">
+      {{ form.hidden_tag() }}
+      {{ wtf.form_errors(form, hiddens="only")}}
+      {{ wtf.form_field(form.name, placeholder='Provider name') }}
+      {{ wtf.form_field(form.area, placeholder='Service') }}
+      {{ wtf.form_field(form.email, placeholder='Email') }}
+      {{ wtf.form_field(form.phone, placeholder='Phone') }}
+      {{ wtf.form_field(form.website, placeholder='Website') }}
+      {{ wtf.form_field(form.submit) }}
+    </form>
+</div>

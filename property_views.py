@@ -155,7 +155,7 @@ def modify_property(prop_id):
                                                     #prop=prop,
                                                     #prov=prov)
 
-@rp.route('/landlord/provider/add', methods=['POST'])
+@rp.route('/landlord/provider/add', methods=['GET', 'POST'])
 @login_required
 def add_provider():
     '''Add provider'''

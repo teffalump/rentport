@@ -9,6 +9,7 @@
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
+<div id="main" class="container-fluid">
 <h1>Fees</h1>
     {% for fee in fees.items %}
     <p>
@@ -16,4 +17,5 @@
     </p>
     {% endfor %}
 {% include "flash.html" %}
+</div>
 {% endblock %}
