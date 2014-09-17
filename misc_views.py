@@ -40,7 +40,7 @@ def home():
 @rp.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
     try:
-        event=json.loads(request.data)['object']['id']
+        event=json.loads(request.data)['id']
         m = StripeEvent.query.filter(StripeEvent.event==event).first()
         if m: return 'Event already processed'
         c = stripe.Event.retrieve(event,
