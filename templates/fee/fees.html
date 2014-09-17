@@ -17,8 +17,8 @@
             <thead>
                 <tr>
                     <th>Status</th>
-                    <th>Length</th>
                     <th>Paid On</th>
+                    <th>Length</th>
                 </tr>
             </thead>
             <tbody>
@@ -26,7 +26,7 @@
                 <tr class="clickableRow" href="{{ url_for('fee.show_fee', pay_id=fee.id)}}">
                     <th>{{ fee.status }}</th>
                     <th>{{ fee.paid_on.strftime('%Y/%m/%d') }}</th>
-                    <th>{{ fee.length.days }}</th>
+                    <th>{{ fee.length.days }} days</th>
                  </tr>
                 {% endfor %}
             </tbody>
