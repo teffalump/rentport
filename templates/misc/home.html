@@ -13,3 +13,7 @@
 </div>
 {% include "flash.html" %}
 {% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
+{% endblock %}
