@@ -25,8 +25,8 @@
                 {% for fee in fees.items %}
                 <tr class="clickableRow" href="{{ url_for('fee.show_fee', pay_id=fee.id)}}">
                     <th>{{ fee.status }}</th>
-                    <th>{{ fee.length}}</th>
-                    <th>{{ fee.paid_on }}</th>
+                    <th>{{ fee.paid_on.strftime('%Y/%m/%d') }}</th>
+                    <th>{{ fee.length.days }}</th>
                  </tr>
                 {% endfor %}
             </tbody>
