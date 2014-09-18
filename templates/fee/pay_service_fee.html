@@ -9,7 +9,7 @@
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-<h1>Pay Service Fee</h1>
+<h3>Pay Service Fee</h3>
 <form action="{{ url_for('fee.pay_fee') }}" method="POST" role="form" name="pay_service_form">
   <script
     src="https://checkout.stripe.com/checkout.js" class="stripe-button"
@@ -22,4 +22,8 @@
 </form>
 {% include "flash.html" %}
 </div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
 {% endblock %}

@@ -33,10 +33,9 @@
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
                 <ul class="dropdown-menu">
-                    {%- for end, text in [('profile.profile', 'Profile'), ('security.change_password', 'Change password'), ('profile.notify', 'Change notifications')] %}
+                    {%- for end, text in [('profile.profile', 'Profile'), ('security.change_password', 'Change password'), ('profile.notify', 'Change notifications'), ('fee.fees', 'Fees')] %}
                         {{ render_link(end, text, active=active_page) }}
                     {%- endfor %}
-                    <li><a id="serviceFee" href="{{ url_for('fee.pay_fee') }}">Pay fee</a></li>
                 </ul>
             </li>
         </ul>
