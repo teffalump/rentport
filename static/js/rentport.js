@@ -34,7 +34,8 @@ jQuery(document).ready(function($) {
           // Since ajax, initiate dropdown toggle (to hide)
           $('.dropdown.open .dropdown-toggle').dropdown('toggle');
           // Remove old active class
-          $(this).parent('li').siblings( ".active" ).removeClass('active');
+          //$(this).parent('li').siblings( ".active" ).removeClass('active');
+          $('li .active').removeClass('active');
           // Add new active class
           $(this).parent('li').addClass('active');
           return false;
