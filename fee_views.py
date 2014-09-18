@@ -40,16 +40,14 @@ def show_fee(pay_id):
         flash('No fee with that id')
         return jsonify({'error': 'No fee with that id'})
     f = stripe.Charge.retrieve(fee.pay_id,
-                    api_key=current_app.config['STRIPE_CONSUMER_SECRET'])\
-                    .to_dict()
+                    api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
     info=[]
-    for k,v in f.items():
-        if k == 'created':
-            info.append((k, date.fromtimestamp(v).strftime('%Y/%m/%d')))
-        elif k in ['amount', 'currency', 'paid', 'refunded', 'description']:
-            info.append((k,v))
-        else:
-            pass
+    for k in ['amount', 'currency', 'paid', 'refunded', 'description']:
+        info.append((k, getattr(f,k, None)))
+    d = getattr(f,'created', None)
+    if d:
+        info.append(('created', date.fromtimestamp(d).strftime('%Y/%m/%d')))
+
     #return jsonify({k:v for (k,v) in f.items() if k in \
             #['amount', 'currency', 'paid', 'refunded','description']})
     return render_template('show_fee.html', info=info)
