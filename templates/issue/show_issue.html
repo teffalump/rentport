@@ -53,7 +53,7 @@ $( "#comment_form" ).submit(function(event) {
     </div>
 {% if comment %}
     <div class="spanForm">
-        <button class="btn btn-default" data-toggle="collapse" data-target="#comCol">y form</button>
+        <button class="btn btn-default" data-toggle="collapse" data-target="#comCol">Comment form</button>
     </div>
     <div id="comCol" class='collapse well'>
     <form action="{{ url_for('.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
@@ -66,7 +66,7 @@ $( "#comment_form" ).submit(function(event) {
 {% endif %}
 {% if provider %}
     <div class="spanForm">
-        <button class="btn btn-default" data-toggle="collapse" data-target="#provCol">y form</button>
+        <button class="btn btn-default" data-toggle="collapse" data-target="#provCol">Select provider form</button>
     </div>
     <div id="provCol" class='collapse well'>
     <form action="{{ url_for('.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
@@ -79,7 +79,7 @@ $( "#comment_form" ).submit(function(event) {
 {% endif %}
 {% if close %}
     <div class="spanForm">
-        <button class="btn btn-default" data-toggle="collapse" data-target="#closeCol">y form</button>
+        <button class="btn btn-default" data-toggle="collapse" data-target="#closeCol">Close issue form</button>
     </div>
     <div id="closeCol" class='collapse well'>
     <form action="{{ url_for('.close_issue', ident=issue.id) }}" method="POST" id="close_issue_form" name="close_issue_form" role="form">
