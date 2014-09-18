@@ -43,7 +43,7 @@ def properties():
     return render_template('properties.html', props=props, form=form)
 
 # PAID ENDPOINT
-@rp.route('/landlord/property/add', methods=['GET', 'POST'])
+@rp.route('/landlord/property/add', methods=['POST'])
 @login_required
 def add_property():
     '''add property
@@ -155,7 +155,7 @@ def modify_property(prop_id):
                                                     #prop=prop,
                                                     #prov=prov)
 
-@rp.route('/landlord/provider/add', methods=['GET', 'POST'])
+@rp.route('/landlord/provider/add', methods=['POST'])
 @login_required
 def add_provider():
     '''Add provider'''
