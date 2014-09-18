@@ -32,22 +32,6 @@ $( "#comment_form" ).submit(function(event) {
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-    {% if provider %}
-    <form action="{{ url_for('.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
-      {{ provider.hidden_tag() }}
-      {{ wtf.form_errors(provider, hiddens="only") }}
-      {{ wtf.form_field(provider.provider) }}
-      {{ wtf.form_field(provider.submit) }}
-    </form>
-    {% endif %}
-    {% if close %}
-    <form action="{{ url_for('.close_issue', ident=issue.id) }}" method="POST" id="close_issue_form" name="close_issue_form" role="form">
-      {{ close.hidden_tag() }}
-      {{ wtf.form_errors(close, hiddens="only") }}
-      {{ wtf.form_field(close.reason) }}
-      {{ wtf.form_field(close.submit) }}
-    </form>
-    {% endif %}
     <div class="panel panel-default">
         <div class="panel-heading">
                 <div class="btn-group">
@@ -68,12 +52,43 @@ $( "#comment_form" ).submit(function(event) {
         </ul>
     </div>
 {% if comment %}
-<form action="{{ url_for('.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
-  {{ comment.hidden_tag() }}
-  {{ wtf.form_errors(comment, hiddens="only") }}
-  {{ wtf.form_field(comment.comment) }}
-  {{ wtf.form_field(comment.submit) }}
-</form>
+    <div class="spanForm">
+        <button class="btn btn-default" data-toggle="collapse" data-target="#comCol">y form</button>
+    </div>
+    <div id="comCol" class='collapse well'>
+    <form action="{{ url_for('.comment', ident=issue.id) }}" method="POST" id="comment_form" name="comment_form" role="form">
+      {{ comment.hidden_tag() }}
+      {{ wtf.form_errors(comment, hiddens="only") }}
+      {{ wtf.form_field(comment.comment) }}
+      {{ wtf.form_field(comment.submit) }}
+    </form>
+    </div>
+{% endif %}
+{% if provider %}
+    <div class="spanForm">
+        <button class="btn btn-default" data-toggle="collapse" data-target="#provCol">y form</button>
+    </div>
+    <div id="provCol" class='collapse well'>
+    <form action="{{ url_for('.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
+      {{ provider.hidden_tag() }}
+      {{ wtf.form_errors(provider, hiddens="only") }}
+      {{ wtf.form_field(provider.provider) }}
+      {{ wtf.form_field(provider.submit) }}
+    </form>
+    </div>
+{% endif %}
+{% if close %}
+    <div class="spanForm">
+        <button class="btn btn-default" data-toggle="collapse" data-target="#closeCol">y form</button>
+    </div>
+    <div id="closeCol" class='collapse well'>
+    <form action="{{ url_for('.close_issue', ident=issue.id) }}" method="POST" id="close_issue_form" name="close_issue_form" role="form">
+      {{ close.hidden_tag() }}
+      {{ wtf.form_errors(close, hiddens="only") }}
+      {{ wtf.form_field(close.reason) }}
+      {{ wtf.form_field(close.submit) }}
+    </form>
+    </div>
 {% endif %}
 {% with ims = issue.images %}
 {% if ims.count() > 0 %}
