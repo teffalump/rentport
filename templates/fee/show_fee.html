@@ -16,7 +16,7 @@
         </div>
         <div class="panel-body">
         <ul class="list-group">
-            {% for k,v  in info.items() %}
+            {% for (k,v)  in info %}
             <li class="list-group-item">{{ k }}: {{ v }}</li>
             {% endfor %}
         </ul>
