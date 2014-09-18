@@ -18,6 +18,7 @@ from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
+from datetime import date
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
@@ -41,8 +42,14 @@ def show_fee(pay_id):
     f = stripe.Charge.retrieve(fee.pay_id,
                     api_key=current_app.config['STRIPE_CONSUMER_SECRET'])\
                     .to_dict()
-    info={k:v for (k,v) in f.items() if k in \
-            ['amount', 'currency', 'paid', 'refunded','description']}
+    info=[]
+    for k,v in f.items():
+        if k == 'created':
+            info.append((k, date.fromtimestamp(v).strftime('%Y/%m/%d')))
+        elif k in ['amount', 'currency', 'paid', 'refunded', 'description']:
+            info.append((k,v))
+        else:
+            pass
     #return jsonify({k:v for (k,v) in f.items() if k in \
             #['amount', 'currency', 'paid', 'refunded','description']})
     return render_template('show_fee.html', info=info)
