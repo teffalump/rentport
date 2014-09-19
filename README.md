@@ -87,4 +87,4 @@
     + ... Any other?
 
 # Other thoughts
-+ rental agreements? seems security issues are too big... at the moment
++ Rental agreements? Security issues are too big... at the moment
