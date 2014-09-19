@@ -11,7 +11,7 @@
     + stripe (payment)
     + redis (key-store)
     + sqlalchemy (sql modeling)
-        + searchable (full text search)
+        + searchable (full text search) (unused at the moment)
     + flask (web framework)
         + limiter (limit endpoint calls)
         + security (user management, security, email, etc)
