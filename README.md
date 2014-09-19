@@ -17,8 +17,8 @@
         + security (user management, security, email, etc)
         + kvsession (server-side sessions)
         + sqlalchemy (sql)
-    + twilio (text)
-    + dwolla (payment)
+    + twilio (text) (unused at the moment)
+    + dwolla (payment) (unused at the moment)
     + geopy (location)
 
 # Infrastructure
