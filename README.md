@@ -31,15 +31,17 @@
 # Roadmap
 1. User system - DONE
 2. Issue tracking system - DONE
-3. Payment system(s) --- PUT ON HOLD!
+3. Fee system(s)
+    + Stripe (accept CC) -- DONE
+4. Payment system(s) --- PUT ON HOLD!
     + Stripe - NEEDS TESTING
     + Dwolla - TODO (optional)
     + Bitcoin - TODO (optional)
-4. Notification system(s)
+5. Notification system(s)
     + Mailgun for email - NEEDS TESTING
     + Twilio for sms - TODO
-5. Location services
-6. Prettify
+6. Location services
+7. Prettify
     + Good, robust templates - Almost there
     + Add searching along issues and comments - TODO
     + Ajax-ify - TODO
@@ -81,7 +83,6 @@
         1. Comment on and close current issues
         2. Modify existing properties
 + Notification events
-    + Rent payment
     + New issue
     + ... Any other?
 
