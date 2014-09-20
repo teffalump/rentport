@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    $(document).on('submit','#comment_form', function() {
+    $('#main').on('submit','#comment_form', function() {
         event.preventDefault();
         var $form = $( this ),
             url=$form.attr("action"),
