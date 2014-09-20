@@ -1,4 +1,20 @@
 jQuery(document).ready(function($) {
+    $( "#comment_form" ).submit(function(event) {
+        event.preventDefault();
+        var $form = $( this ),
+            url=$form.attr("action"),
+            data=$form.serialize();
+        var r = $.post(url, data);
+        r.done(function(data) {
+            if (data.hasOwnProperty('success')) {
+                line = "<li class='list-group-item'>@"+data.username+" ("+data.time+"): "+data.comment;
+                $( "#comments" ).append(line);
+            } else {
+              line='<div class="alert alert-dismissable alert-danger"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button><strong>'+data.error+'</strong></div>';
+                $( '#messages').append(line);}
+            });
+        $('#comment').val('');
+    });
 
       String.prototype.decodeHTML = function() {
         return $("<div>", {html: "" + this}).html();
