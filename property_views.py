@@ -64,21 +64,9 @@ def add_property():
         if not loc:
             flash("Address not found")
             return redirect(url_for('.properties'))
-        try:
-            lat=float(loc['lat'])
-        except:
-            lat = None
-        try:
-            lon=float(loc['lon'])
-        except:
-            lon=None
-        try:
-            number=int(loc['house_number'])
-        except:
-            number=None
-        a=Address(lat=lat,
-                lon=lon,
-                number=number,
+        a=Address(lat=loc.get('lat'),
+                lon=loc.get('lon'),
+                number=loc.get('house_number'),
                 street=loc.get('road'),
                 neighborhood=loc.get('neighbourhood'),
                 city=loc.get('city'),

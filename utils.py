@@ -22,6 +22,17 @@ def get_address(string):
     details = resp.json()
     if details:
         ad = details[0].get('address', {})
-        ad['lat']=details[0].get('lat')
-        ad['lon']=details[0].get('lon')
+        try:
+            ad['lat']=float(details[0].get('lat'))
+        except:
+            pass
+        try:
+            ad['lon']=float(details[0].get('lon'))
+        except:
+            pass
+        try:
+            ad['house_number']=int(ad['house_number'])
+        except:
+            pass
+
         return ad
