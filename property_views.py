@@ -18,8 +18,7 @@ from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
-#from geopy.geocoders import Nominatim, OpenMapQuest
-from geopy.geocoders import OpenMapQuest
+from .utils import get_address
 from os import path as fs
 from uuid import uuid4
 
@@ -61,30 +60,32 @@ def add_property():
         city=request.form['city']
         state=request.form['state']
         fs=', '.join([address, city, state])
-        n = OpenMapQuest(timeout=5)
-        loc = n.geocode(fs)
+        loc=get_address(fs)
         if not loc:
             flash("Address not found")
             return redirect(url_for('.properties'))
-        ad = [x.strip() for x in loc[0].split(',')]
         try:
-            int(ad[0])
+            lat=float(loc['lat'])
         except:
-            #no number
-            flash("Ambiguous address")
-            return redirect(url_for('.properties'))
-        if len(ad) != 8:
-            #no neighborhood
-            ad.insert(2, None)
-        a=Address(lat=loc.latitude, lon=loc.longitude,
-                number=ad[0],
-                street=ad[1],
-                neighborhood=ad[2],
-                city=ad[3],
-                county=ad[4],
-                state=ad[5],
-                postcode=ad[6],
-                country=ad[7])
+            lat = None
+        try:
+            lon=float(loc['lon'])
+        except:
+            lon=None
+        try:
+            number=int(loc['house_number'])
+        except:
+            number=None
+        a=Address(lat=lat,
+                lon=lon,
+                number=number,
+                street=loc.get('road'),
+                neighborhood=loc.get('neighbourhood'),
+                city=loc.get('city'),
+                county=loc.get('county'),
+                state=loc.get('state'),
+                postcode=loc.get('postcode'),
+                country=loc.get('country'))
         unit=request.form['unit']
         description=request.form['description']
         if unit:
