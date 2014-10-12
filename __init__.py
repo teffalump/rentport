@@ -37,6 +37,8 @@ def create_app(config=None):
                 register_form=ExtendedRegisterForm,
                 login_form=ExtendedLoginForm,
                 confirm_register_form=ExtendedRegisterForm)
+        limiter.limit('5/minute;20/day')(app.blueprints['security'])
+
 
 
         from redis import StrictRedis
