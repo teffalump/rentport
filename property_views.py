@@ -159,7 +159,9 @@ def add_provider():
         p.by_user_id=g.user.id
         db.session.add(p)
         db.session.commit()
-        return jsonify({'success': 'Provider added'})
+        flash('Provider added')
+        return render_template('show_provider.html', prov=p)
+        #return jsonify({'success': 'Provider added'})
     return render_template('add_provider.html', form=form)
 
 @rp.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])

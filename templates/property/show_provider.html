@@ -1,7 +1,7 @@
 {% extends "bootstrap/base.html" %}
 {% block styles %}
     {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('rentport.static', filename='css/rentport_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('misc.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
     {% set active_page = "property.show_providers"|default('misc.home') %}
@@ -13,15 +13,17 @@
         <div class="panel-heading">
             <h3 class="panel-title">{{ prov.name }}</h3>
         </div>
-        {{ prov.service }} 
-        {{ prov.email }}
-        {{ prov.phone }}
-        {{ prov.website }}
+        <ul class="list-group">
+            <li class="list-group-item">{{ prov.service }}</li>
+            <li class="list-group-item">{{ prov.email }}</li>
+            <li class="list-group-item">{{ prov.phone }}</li>
+            <li class="list-group-item">{{ prov.website }}</li>
+        </ul>
     </div>
 {% include "flash.html" %}
 </div>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
+<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}

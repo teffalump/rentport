@@ -43,8 +43,8 @@
         {% if issues.has_next %}<li class="previous">{% else %}<li class="previous disabled">{% endif %}
         <a href="{{ url_for('.issues', page = issues.next_num, order=order, sort=sort) }}">Prev &rarr;</a>
     </ul>
-</div>
 {% include "flash.html" %}
+</div>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
