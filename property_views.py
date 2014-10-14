@@ -181,13 +181,16 @@ def show_providers(prov_id):
     if prov_id:
         b=g.user.providers.filter(Provider.id==prov_id).first()
         if not b:
-            return jsonify({'error': 'No provider'})
-        return jsonify({'success': 'Provider found',
-                        'name': b.name,
-                        'email': b.email,
-                        'service': b.service,
-                        'phone': b.phone,
-                        'website': b.website})
+            flash('Not a valid provider')
+            return redirect(url_for('.show_providers'))
+            #return jsonify({'error': 'No provider'})
+        #return jsonify({'success': 'Provider found',
+                        #'name': b.name,
+                        #'email': b.email,
+                        #'service': b.service,
+                        #'phone': b.phone,
+                        #'website': b.website})
+        return render_template('show_provider.html', prov=b)
     else:
         form=AddProviderForm()
         #a=[]
