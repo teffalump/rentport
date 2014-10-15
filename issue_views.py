@@ -22,6 +22,9 @@ from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
 import stripe
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from gi.repository import GExiv2 as exif_tool
@@ -171,6 +174,7 @@ def open_issue():
         files=request.files.getlist("photos")
         db.session.add(i)
         db.session.commit()
+        logger.info(i)
         for f in files:
             if allowed_file(f.filename):
                 original_name=secure_filename(f.filename)

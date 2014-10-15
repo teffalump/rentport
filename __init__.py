@@ -16,7 +16,8 @@ def create_app(config=None):
 
     with app.app_context():
         import logging
-        logging.basicConfig(filename='flask.log', level=10)
+        logging.basicConfig(filename='flask.log', level=logging.INFO,
+                format='%(asctime)s:::%(levelname)s:::%(name)s: %(message)s')
 
         from .extensions import mail, db, security, bootstrap, kvsession, limiter
         #from .extensions import images
@@ -63,9 +64,9 @@ def create_app(config=None):
         app.register_blueprint(f)
         app.register_blueprint(i)
 
-    os.environ['DEBUG']="1"
 
     return app
 
 if __name__ == "__main__":
+    os.environ['DEBUG']="1"
     create_app().run(debug=True)
