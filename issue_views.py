@@ -202,6 +202,7 @@ def open_issue():
         msg = Message('New issue', recipients=[i.landlord.email])
         msg.body = new_issue_email(i)
         mail.send(msg)
+        logger.info('mail sent: {0}'.format(msg))
         flash('Landlord notified')
         return redirect(url_for('.issues'))
     return render_template('open_issue.html', form=form)
