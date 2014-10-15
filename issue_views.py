@@ -174,7 +174,6 @@ def open_issue():
         files=request.files.getlist("photos")
         db.session.add(i)
         db.session.commit()
-        logger.info(i)
         for f in files:
             if allowed_file(f.filename):
                 original_name=secure_filename(f.filename)
@@ -287,6 +286,7 @@ def authorize_provider(ident):
         msg = Message('Issue provider', recipients=[u.email for u in issue.location.current_tenants().all()])
         msg.body=provider_issue_email(w)
         mail.send(msg)
+        logger.info('mail sent: {0}'.format(msg))
         flash('Provider selected')
         return redirect(url_for('.show_issue', ident=ident))
         #return jsonify({'success': 'Selected provider',

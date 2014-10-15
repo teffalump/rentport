@@ -23,6 +23,9 @@ from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
 import stripe
+import logging
+
+logger = logging.getLogger(__name__)
 
 #### Blueprint ####
 rp = Blueprint('fee', __name__, template_folder = 'templates/fee', static_folder='static')
@@ -73,6 +76,7 @@ def pay_fee():
             g.user.paid_through=max(g.user.paid_through,dt.utcnow())+c.length
             db.session.add(g.user)
             db.session.commit()
+            logger.info(charge)
             flash('Payment processed')
         except stripe.error.CardError:
             flash('Card error')

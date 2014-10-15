@@ -22,6 +22,9 @@ from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
 import stripe
+import logging
+
+logger = logging.getLogger(__name__)
 
 #### Blueprint ####
 rp = Blueprint('profile', __name__, template_folder = 'templates/profile', static_folder='static')
@@ -96,6 +99,7 @@ def notify():
             msg = Message('Confirm settings', recipients=[g.user.email])
             msg.body='Confirm notification changes: {0}'.format(url_for('.confirm_notify', token=token, _external=True))
             mail.send(msg)
+            logger.info('mail sent: {0}'.format(msg))
             flash('Confirmation email sent')
         else:
             flash('Nothing changed')
@@ -114,6 +118,7 @@ def resend_notify_confirm():
             msg = Message('Confirm settings', recipients=[g.user.email])
             msg.body='Confirm notification changes: {0}'.format(url_for('.confirm_notify', token=token, _external=True))
             mail.send(msg)
+            logger.info('mail sent: {0}'.format(msg))
             flash('Confirmation email sent')
     return redirect(url_for('.profile'))
 

@@ -25,6 +25,9 @@ from os import path as fs
 from uuid import uuid4
 from .utils import get_url
 import stripe
+import logging
+
+logger = logging.getLogger(__name__)
 
 #### Blueprint ####
 rp = Blueprint('relation', __name__, template_folder = 'templates/relation', static_folder='static')
@@ -86,6 +89,7 @@ def add_tenant():
                 msg = Message('Tenant invite', recipients=[tenant.email])
                 msg.body=user_email_invite(lt)
                 mail.send(msg)
+                logger.info('mail sent: {0}'.format(msg))
                 flash('Invited tenant')
             except IntegrityError:
                 flash('Invite already sent')
