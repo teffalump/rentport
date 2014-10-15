@@ -113,7 +113,7 @@ def show_issue(ident):
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('.issues'))
-    contractor = issue.work_orders.first()
+    contractor = Provider.query.filter(Provider.issue == issue).first()
     if issue.status == 'Closed':
         #flash('That issue is closed')
         return render_template('show_issue.html', issue=issue,
