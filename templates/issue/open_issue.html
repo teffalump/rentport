@@ -8,18 +8,6 @@
     {% set active_page="issue.open_issue"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
-{% block scripts %}
-{{ super() }}
-{#<script type="text/javascript">
-$( "#open_issue_form").submit(function(event) {
-    event.preventDefault();
-    var $form = $( this ),
-        url=$form.attr("action"),
-        data=$form.serialize();
-    var return = $.post(url, data);
-    });
-</script>#}
-{% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
     <h1>Open Issue</h1>
@@ -40,4 +28,13 @@ $( "#open_issue_form").submit(function(event) {
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
+{#<script type="text/javascript">
+$( "#open_issue_form").submit(function(event) {
+    event.preventDefault();
+    var $form = $( this ),
+        url=$form.attr("action"),
+        data=$form.serialize();
+    var return = $.post(url, data);
+    });
+</script>#}
 {% endblock %}

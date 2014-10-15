@@ -88,3 +88,6 @@
 
 # Other thoughts
 + Rental agreements? Security issues are too big... at the moment
+
+# Current issues
++ Can confirm tenant while logged in as someone else...
