@@ -279,7 +279,9 @@ def authorize_provider(ident):
         msg = Message('Issue provider', recipients=[u.email for u in issue.location.current_tenants().all()])
         msg.body=provider_issue_email(w)
         mail.send(msg)
-        return jsonify({'success': 'Selected provider',
-                        'provider': w.provider.name})
+        flash('Provider selected')
+        return redirect(url_for('.show_issue', ident=ident))
+        #return jsonify({'success': 'Selected provider',
+                        #'provider': w.provider.name})
     return render_template('select_issue_provider.html', issue=issue, form=form)
 #### /ISSUES ####
