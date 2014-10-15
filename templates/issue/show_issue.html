@@ -16,7 +16,7 @@
                     <b class="btn btn-default">{{issue.severity}}</b>
                     <b class="btn btn-default">{{issue.area}}</b>
                     <b class="btn btn-default">{{ issue.opened.strftime('%Y/%m/%d') }}</b>
-                    <b class="btn btn-default">{% if issue.work_orders.first() %}{{ issue.work_orders.first().provider.name }}{% else %}No provider selected{% endif %}</b>
+                    <a class="btn btn-default" {% if contractor %}href="{{ url_for('property.show_providers', prov_id=contractor.id) }}">{{ contractor.provider.name }}{% else %}>No provider selected{% endif %}</a>
                 </div>
         </div>
         <div class="panel-body">

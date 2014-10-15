@@ -113,16 +113,18 @@ def show_issue(ident):
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('.issues'))
+    contractor = issue.work_orders.first()
     if issue.status == 'Closed':
         #flash('That issue is closed')
         return render_template('show_issue.html', issue=issue,
                                             comment=comment,
                                             close=close,
-                                            provider=provider)
+                                            provider=provider,
+                                            contractor=contractor)
     if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
         comment=CommentForm()
-        if issue.work_orders.first() is None:
+        if contractor is None:
             #ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
             ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
             if ps:
@@ -135,7 +137,8 @@ def show_issue(ident):
     return render_template('show_issue.html', issue=issue,
                                             comment=comment,
                                             close=close,
-                                            provider=provider)
+                                            provider=provider,
+                                            contractor=contractor)
 
 # PAID ENDPOINT
 # MUST BE CONFIRMED

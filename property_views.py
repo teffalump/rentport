@@ -170,7 +170,9 @@ def add_provider():
 def show_providers(prov_id):
     '''Show providers'''
     if prov_id:
-        b=g.user.providers.filter(Provider.id==prov_id).first()
+        #b=g.user.providers.filter(Provider.id==prov_id).first()
+        b=Provider.query.filter(or_(Provider.by_user==g.user, Provider.by_user==g.user.current_landlord())).\
+                filter(Provider.id==prov_id).first()
         if not b:
             flash('Not a valid provider')
             return redirect(url_for('.show_providers'))
