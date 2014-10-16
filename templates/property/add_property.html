@@ -1,12 +1,8 @@
-{% extends "bootstrap/base.html" %}
+{% extends "base_nav.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-{% block styles %}
-    {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
-{% endblock %}
 {% block navbar %}
-    {% set active_page = "property.add_provider"|default('misc.home') %}
-    {% include "base_nav.html" %}
+    {% set active_page = "property.add_property"|default('misc.home') %}
+    {{ super() }}
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
@@ -22,8 +18,4 @@
     </form>
 {% include "flash.html" %}
 </div>
-{% endblock %}
-{% block scripts %}
-{{ super() }}
-<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}

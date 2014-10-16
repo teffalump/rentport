@@ -1,20 +1,12 @@
-{% extends "bootstrap/base.html" %}
-{% block styles %}
-    {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
-{% endblock %}
+{% extends "base_nav.html" %}
 {% block navbar %}
     {% set active_page = "misc.home"|default('misc.home') %}
-    {% include "base_nav.html" %}
+    {{ super() }}
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
     <h3>Rentport allows tenants and landlords to better manage the rental experience</h3>
-    <p>This is an alpha release. No real payments. Do not use for production rentals</p>
-</div>
+    <p><b>This is an alpha release. No real payments. Do not use for production rentals.</b></p>
 {% include "flash.html" %}
-{% endblock %}
-{% block scripts %}
-{{ super() }}
-<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
+</div>
 {% endblock %}

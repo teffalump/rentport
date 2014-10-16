@@ -1,6 +1,16 @@
 {% import "bootstrap/wtf.html" as wtf %}
-<form action="{{ url_for('relation.end_relation') }}" method="POST" name="end_relation_form" role="form">
-  {{ form.hidden_tag() }}
-  {{ wtf.form_errors(form, hiddens="only") }}
-  {{ wtf.form_field(form.submit) }}
-</form>
+{% extends "base_nav.html" %}
+{% block navbar %}
+    {% set active_page = "relation.end_relation"|default('misc.home') %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+<div id="main" class="container-fluid">
+    <form action="{{ url_for('relation.end_relation') }}" method="POST" name="end_relation_form" role="form">
+      {{ form.hidden_tag() }}
+      {{ wtf.form_errors(form, hiddens="only") }}
+      {{ wtf.form_field(form.submit) }}
+    </form>
+{% include "flash.html" %}
+</div>
+{% endlock %}

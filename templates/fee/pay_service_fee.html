@@ -1,29 +1,21 @@
-{% extends "bootstrap/base.html" %}
-{% block styles %}
-    {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
-{% endblock %}
+{% extends "base_nav.html" %}
 {% block navbar %}
     {% set active_page = "fee.pay_fee"|default('misc.home') %}
-    {% include "base_nav.html" %}
+    {{ super() }}
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-<h3>Pay Service Fee</h3>
-<form action="{{ url_for('fee.pay_fee') }}" method="POST" role="form" name="pay_service_form">
-  <script
-    src="https://checkout.stripe.com/checkout.js" class="stripe-button"
-    data-key="{{ key }}"
-    data-image=""
-    data-name="Rentport"
-    data-description="1 year"
-    data-amount="{{ amount }}">
-  </script>
-</form>
+    <h3>Pay Service Fee</h3>
+    <form action="{{ url_for('fee.pay_fee') }}" method="POST" role="form" name="pay_service_form">
+      <script
+        src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+        data-key="{{ key }}"
+        data-image=""
+        data-name="Rentport"
+        data-description="1 year"
+        data-amount="{{ amount }}">
+      </script>
+    </form>
 {% include "flash.html" %}
 </div>
-{% endblock %}
-{% block scripts %}
-{{ super() }}
-<script src="{{ url_for('.static', filename='js/rentport.js') }}"></script>
 {% endblock %}

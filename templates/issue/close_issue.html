@@ -1,7 +1,17 @@
+{% extends "base_nav.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
+{% block navbar %}
+    {% set active_page = "issue.close_issue"|default('misc.home') %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+<div id="main" class="container-fluid">
 <form action="{{ url_for('issue.close_issue', ident=issue.id) }}" method="POST" name="close_issue_form" role="form">
   {{ close.hidden_tag() }}
   {{ wtf.form_errors(close, hiddens="only") }}
   {{ wtf.form_field(close.reason) }}
   {{ wtf.form_field(close.submit) }}
 </form>
+{% include "flash.html" %}
+</div>
+{% endblock %}

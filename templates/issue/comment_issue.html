@@ -1,7 +1,17 @@
+{% extends "base_nav.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
+{% block navbar %}
+    {% set active_page = "issue.comment"|default('misc.home') %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+<div id="main" class="container-fluid">
 <form action="{{ url_for('issue.comment', ident=issue.id) }}" method="POST" name="comment_form" role="form">
   {{ comment.hidden_tag() }}
   {{ wtf.form_errors(comment, hiddens="only") }}
   {{ wtf.form_field(comment.comment) }}
   {{ wtf.form_field(comment.add) }}
 </form>
+{% include "flash.html" %}
+</div>
+{% endblock %}

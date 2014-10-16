@@ -1,4 +1,10 @@
+{% extends "bootstrap/base.html" %}
 {% from "macros.html" import render_link %}
+{% block styles %}
+    {{ super () }}
+    <link rel="stylesheet" href="{{ url_for('misc.static', filename='css/rentport_style.css') }}">
+{% endblock %}
+{% block navbar %}
 <nav class="navbar navbar-inverse navbar-fixed-top navbar-default" role="navigation">
     <div class="container-fluid">
         <!-- Brand and toggle get grouped for better mobile display -->
@@ -44,3 +50,8 @@
       </div>
     </div>
 </nav>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
+{% endblock %}

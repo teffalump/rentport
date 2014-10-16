@@ -1,11 +1,4 @@
-{% extends "bootstrap/base.html" %}
-{% block styles %}
-    {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
-{% endblock %}
-{% block navbar %}
-    {% include "base_nav.html" %}
-{% endblock %}
+{% extends "base_nav.html" %}
 {% block content %}
 <div id="main" class="container-fluid">
     <div class="panel panel-default">
