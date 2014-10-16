@@ -129,7 +129,7 @@ def show_issue(ident):
             provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
     else:
         if contractor is None:
-            provider = ('No selected provider', '#')
+            provider = ('No selected provider', None)
         else:
             provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
 

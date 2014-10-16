@@ -16,7 +16,11 @@
                     <b class="btn btn-default">{{issue.severity}}</b>
                     <b class="btn btn-default">{{issue.area}}</b>
                     <b class="btn btn-default">{{ issue.opened.strftime('%Y/%m/%d') }}</b>
-                    <a class="btn btn-default" href="{{ provider[1] }}">{{ provider[0] }}</a>
+                    {% if provider[1] %}
+                        <a class="btn btn-default" href="{{ provider[1] }}">{{ provider[0] }}</a>
+                    {% else %}
+                        <a class="btn btn-default disabled" href="{{ provider[1] }}">{{ provider[0] }}</a>
+                    {% endif %}
                 </div>
         </div>
         <div class="panel-body">
