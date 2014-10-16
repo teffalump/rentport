@@ -116,17 +116,22 @@ def show_issue(ident):
         flash('No issue with that id')
         return redirect(url_for('.issues'))
     contractor = Provider.query.join(WorkOrder).filter(WorkOrder.issue == issue).first()
-    if contractor is None:
-        #ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
-        ps = Provider.query.filter(Provider.by_user == g.user, Provider.service == issue.area).first()
-        if ps is None:
-            provider = ('No available providers', url_for('property.add_provider'))
-            #provider=SelectProviderForm()
-            #provider.provider.choices=ps
+    if g.user.id == issue.landlord_id:
+        close=CloseIssueForm()
+        comment=CommentForm()
+        if contractor is None:
+            ps = Provider.query.filter(Provider.by_user == g.user, Provider.service == issue.area).first()
+            if ps:
+                provider = ('Select provider', url_for('.authorize_provider', ident=issue.id))
+            else:
+                provider = ('No available providers', url_for('property.add_provider'))
         else:
-            provider = ('Select provider', url_for('.authorize_provider', ident=issue.id))
+            provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
     else:
-        provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
+        if contractor is None:
+            provider = ('No selected provider', '#')
+        else:
+            provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
 
     if issue.status == 'Closed':
         #flash('That issue is closed')
@@ -134,9 +139,6 @@ def show_issue(ident):
                                             comment=comment,
                                             close=close,
                                             provider=provider)
-    if g.user.id == issue.landlord_id:
-        close=CloseIssueForm()
-        comment=CommentForm()
     if getattr(g.user.landlords.filter(LandlordTenant.current==True).first(), 'confirmed', None):
         comment=CommentForm()
     if issue.creator_id == g.user.id:
