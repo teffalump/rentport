@@ -1,16 +1,27 @@
 #### FORMS
 
+from flask import current_app
 from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
-                HiddenField, FileField, RadioField, SelectField, IntegerField)
+                HiddenField, FileField, RadioField, SelectField, IntegerField, ValidationError)
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
 from flask.ext.wtf.file import FileAllowed, FileField
+from werkzeug.local import LocalProxy
+
+
+_datastore = LocalProxy(lambda: current_app.extensions['security'].datastore)
+
+def unique_user_username(form, field):
+    if _datastore.find_user(username=field.data) is not None:
+        msg = '{0} is already associated with an account.'.format(field.data)
+        raise ValidationError(msg)
 
 class ExtendedRegisterForm(RegisterForm):
     username=StringField('Username', [DataRequired(),
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
-                                    Length(min=4, max=20)])
+                                    Length(min=4, max=20),
+                                    unique_user_username])
 
 class ExtendedLoginForm(LoginForm):
     email=StringField('Login', [DataRequired()])

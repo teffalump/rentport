@@ -44,7 +44,7 @@ class User(db.Model, UserMixin):
     phone = db.Column(db.Text, unique=True)
     phone_confirmed = db.Column(db.Boolean, default=False)
 
-    notify_confirmed = db.Column(db.Boolean, default=False)
+    notify_confirmed = db.Column(db.Boolean, default=True)
     notify_method = db.Column(notification_method, default='Email')
 
     last_login_at=db.Column(db.DateTime)

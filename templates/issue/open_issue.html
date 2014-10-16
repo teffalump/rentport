@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{{ url_for('.static', filename='css/rentport_style.css') }}">
 {% endblock %}
 {% block navbar %}
-    {% set active_page=".open_issue"|default('misc.home') %}
+    {% set active_page="issue.open_issue"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block scripts %}
@@ -36,4 +36,8 @@ $( "#open_issue_form").submit(function(event) {
     {% include "flash.html" %}
 </div>
 <div id="result"></div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}
