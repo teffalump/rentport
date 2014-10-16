@@ -13,7 +13,7 @@
     <div class="panel panel-default">
         <div class="panel-heading"><h3>Properties</h3></div>
         <div class="table-responsive">
-            <table class="table table-condensed">
+            <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Apt #</th>
@@ -31,16 +31,16 @@
             <tbody>
         {% for property in props %}
         <tr class="clickableRow" href="{{ url_for('relation.add_tenant', ident=property.id) }}">
-            <th>{% if property.apt_number %}#{{ property.apt_number }}{% else %}---{% endif %}</th>
-            <th>{{ property.address.number }}</th>
-            <th>{{ property.address.street }}</th>
-            <th>{{ property.address.neighborhood}}</th>
-            <th>{{ property.address.city}}</th>
-            <th>{{ property.address.county}}</th>
-            <th>{{ property.address.postcode}}</th>
-            <th>{{ property.address.country}}</th>
-            <th>{{ property.description }}</th>
-            <th>{{ property.current_tenants()|map(attribute='username')|join(', ') }}</th>
+            <td>{% if property.apt_number %}#{{ property.apt_number }}{% else %}---{% endif %}</td>
+            <td>{{ property.address.number }}</td>
+            <td>{{ property.address.street }}</td>
+            <td>{{ property.address.neighborhood}}</td>
+            <td>{{ property.address.city}}</td>
+            <td>{{ property.address.county}}</td>
+            <td>{{ property.address.postcode}}</td>
+            <td>{{ property.address.country}}</td>
+            <td>{{ property.description }}</td>
+            <td>{{ property.current_tenants()|map(attribute='username')|join(', ') }}</td>
         </tr>
         {% endfor %}
         </tbody>

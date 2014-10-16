@@ -16,7 +16,7 @@
                     <b class="btn btn-default">{{issue.severity}}</b>
                     <b class="btn btn-default">{{issue.area}}</b>
                     <b class="btn btn-default">{{ issue.opened.strftime('%Y/%m/%d') }}</b>
-                    <a class="btn btn-default" {% if contractor %}href="{{ url_for('property.show_providers', prov_id=contractor.id) }}">{{ contractor.name }}{% else %}>No provider selected{% endif %}</a>
+                    <a class="btn btn-default" href="{{ provider[1] }}">{{ provider[0] }}</a>
                 </div>
         </div>
         <div class="panel-body">
@@ -38,19 +38,6 @@
       {{ wtf.form_errors(comment, hiddens="only") }}
       {{ wtf.form_field(comment.comment) }}
       {{ wtf.form_field(comment.submit) }}
-    </form>
-    </div>
-{% endif %}
-{% if provider %}
-    <div class="spanForm">
-        <button class="btn btn-default" data-toggle="collapse" data-target="#provCol">Select provider form</button>
-    </div>
-    <div id="provCol" class='collapse well'>
-    <form action="{{ url_for('.authorize_provider', ident=issue.id) }}" method="POST" id="select_provider_form" name="select_provider_form" role="form">
-      {{ provider.hidden_tag() }}
-      {{ wtf.form_errors(provider, hiddens="only") }}
-      {{ wtf.form_field(provider.provider) }}
-      {{ wtf.form_field(provider.submit) }}
     </form>
     </div>
 {% endif %}

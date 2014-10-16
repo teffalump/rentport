@@ -10,15 +10,15 @@
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-<h3>Add tenant to property</h3>
-<form action="{{ url_for('relation.add_tenant') }}" method="POST" name="add_tenant_form" role="form" class="form-inline">
-  {{ form.hidden_tag() }}
-  {{ wtf.form_errors(form, hiddens="only") }}
-  {{ wtf.form_field(form.user) }}
-  {{ wtf.form_field(form.apt) }}
-  {{ wtf.form_field(form.submit) }}
-</form>
-{% include "flash.html" %}
+    <h3>Add tenant to property</h3>
+    <form action="{{ url_for('relation.add_tenant') }}" method="POST" name="add_tenant_form" role="form" class="form-inline">
+      {{ form.hidden_tag() }}
+      {{ wtf.form_errors(form, hiddens="only") }}
+      {{ wtf.form_field(form.user) }}
+      {{ wtf.form_field(form.apt) }}
+      {{ wtf.form_field(form.submit) }}
+    </form>
+    {% include "flash.html" %}
 </div>
 {% endblock %}
 {% block scripts %}

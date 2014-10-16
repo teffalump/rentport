@@ -112,27 +112,31 @@ def show_issue(ident):
                     Issue.id==ident).first()
     comment = None
     close = None
-    provider = None
     if not issue:
         flash('No issue with that id')
         return redirect(url_for('.issues'))
     contractor = Provider.query.join(WorkOrder).filter(WorkOrder.issue == issue).first()
+    if contractor is None:
+        #ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
+        ps = Provider.query.filter(Provider.by_user == g.user, Provider.service == issue.area).first()
+        if ps is None:
+            provider = ('No available providers', url_for('property.add_provider'))
+            #provider=SelectProviderForm()
+            #provider.provider.choices=ps
+        else:
+            provider = ('Select provider', url_for('.authorize_provider', ident=issue.id))
+    else:
+        provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
+
     if issue.status == 'Closed':
         #flash('That issue is closed')
         return render_template('show_issue.html', issue=issue,
                                             comment=comment,
                                             close=close,
-                                            provider=provider,
-                                            contractor=contractor)
+                                            provider=provider)
     if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
         comment=CommentForm()
-        if contractor is None:
-            #ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
-            ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
-            if ps:
-                provider=SelectProviderForm()
-                provider.provider.choices=ps
     if getattr(g.user.landlords.filter(LandlordTenant.current==True).first(), 'confirmed', None):
         comment=CommentForm()
     if issue.creator_id == g.user.id:
@@ -140,8 +144,7 @@ def show_issue(ident):
     return render_template('show_issue.html', issue=issue,
                                             comment=comment,
                                             close=close,
-                                            provider=provider,
-                                            contractor=contractor)
+                                            provider=provider)
 
 # PAID ENDPOINT
 # MUST BE CONFIRMED
@@ -250,15 +253,19 @@ def close_issue(ident):
                 Issue.id == ident).first()
     form=CloseIssueForm()
     if not issue:
-        return jsonify({'error': 'No issue'})
+        #return jsonify({'error': 'No issue'})
+        flash('Issue closed')
+        return redirect(url_for('.issues'))
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
         issue.closed_because=reason
         db.session.add(issue)
         db.session.commit()
-        return jsonify({'success': 'Issue closed',
-                        'reason': reason})
+        #return jsonify({'success': 'Issue closed',
+                        #'reason': reason})
+        flash('Issue closed')
+        return redirect(url_for('.issues'))
     return render_template('close_issue.html', close=form, issue=issue)
 
 @rp.route('/issues/<int(min=1):ident>/provider', methods=['GET', 'POST'])
@@ -268,8 +275,9 @@ def authorize_provider(ident):
                 Issue.status == 'Open',
                 Issue.id == ident).first()
     if not issue:
-        return jsonify({'error': 'No issue'})
+        return jsonify({'error': 'No open issue'})
     if issue.work_orders.first():
+        #flash('Provider already selected')
         return jsonify({'error': 'Provider already selected'})
     form=SelectProviderForm()
     #ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]

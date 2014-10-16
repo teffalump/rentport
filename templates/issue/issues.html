@@ -12,7 +12,7 @@
     <div class="panel panel-default">
         <div class="panel-heading"><h3 class="panel-title">Issues</h3></div>
         <div class="table-responsive">
-        <table class="table">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Creator</th>
@@ -24,13 +24,17 @@
             </thead>
             <tbody>
         {% for issue in issues.items %}
-        {# show <span class="badge">{{ issue.num_of_comments() }}</span></a> {% if issue.status != 'Closed' %}{% if issue.landlord_id == g.user.id or issue.creator_id == g.user.id %}<a class="btn btn-default btn-sm" href="{{ url_for('.close_issue', ident=issue.id)}}">close</a>{% endif %}{% endif %}</th>#}
-                <tr class='clickableRow' href="{{ url_for('.show_issue', ident=issue.id) }}">
-                    <th>@{{ issue.creator.username}}</th>
-                    <th>{{ issue.severity }}</th>
-                    <th>{{ issue.area}}</th>
-                    <th>{{ issue.status}}</th>
-                    <th>{{ issue.opened.strftime('%Y/%m/%d') }}</th>
+        {#{% if issue.status != 'Closed' %}{% if issue.landlord_id == g.user.id or issue.creator_id == g.user.id %}<a class="btn btn-default btn-sm" href="{{ url_for('.close_issue', ident=issue.id)}}">close</a>{% endif %}{% endif %}</th>#}
+        {% if issue.status == 'Closed' %}
+                <tr class='clickableRow danger' href="{{ url_for('.show_issue', ident=issue.id) }}">
+        {% else %}
+                <tr class='clickableRow success' href="{{ url_for('.show_issue', ident=issue.id) }}">
+        {% endif %}
+                    <td>@{{ issue.creator.username}}</td>
+                    <td>{{ issue.severity }}</td>
+                    <td>{{ issue.area}}</td>
+                    <td>{{ issue.status}} <span class="badge">{{ issue.num_of_comments() }}</td>
+                    <td>{{ issue.opened.strftime('%Y/%m/%d') }}</td>
                 </tr>
         {% endfor %}
             </tbody>
