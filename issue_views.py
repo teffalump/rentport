@@ -44,7 +44,7 @@ def new_issue_email(issue):
     return nw
 
 def provider_issue_email(work_order):
-    email='The landlord has picked a provider. Contact them about fixing the issue - {0}:\n\nName: {1}\n\nEmail: {2}\n\nPhone: {3}\n\nWebsite: {4}'
+    email='The landlord has picked a provider. Discuss with your landlord about fixing the issue - {0}:\n\nName: {1}\n\nEmail: {2}\n\nPhone: {3}\n\nWebsite: {4}'
     t = email.format(
             url_for('.show_issue', ident=work_order.issue.id, _external=True),
             work_order.provider.name,
