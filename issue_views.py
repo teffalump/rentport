@@ -224,22 +224,30 @@ def comment(ident):
     issue=g.user.all_issues().\
             filter(Issue.status=='Open',Issue.id==ident).first()
     if not issue:
-        return jsonify({'error': 'No issue'})
+        #return jsonify({'error': 'No issue'})
+        flash('No issue')
+        return redirect(url_for('issue.issues'))
     if g.user != issue.landlord:
         if not getattr(g.user.landlords.filter(LandlordTenant.current==True).first(),'confirmed', None):
-            return jsonify({'error': 'Need to be confirmed by landlord!'})
+            flash('Need to be confirmed')
+            return redirect(url_for('profile.profile'))
+            #return jsonify({'error': 'Need to be confirmed by landlord!'})
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
         issue.comments.append(comment)
         db.session.add(comment)
         db.session.commit()
-        return jsonify({'success': 'Commented on issue',
-                        'comment': comment.text,
-                        'time': comment.posted.strftime('%Y/%m/%d'),
-                        'username': comment.user.username})
+        #return jsonify({'success': 'Commented on issue',
+                        #'comment': comment.text,
+                        #'time': comment.posted.strftime('%Y/%m/%d'),
+                        #'username': comment.user.username})
+        flash('Comment added')
+        return jsonify({'redirect':url_for('issue.show_issue', ident=ident)})
     else:
-        return jsonify({'error': 'Invalid input'})
+        flash('Bad input')
+        return redirect(url_for('issue.show_issue', ident=ident))
+        #return jsonify({'error': 'Invalid input'})
 
 @rp.route('/issues/<int(min=1):ident>/close', methods=['GET', 'POST'])
 @login_required
