@@ -43,3 +43,7 @@
 {% include "flash.html" %}
 <div class="container-fluid">
 {% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
+{% endblock %}
