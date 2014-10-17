@@ -22,7 +22,7 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import get_url, allowed_file
+from .utils import get_url, allowed_file, render_xhr_or_normal
 import stripe
 
 #### Blueprint ####
@@ -33,7 +33,7 @@ rp = Blueprint('misc', __name__, template_folder = 'templates/misc', static_fold
 @rp.route('/')
 @login_required
 def home():
-    return render_template('home.html')
+    return render_xhr_or_normal('home.html')
 #### /DEFAULT ####
 
 #### HOOKS ####

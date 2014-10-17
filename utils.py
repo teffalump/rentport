@@ -1,5 +1,5 @@
 # Utility functions
-from flask import url_for
+from flask import url_for, jsonify, request, render_template, redirect
 import requests
 
 def get_url(endpoint, **kw):
@@ -36,3 +36,15 @@ def get_address(string):
             pass
 
         return ad
+
+def redirect_xhr_or_normal(endpoint, **kwargs):
+    if request.is_xhr:
+        return jsonify({'redirect': get_url(endpoint, **kwargs)})
+    else:
+        return redirect(get_url(endpoint, **kwargs))
+
+def render_xhr_or_normal(template, **kwargs):
+    if request.is_xhr:
+        return jsonify({'page': render_template(template, **kwargs)})
+    else:
+        return render_template(template, **kwargs)

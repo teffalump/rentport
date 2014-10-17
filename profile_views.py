@@ -21,6 +21,7 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
+from .utils import render_xhr_or_normal, redirect_xhr_or_normal
 import stripe
 import logging
 
@@ -42,12 +43,12 @@ def profile():
     phone_form = AddPhoneNumber()
     end_landlord_form=EndLandlordForm()
     tenants = g.user.current_tenants().all()
-    return render_template('profile.html',
+    return render_xhr_or_normal('profile.html',
             tenants=tenants,
             end_landlord_form=end_landlord_form,
             resend_form=resend_form, phone_form=phone_form)
 
-@rp.route('/profile/phone', methods=['POST'])
+#@rp.route('/profile/phone', methods=['POST'])
 @login_required
 def phone():
     '''add phone number
@@ -103,9 +104,9 @@ def notify():
             flash('Confirmation email sent')
         else:
             flash('Nothing changed')
-        return redirect(url_for('.profile'))
+        return redirect_xhr_or_normal('.profile')
 
-    return render_template('change_notify.html', form=form)
+    return render_xhr_or_normal('change_notify.html', form=form)
 
 @rp.route('/profile/notify/resend', methods=['POST'])
 @login_required
@@ -120,7 +121,7 @@ def resend_notify_confirm():
             mail.send(msg)
             logger.info('mail sent: {0}'.format(msg))
             flash('Confirmation email sent')
-    return redirect(url_for('.profile'))
+    return redirect_xhr_or_normal('.profile')
 
 @rp.route('/profile/notify/<token>', methods=['GET'])
 @login_required
@@ -138,5 +139,5 @@ def confirm_notify(token):
         flash('Settings updated')
     else:
         flash('Bad token')
-    return redirect(url_for('.profile'))
+    return redirect_xhr_or_normal('.profile')
 #### /PROFILE ####

@@ -9,7 +9,7 @@ from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, render_template, request, g, redirect, url_for,
+from flask import (Blueprint, request, g, redirect, url_for,
                     abort, flash, session, json, jsonify, current_app,
                     make_response)
 from itsdangerous import URLSafeTimedSerializer
@@ -22,6 +22,7 @@ from datetime import date
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
+from .utils import render_xhr_or_normal, redirect_xhr_or_normal
 import stripe
 import logging
 
@@ -41,7 +42,7 @@ def show_fee(pay_id):
     fee=g.user.fees.filter(Fee.id==pay_id).first()
     if not fee:
         flash('No fee with that id')
-        return jsonify({'error': 'No fee with that id'})
+        return redirect_xhr_or_normal('.fees')
     f = stripe.Charge.retrieve(fee.pay_id,
                     api_key=current_app.config['STRIPE_CONSUMER_SECRET'])
     info=[]
@@ -51,9 +52,7 @@ def show_fee(pay_id):
     if d:
         info.append(('created', date.fromtimestamp(d).strftime('%Y/%m/%d')))
 
-    #return jsonify({k:v for (k,v) in f.items() if k in \
-            #['amount', 'currency', 'paid', 'refunded','description']})
-    return render_template('show_fee.html', info=info)
+    return render_xhr_or_normal('show_fee.html', info=info)
 
 # RISK
 @rp.route('/fee/pay', methods=['POST', 'GET'])
@@ -85,10 +84,10 @@ def pay_fee():
         except Exception:
             flash('Other payment error')
         finally:
-            return redirect(url_for('fee.fees'))
+            return redirect_xhr_or_normal('.fees')
 
     else:
-        return render_template('pay_service_fee.html',
+        return render_xhr_or_normal('pay_service_fee.html',
                                 amount=current_app.config['FEE_AMOUNT'],
                                 key=current_app.config['STRIPE_CONSUMER_KEY'])
 
@@ -102,5 +101,5 @@ def fees(page, per_page):
                     GET: <per_page> how many items per page
         returns:    GET: template'''
     fees=g.user.fees.paginate(page, per_page, False)
-    return render_template('fees.html', fees=fees)
+    return render_xhr_or_normal('fees.html', fees=fees)
 #### /FEES ####

@@ -18,7 +18,7 @@ from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
-from .utils import get_address
+from .utils import get_address, render_xhr_or_normal, redirect_xhr_or_normal
 from os import path as fs
 from uuid import uuid4
 
@@ -39,7 +39,7 @@ def properties():
     else:
         form=None
     props = g.user.properties.all()
-    return render_template('properties.html', props=props, form=form)
+    return render_xhr_or_normal('properties.html', props=props, form=form)
 
 # PAID ENDPOINT
 @rp.route('/landlord/property/add', methods=['POST'])
@@ -53,7 +53,7 @@ def add_property():
     '''
     if not g.user.fee_paid():
         flash('You need to pay to access this endpoint')
-        return redirect(url_for('.properties'))
+        return redirect_xhr_or_normal('.properties')
     form=AddPropertyForm()
     if form.validate_on_submit():
         address=request.form['address']
@@ -63,7 +63,7 @@ def add_property():
         loc=get_address(fs)
         if not loc:
             flash("Address not found")
-            return redirect(url_for('.properties'))
+            return redirect_xhr_or_normal('.properties')
         a=Address(lat=loc.get('lat'),
                 lon=loc.get('lon'),
                 number=loc.get('house_number'),
@@ -86,8 +86,8 @@ def add_property():
         db.session.add(p)
         db.session.commit()
         flash("Property added")
-        return redirect(url_for('.properties'))
-    return render_template('add_property.html', form=form)
+        return redirect_xhr_or_normal('.properties')
+    return render_xhr_or_normal('add_property.html', form=form)
 
 @rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
@@ -101,16 +101,16 @@ def modify_property(prop_id):
     prop=g.user.properties.filter(Property.id==prop_id).first()
     if not prop:
         flash('Not a valid property id')
-        return redirect(url_for('.properties'))
+        return redirect_xhr_or_normal('.properties')
     form=ModifyPropertyForm()
     if form.validate_on_submit():
         prop.description=request.form['description']
         db.session.add(prop)
         db.session.commit()
         flash("Property modified")
-        return redirect(url_for('.properties'))
+        return redirect_xhr_or_normal('.properties')
     form.description.data=prop.description
-    return render_template('modify_location.html', form=form, location=prop)
+    return render_xhr_or_normal('modify_location.html', form=form, location=prop)
 
 # TODO Eventually minimize the redundant code and ajax these sections
 #@rp.route('/landlord/provider/connect/<int:prop_id>/<int:prov_id>', methods=['GET', 'POST'])
@@ -160,9 +160,8 @@ def add_provider():
         db.session.add(p)
         db.session.commit()
         flash('Provider added')
-        return render_template('show_provider.html', prov=p)
-        #return jsonify({'success': 'Provider added'})
-    return render_template('add_provider.html', form=form)
+        return render_xhr_or_normal('show_provider.html', prov=p)
+    return render_xhr_or_normal('add_provider.html', form=form)
 
 @rp.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])
 @rp.route('/landlord/provider/<int:prov_id>', methods=['GET'])
@@ -175,7 +174,7 @@ def show_providers(prov_id):
                 filter(Provider.id==prov_id).first()
         if not b:
             flash('Not a valid provider')
-            return redirect(url_for('.show_providers'))
+            return redirect_xhr_or_normal('.show_providers')
             #return jsonify({'error': 'No provider'})
         #return jsonify({'success': 'Provider found',
                         #'name': b.name,
@@ -183,7 +182,7 @@ def show_providers(prov_id):
                         #'service': b.service,
                         #'phone': b.phone,
                         #'website': b.website})
-        return render_template('show_provider.html', prov=b)
+        return render_xhr_or_normal('show_provider.html', prov=b)
     else:
         form=AddProviderForm()
         #a=[]
@@ -197,6 +196,6 @@ def show_providers(prov_id):
             #return jsonify({'success': 'Providers found',
                             #'providers': a})
         #return jsonify({'error': 'No provider'})
-        return render_template('show_providers.html', providers=g.user.providers.all(), form=form,
+        return render_xhr_or_normal('show_providers.html', providers=g.user.providers.all(), form=form,
                 action=url_for('.add_provider'))
 #### /PROPERTIES ####

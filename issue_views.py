@@ -9,7 +9,7 @@ from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, render_template, request, g, redirect, url_for,
+from flask import (Blueprint, request, g, redirect, url_for,
                     abort, flash, session, json, jsonify, current_app,
                     make_response)
 from itsdangerous import URLSafeTimedSerializer
@@ -21,6 +21,7 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
+from .utils import redirect_xhr_or_normal, render_xhr_or_normal
 import stripe
 import logging
 
@@ -57,19 +58,6 @@ def provider_issue_email(work_order):
     return t
 #### /EMAIL STRINGS ####
 
-#### UTILS ####
-def get_url(endpoint, **kw):
-    '''Return endpoint url, or next arg url'''
-    try:
-        return request.args['next']
-    except:
-        return url_for(endpoint, **kw)
-
-def allowed_file(filename):
-    return '.' in filename and \
-       filename.rsplit('.', 1)[1] in current_app.config['ALLOWED_EXTENSIONS']
-#### /UTILS ####
-
 #### Blueprint ####
 rp = Blueprint('issue', __name__, template_folder = 'templates/issue', static_folder='static')
 #### /Blueprint ####
@@ -99,7 +87,7 @@ def issues(page, per_page):
         order_key='desc'
         issues=g.user.all_issues().order_by(sort.desc()).\
                 paginate(page, per_page, False)
-    return render_template('issues.html', issues=issues, sort=sort_key, order=order_key)
+    return render_xhr_or_normal('issues.html', issues=issues, sort=sort_key, order=order_key)
 
 @rp.route('/issues/<int(min=1):ident>/show', methods=['GET'])
 @login_required
@@ -114,7 +102,7 @@ def show_issue(ident):
     close = None
     if not issue:
         flash('No issue with that id')
-        return redirect(url_for('.issues'))
+        return redirect_xhr_or_normal('.issues')
     contractor = Provider.query.join(WorkOrder).filter(WorkOrder.issue == issue).first()
     if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
@@ -134,16 +122,15 @@ def show_issue(ident):
             provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
 
     if issue.status == 'Closed':
-        #flash('That issue is closed')
-        return render_template('show_issue.html', issue=issue,
-                                            comment=comment,
-                                            close=close,
+        return render_xhr_or_normal('show_issue.html', issue=issue,
+                                            comment=None,
+                                            close=None,
                                             provider=provider)
     if getattr(g.user.landlords.filter(LandlordTenant.current==True).first(), 'confirmed', None):
         comment=CommentForm()
     if issue.creator_id == g.user.id:
         close=CloseIssueForm()
-    return render_template('show_issue.html', issue=issue,
+    return render_xhr_or_normal('show_issue.html', issue=issue,
                                             comment=comment,
                                             close=close,
                                             provider=provider)
@@ -163,13 +150,13 @@ def open_issue():
     lt = g.user.landlords.filter(LandlordTenant.current==True).first()
     if not lt:
         flash('No current landlord')
-        return redirect(url_for('.issues'))
+        return redirect_xhr_or_normal('.issues')
     if not lt.confirmed:
         flash('Need to be confirmed!')
-        return redirect(url_for('.issues'))
+        return redirect_xhr_or_normal('.issues')
     if not lt.landlord.fee_paid():
         flash('Landlord needs to pay fee')
-        return redirect(url_for('.issues'))
+        return redirect_xhr_or_normal('.issues')
     form=OpenIssueForm()
     if form.validate_on_submit():
         i=g.user.open_issue()
@@ -208,8 +195,8 @@ def open_issue():
         mail.send(msg)
         logger.info('mail sent: {0}'.format(msg))
         flash('Landlord notified')
-        return redirect(url_for('.issues'))
-    return render_template('open_issue.html', form=form)
+        return redirect_xhr_or_normal('.issues')
+    return render_xhr_or_normal('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
 @rp.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
@@ -224,30 +211,23 @@ def comment(ident):
     issue=g.user.all_issues().\
             filter(Issue.status=='Open',Issue.id==ident).first()
     if not issue:
-        #return jsonify({'error': 'No issue'})
         flash('No issue')
-        return redirect(url_for('issue.issues'))
+        return redirect_xhr_or_normal('issue.issues')
     if g.user != issue.landlord:
         if not getattr(g.user.landlords.filter(LandlordTenant.current==True).first(),'confirmed', None):
             flash('Need to be confirmed')
-            return redirect(url_for('profile.profile'))
-            #return jsonify({'error': 'Need to be confirmed by landlord!'})
+            return redirect_xhr_or_normal('profile.profile')
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
         issue.comments.append(comment)
         db.session.add(comment)
         db.session.commit()
-        #return jsonify({'success': 'Commented on issue',
-                        #'comment': comment.text,
-                        #'time': comment.posted.strftime('%Y/%m/%d'),
-                        #'username': comment.user.username})
         flash('Comment added')
-        return jsonify({'redirect':url_for('issue.show_issue', ident=ident)})
+        return redirect_xhr_or_normal('issue.show_issue', ident=ident)
     else:
         flash('Bad input')
-        return redirect(url_for('issue.show_issue', ident=ident))
-        #return jsonify({'error': 'Invalid input'})
+        return redirect_xhr_or_normal('issue.show_issue', ident=ident)
 
 @rp.route('/issues/<int(min=1):ident>/close', methods=['GET', 'POST'])
 @login_required
@@ -263,20 +243,17 @@ def close_issue(ident):
                 Issue.id == ident).first()
     form=CloseIssueForm()
     if not issue:
-        #return jsonify({'error': 'No issue'})
         flash('Issue closed')
-        return redirect(url_for('.issues'))
+        return redirect_xhr_or_normal('.issues')
     if form.validate_on_submit():
         reason=request.form['reason']
         issue.status='Closed'
         issue.closed_because=reason
         db.session.add(issue)
         db.session.commit()
-        #return jsonify({'success': 'Issue closed',
-                        #'reason': reason})
         flash('Issue closed')
-        return redirect(url_for('.issues'))
-    return render_template('close_issue.html', close=form, issue=issue)
+        return redirect_xhr_or_normal('.issues')
+    return render_xhr_or_normal('close_issue.html', close=form, issue=issue)
 
 @rp.route('/issues/<int(min=1):ident>/provider', methods=['GET', 'POST'])
 @login_required
@@ -285,15 +262,16 @@ def authorize_provider(ident):
                 Issue.status == 'Open',
                 Issue.id == ident).first()
     if not issue:
-        return jsonify({'error': 'No open issue'})
+        flash('Not an open issue')
+        return redirect_xhr_or_normal('.show_issue', ident=ident)
     if issue.work_orders.first():
-        #flash('Provider already selected')
-        return jsonify({'error': 'Provider already selected'})
+        flash('Provider already selected')
+        return redirect_xhr_or_normal('.show_issue', ident=ident)
     form=SelectProviderForm()
-    #ps = [(str(prov.id), prov.name) for prov in issue.location.providers if prov.service == issue.area]
     ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
     if not ps:
-        return jsonify({'error': 'No relevant providers'})
+        flash('No relevant providers')
+        return redirect_xhr_or_normal('property.add_provider')
     form.provider.choices=ps
     if form.validate_on_submit():
         w=WorkOrder()
@@ -306,8 +284,6 @@ def authorize_provider(ident):
         mail.send(msg)
         logger.info('mail sent: {0}'.format(msg))
         flash('Provider selected')
-        return redirect(url_for('.show_issue', ident=ident))
-        #return jsonify({'success': 'Selected provider',
-                        #'provider': w.provider.name})
-    return render_template('select_issue_provider.html', issue=issue, form=form)
+        return redirect_xhr_or_normal('.show_issue', ident=ident)
+    return render_xhr_or_normal('select_issue_provider.html', issue=issue, form=form)
 #### /ISSUES ####

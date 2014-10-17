@@ -15,25 +15,25 @@ $(document).ready(function() {
             //});
         //$('#comment').val('');
     //});
-    $('#main').on('submit','form:not(#loginForm)', function(event) {
+    $(document).on('submit','form:not(#loginForm)', function(event) {
         event.preventDefault();
         var $form = $( this ),
             url=$form.attr("action"),
-            data=$form.serialize();
-        $.ajax({
+            body=$form.serialize();
+        var request = $.ajax({
             type: "POST",
             url: url,
-            data: data,
-            dataType: 'json',
-            success: function(data, textStatus) {
+            data: body})
+        request.done(function(data) {
                 if (data.redirect) {
+                    history.pushState({id: data.redirect}, '', data.redirect);
                     loadPage(data.redirect);
                 } else {
-                    var m = $( data.page ).find( "#main" );
-                    $( "#main" ).replaceWith( m );
+                    history.pushState({id: url}, '', url);
+                    d = $(data.page).filter('#main').children();
+                    $( "#main" ).empty().append( d );
                 }
-            }});
-        });
+            })});
 
       String.prototype.decodeHTML = function() {
         return $("<div>", {html: "" + this}).html();
@@ -46,7 +46,17 @@ $(document).ready(function() {
           .decodeHTML();
       },
       loadPage = function(href) {
-        $main.load(href + " #main>*", ajaxLoad);
+        $.get(href, function(data) {
+            if (data.redirect) {
+                history.pushState({id: data.redirect}, '', data.redirect);
+                loadPage(data.redirect);
+            } else {
+                history.pushState({id: href}, '', href);
+                d = $(data.page).filter('#main').contents();
+                console.log(d);
+                $main.empty().append(d);
+            }})
+            //$main.load(href + " #main>*", ajaxLoad);
       };
 
       //Back button to work

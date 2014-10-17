@@ -10,7 +10,7 @@ from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, render_template, request, g, redirect, url_for,
+from flask import (Blueprint, request, g, redirect, url_for,
                     abort, flash, session, json, jsonify, current_app,
                     make_response)
 from itsdangerous import URLSafeTimedSerializer
@@ -23,7 +23,7 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import get_url
+from .utils import get_url, render_xhr_or_normal, redirect_xhr_or_normal
 import stripe
 import logging
 
@@ -64,10 +64,10 @@ def add_tenant():
     '''
     if not g.user.fee_paid():
         flash('Cannot add tenant without paying fee')
-        return redirect(url_for('fee.pay_fee'))
+        return redirect_xhr_or_normal('fee.pay_fee')
     if g.user.properties.first() is None:
         flash('Add a property first')
-        return redirect(url_for('property.add_property'))
+        return redirect_xhr_or_normal('property.add_property')
     form=AddTenantForm()
     form.apt.choices=[(x.id, ' '.join([str(x.apt_number or ''), 
                                 str(x.address.number), x.address.street])) \
@@ -79,7 +79,7 @@ def add_tenant():
         if tenant:
             if tenant.current_landlord():
                 flash('That tenant already has a landlord')
-                return redirect(url_for('.add_tenant'))
+                return redirect_xhr_or_normal('.add_tenant')
             try:
                 lt=LandlordTenant(location_id=loc_id)
                 lt.tenant=tenant
@@ -93,10 +93,11 @@ def add_tenant():
                 flash('Invited tenant')
             except IntegrityError:
                 flash('Invite already sent')
-            return redirect(url_for('misc.home'))
+            finally:
+                return redirect_xhr_or_normal('misc.home')
         else:
             flash('No user with that info')
-            return redirect(url_for('.add_tenant'))
+            return redirect_xhr_or_normal('.add_tenant')
     try:
         i=int(request.args['ident'])
         options=[(x,y) for x, y in form.apt.choices if x == i]
@@ -105,7 +106,7 @@ def add_tenant():
     except:
         pass
     finally:
-        return render_template('add_tenant.html', form=form)
+        return render_xhr_or_normal('add_tenant.html', form=form)
 
 #FIX I'm breaking the rule of no GET side-effects
 @rp.route('/landlord/confirm', defaults={'token': None}, methods=['GET'])
@@ -134,10 +135,10 @@ def confirm_invite(token):
                                             req.location.address.street]),
                             url_for('.confirm_invite', token=confirm),
                             url_for('.confirm_invite', token=decline)])
-            return render_template('unconfirmed_requests.html', urls=urls)
+            return render_xhr_or_normal('unconfirmed_requests.html', urls=urls)
         else:
             flash('No outstanding requests')
-            return redirect(url_for('misc.home'))
+            return redirect_xhr_or_normal('misc.home')
     s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['INVITE_CONFIRM_SALT'])
     sig_okay, payload = s.loads_unsafe(token, max_age=current_app.config['INVITE_CONFIRM_WITHIN'])
     if sig_okay:
@@ -149,7 +150,7 @@ def confirm_invite(token):
                 if payload[2] == 'Confirm':
                     if g.user.current_landlord():
                         flash('End relationship with current landlord first')
-                        return redirect(url_for('profile.profile', next=url_for('.confirm_invite', token=token)))
+                        return redirect_xhr_or_normal('profile.profile', next=url_for('.confirm_invite', token=token))
                     lt.confirmed=True
                     db.session.add(lt)
                     db.session.commit()
@@ -163,7 +164,7 @@ def confirm_invite(token):
                 l=User.query.filter(User.id==payload[0]).first()
                 if l is None:
                     flash('That landlord does not exist')
-                    return redirect(url_for('misc.home'))
+                    return redirect_xhr_or_normal('misc.home')
                 lt=LandlordTenant(location_id=payload[1])
                 lt.tenant=g.user
                 l.tenants.append(lt)
@@ -172,9 +173,9 @@ def confirm_invite(token):
                 flash('Landlord confirmed')
             else:
                 flash('Bad token')
-        return redirect(url_for('profile.profile'))
+        return redirect_xhr_or_normal('profile.profile')
     flash('Bad token')
-    return redirect(url_for('misc.home'))
+    return redirect_xhr_or_normal('misc.home')
 
 # ALERT USER(S)
 @rp.route('/landlord/end', methods=['POST', 'GET'])
@@ -192,12 +193,12 @@ def end_relation():
             first()
     if not lt:
         flash('No relationship to end')
-        return redirect(url_for('misc.home'))
+        return redirect_xhr_or_normal('misc.home')
     if form.validate_on_submit():
         lt.current=False
         db.session.add(lt)
         db.session.commit()
         flash('Ended landlord relationship')
-        return redirect(get_url('profile.profile'))
-    return render_template('end_relation.html', form=form, landlord=lt.landlord)
+        return redirect_xhr_or_normal('profile.profile')
+    return render_xhr_or_normal('end_relation.html', form=form, landlord=lt.landlord)
 #### /LANDLORD ####
