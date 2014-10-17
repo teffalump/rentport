@@ -26,7 +26,7 @@ $(document).ready(function() {
             data: body})
         request.done(function(data) {
                 if (data.redirect) {
-                    history.pushState({id: data.redirect}, '', data.redirect);
+                    //history.pushState({id: data.redirect}, '', data.redirect);
                     loadPage(data.redirect);
                 } else {
                     history.pushState({id: url}, '', url);
@@ -48,7 +48,7 @@ $(document).ready(function() {
       loadPage = function(href) {
         $.get(href, function(data) {
             if (data.redirect) {
-                history.pushState({id: data.redirect}, '', data.redirect);
+                //history.pushState({id: data.redirect}, '', data.redirect);
                 loadPage(data.redirect);
             } else {
                 history.pushState({id: href}, '', href);
@@ -74,7 +74,7 @@ $(document).ready(function() {
         if (href.indexOf(document.domain) > -1
           || href.indexOf(':') === -1)
         {
-          history.pushState({id: href}, '', href);
+          //history.pushState({id: href}, '', href);
           loadPage(href);
           // Since ajax, initiate dropdown toggle (to hide)
           $('.dropdown.open .dropdown-toggle').dropdown('toggle');
