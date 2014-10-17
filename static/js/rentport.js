@@ -50,10 +50,13 @@ $(document).ready(function() {
             if (data.redirect) {
                 //history.pushState({id: data.redirect}, '', data.redirect);
                 loadPage(data.redirect);
-            } else {
+            } else if (data.page) {
                 history.pushState({id: href}, '', href);
                 d = $(data.page).filter('#main').contents();
-                console.log(d);
+                $main.empty().append(d);
+            } else {
+                history.pushState({id: href}, '', href);
+                d = $(data).filter('#main').contents();
                 $main.empty().append(d);
             }})
             //$main.load(href + " #main>*", ajaxLoad);
