@@ -65,19 +65,28 @@ $(document).ready(function() {
       //Back button to work
       $(window).on("popstate", function(e) {
         if (e.originalEvent.state !== null) {
-          loadPage(location.href);
+        $.get(location.href, function(data) {
+            if (data.page) {
+                d = $(data.page).filter('#main').contents();
+                $main.empty().append(d);
+            } else {
+                d = $(data).filter('#main').contents();
+                $main.empty().append(d);
+            }})
+          //loadPage(location.href);
         }
       });
 
       //Select all links except the dropdown buttons, logout button, service
       //fee
-      $(document).on("click", "a:not(.dropdown-toggle):not(#logout):not(#serviceFee), area, .clickableRow", function() {
+      $(document).on("click", "a:not(.dropdown-toggle):not(#logout):not(#serviceFee), area, .clickableRow", function(event) {
+        event.preventDefault();
         var href = $(this).attr("href");
 
         if (href.indexOf(document.domain) > -1
           || href.indexOf(':') === -1)
         {
-          //history.pushState({id: href}, '', href);
+          console.log('loading page '+href)
           loadPage(href);
           // Since ajax, initiate dropdown toggle (to hide)
           $('.dropdown.open .dropdown-toggle').dropdown('toggle');
@@ -86,7 +95,6 @@ $(document).ready(function() {
           $('li .active').removeClass('active');
           // Add new active class
           $(this).parent('li').addClass('active');
-          return false;
         }
       });
 });
