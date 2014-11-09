@@ -14,7 +14,7 @@ from flask import (Blueprint, render_template, request, g, redirect, url_for,
                     abort, flash, session, json, jsonify, current_app,
                     make_response)
 from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy import or_
+from sqlalchemy import or_, in_
 from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
@@ -111,10 +111,11 @@ def twilio_hook():
 @login_required
 def show_img(image_uuid):
     '''Use X-Accel-Redirect to let nginx handle static files'''
-    #TODO What images should be able to be seen by what users
-    im=Image.query.filter(Image.uuid==image_uuid).first()
-    if im is None:
-        abort(404)
+    #FIX Only allow current issues and properties! Discuss more!
+    im=Image.query.join(Issue.images).join(Property.issues).join(Property.assocs).\
+                filter(Image.uuid==image_uuid).\
+                filter(LandlordTenant.tenant == g.user)
+    print(im.__sql__)
     #fs_path='/'.join([current_app.config['UPLOAD_FOLDER'], im.filename])
     ur_redirect='/'.join(['/srv/images', im.filename])
     response=make_response("")
