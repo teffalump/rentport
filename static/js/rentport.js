@@ -86,7 +86,6 @@ $(document).ready(function() {
         if (href.indexOf(document.domain) > -1
           || href.indexOf(':') === -1)
         {
-          console.log('loading page '+href)
           loadPage(href);
           // Since ajax, initiate dropdown toggle (to hide)
           $('.dropdown.open .dropdown-toggle').dropdown('toggle');
