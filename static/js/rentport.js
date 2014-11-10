@@ -24,7 +24,7 @@ $(document).ready(function() {
             type: "POST",
             url: url,
             data: body,
-            mimeType="multipart/form-data",
+            mimeType: "multipart/form-data",
             contentType: false,
                 cache: false,
                 processData: false})
