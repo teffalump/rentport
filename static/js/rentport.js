@@ -25,6 +25,7 @@ $(document).ready(function() {
             url: url,
             data: body,
             mimeType: "multipart/form-data",
+            dataType: "json",
             contentType: false,
                 cache: false,
                 processData: false})

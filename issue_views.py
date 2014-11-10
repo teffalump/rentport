@@ -159,7 +159,6 @@ def open_issue():
         return redirect_xhr_or_normal('.issues')
     form=OpenIssueForm()
     if form.validate_on_submit():
-        print(request.data)
         i=g.user.open_issue()
         i.description=request.form['description']
         i.severity=request.form['severity']
