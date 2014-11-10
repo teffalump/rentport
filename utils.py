@@ -1,5 +1,5 @@
 # Utility functions
-from flask import url_for, jsonify, request, render_template, redirect
+from flask import url_for, jsonify, request, render_template, redirect, current_app
 import requests
 
 def get_url(endpoint, **kw):

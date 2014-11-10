@@ -14,7 +14,7 @@ from flask import (Blueprint, render_template, request, g, redirect, url_for,
                     abort, flash, session, json, jsonify, current_app,
                     make_response)
 from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy import or_, in_
+from sqlalchemy import or_
 from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
@@ -112,10 +112,9 @@ def twilio_hook():
 def show_img(image_uuid):
     '''Use X-Accel-Redirect to let nginx handle static files'''
     #FIX Only allow current issues and properties! Discuss more!
-    im=Image.query.join(Issue.images).join(Property.issues).join(Property.assocs).\
-                filter(Image.uuid==image_uuid).\
-                filter(LandlordTenant.tenant == g.user)
-    print(im.__sql__)
+    im=Image.query.join(Issue.images).join(Property.assocs).\
+                filter(LandlordTenant.tenant == g.user, LandlordTenant.current == True).\
+                filter(Image.uuid==image_uuid).first_or_404()
     #fs_path='/'.join([current_app.config['UPLOAD_FOLDER'], im.filename])
     ur_redirect='/'.join(['/srv/images', im.filename])
     response=make_response("")

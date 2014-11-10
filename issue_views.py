@@ -21,7 +21,7 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import redirect_xhr_or_normal, render_xhr_or_normal
+from .utils import redirect_xhr_or_normal, render_xhr_or_normal, allowed_file
 import stripe
 import logging
 
@@ -159,6 +159,7 @@ def open_issue():
         return redirect_xhr_or_normal('.issues')
     form=OpenIssueForm()
     if form.validate_on_submit():
+        print(request.data)
         i=g.user.open_issue()
         i.description=request.form['description']
         i.severity=request.form['severity']

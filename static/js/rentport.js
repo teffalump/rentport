@@ -19,11 +19,15 @@ $(document).ready(function() {
         event.preventDefault();
         var $form = $( this ),
             url=$form.attr("action"),
-            body=$form.serialize();
+            body= new FormData(this);
         var request = $.ajax({
             type: "POST",
             url: url,
-            data: body})
+            data: body,
+            mimeType="multipart/form-data",
+            contentType: false,
+                cache: false,
+                processData: false})
         request.done(function(data) {
                 if (data.redirect) {
                     //history.pushState({id: data.redirect}, '', data.redirect);
