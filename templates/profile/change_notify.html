@@ -10,13 +10,14 @@
         <div class="panel-heading">
             <h3 class="panel-title">Change notifications</h3>
         </div>
-    <div class="panel-body">
-    <form action="{{ url_for('profile.notify') }}" method="POST" name="change_notify_form" role="form">
-      {{ form.hidden_tag() }}
-      {{ wtf.form_errors(form, hiddens="only") }}
-      {{ wtf.form_field(form.method) }}
-      {{ wtf.form_field(form.submit) }}
-    </form>
+        <div class="panel-body">
+            <form action="{{ url_for('profile.notify') }}" method="POST" name="change_notify_form" role="form">
+              {{ form.hidden_tag() }}
+              {{ wtf.form_errors(form, hiddens="only") }}
+              {{ wtf.form_field(form.method) }}
+              {{ wtf.form_field(form.submit) }}
+            </form>
+        </div>
     </div>
 {% include "flash.html" %}
 </div>
