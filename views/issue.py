@@ -65,9 +65,9 @@ issue = Blueprint('issue', __name__, template_folder = 'templates/issue', static
 #### /Blueprint ####
 
 #### ISSUES ####
-@fee.route('/issues', defaults={'page':1, 'per_page':current_app.config['ISSUES_PER_PAGE']}, methods=['GET'])
-@fee.route('/issues/<int(min=1):page>', defaults={'per_page':current_app.config['ISSUES_PER_PAGE']}, methods=['GET'])
-@fee.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@issue.route('/issues', defaults={'page':1, 'per_page':current_app.config['ISSUES_PER_PAGE']}, methods=['GET'])
+@issue.route('/issues/<int(min=1):page>', defaults={'per_page':current_app.config['ISSUES_PER_PAGE']}, methods=['GET'])
+@issue.route('/issues/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
 def issues(page, per_page):
     '''display main issues page
@@ -91,7 +91,7 @@ def issues(page, per_page):
                 paginate(page, per_page, False)
     return render_xhr_or_normal('issues.html', issues=issues, sort=sort_key, order=order_key)
 
-@fee.route('/issues/<int(min=1):ident>/show', methods=['GET'])
+@issue.route('/issues/<int(min=1):ident>/show', methods=['GET'])
 @login_required
 def show_issue(ident):
     '''show issue
@@ -140,7 +140,7 @@ def show_issue(ident):
 # PAID ENDPOINT
 # MUST BE CONFIRMED
 # ALERT USER(S)
-@fee.route('/issues/open', methods=['POST', 'GET'])
+@issue.route('/issues/open', methods=['POST', 'GET'])
 @login_required
 def open_issue():
     '''open new issue at current location
@@ -201,7 +201,7 @@ def open_issue():
     return render_xhr_or_normal('open_issue.html', form=form)
 
 # MUST BE CONFIRMED
-@fee.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
+@issue.route('/issues/<int(min=1):ident>/comment', methods=['POST'])
 @login_required
 def comment(ident):
     '''comment on issue
@@ -231,7 +231,7 @@ def comment(ident):
         flash('Bad input')
         return redirect_xhr_or_normal('issue.show_issue', ident=ident)
 
-@fee.route('/issues/<int(min=1):ident>/close', methods=['GET', 'POST'])
+@issue.route('/issues/<int(min=1):ident>/close', methods=['GET', 'POST'])
 @login_required
 def close_issue(ident):
     '''close issue - only opener or landlord can
@@ -257,7 +257,7 @@ def close_issue(ident):
         return redirect_xhr_or_normal('.issues')
     return render_xhr_or_normal('close_issue.html', close=form, issue=issue)
 
-@fee.route('/issues/<int(min=1):ident>/provider', methods=['GET', 'POST'])
+@issue.route('/issues/<int(min=1):ident>/provider', methods=['GET', 'POST'])
 @login_required
 def authorize_provider(ident):
     issue=Issue.query.filter(Issue.landlord_id==g.user.id,

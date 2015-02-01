@@ -4,7 +4,7 @@ from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
                         AddProviderForm, ConnectProviderForm, SelectProviderForm)
-from renptort.common.model import (Issue, Property, User, LandlordTenant,
+from rentport.common.model import (Issue, Property, User, LandlordTenant,
                         Comment, WorkOrder, Fee, Payment, StripeUserInfo,
                         Address, Provider, Image)
 from flask.ext.mail import Message
