@@ -1,7 +1,7 @@
 {% extends "base_nav.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 {% block navbar %}
-    {% set active_page = "profile.profile"|default('misc.home') -%}
+    {% set active_page = "profile.show_profile"|default('misc.home') -%}
     {{ super() }}
 {% endblock %}
 {% block content %}

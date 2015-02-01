@@ -27,7 +27,7 @@ from rentport.common.utils import get_url, allowed_file, render_xhr_or_normal
 import stripe
 
 #### Blueprint ####
-misc = Blueprint('misc', __name__, template_folder = 'templates/misc', static_folder='static')
+misc = Blueprint('misc', __name__, template_folder = '../templates/misc', static_folder='static')
 #### /Blueprint ####
 
 #### DEFAULT ####

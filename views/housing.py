@@ -25,7 +25,7 @@ from os import path as fs
 from uuid import uuid4
 
 #### Blueprint ####
-housing = Blueprint('property', __name__, template_folder = 'templates/property', static_folder='static')
+housing = Blueprint('property', __name__, template_folder = '../templates/property', static_folder='static')
 #### /Blueprint ####
 
 ##### PROPERTIES #####
@@ -76,8 +76,10 @@ def add_property():
                 state=loc.get('state'),
                 postcode=loc.get('postcode'),
                 country=loc.get('country'))
-        unit=request.form['unit']
         description=request.form['description']
+
+        #Optional unit
+        unit=request.form.get('unit')
         if unit:
             p=Property(apt_number=int(unit),
                     description=description)

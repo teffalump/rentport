@@ -30,7 +30,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 #### Blueprint ####
-fee = Blueprint('fee', __name__, template_folder = 'templates/fee', static_folder='static')
+fee = Blueprint('fee', __name__, template_folder = '../templates/fee', static_folder='static')
 #### /Blueprint ####
 
 #### FEES ####

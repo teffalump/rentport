@@ -40,7 +40,7 @@ def create_app(config=None):
                 register_form=ExtendedRegisterForm,
                 login_form=ExtendedLoginForm,
                 confirm_register_form=ExtendedRegisterForm)
-        limiter.limit('5/minute;20/day')(app.blueprints['security'])
+        limiter.limit('10/minute;40/day')(app.blueprints['security'])
 
 
 
@@ -53,15 +53,18 @@ def create_app(config=None):
         app.before_first_request(bffr)
         app.before_request(before_request)
 
+        # NOTE: subtle path bugs with templates and routing
+        # 
+        #    The app object overrides the options set by the blueprint
+        #    like, the template_folder and url_prefix
         from rentport.views import (issue, relation, housing,
                                     profile, fee, misc)
+        app.register_blueprint(misc)
         app.register_blueprint(issue)
         app.register_blueprint(relation)
         app.register_blueprint(housing)
         app.register_blueprint(profile)
         app.register_blueprint(fee)
-        app.register_blueprint(misc)
-
 
     return app
 

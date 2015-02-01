@@ -29,7 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 #### Blueprint ####
-profile = Blueprint('profile', __name__, template_folder = 'templates/profile', static_folder='static')
+profile = Blueprint('profile', __name__, template_folder = '../templates/profile', static_folder='static')
 #### /Blueprint ####
 
 #### PROFILE ####

@@ -32,7 +32,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 #### Blueprint ####
-relation = Blueprint('relation', __name__, template_folder = 'templates/relation', static_folder='static')
+relation = Blueprint('relation', __name__, template_folder = '../templates/relation', static_folder='static')
 #### /Blueprint ####
 
 #### EMAIL STRINGS ####
@@ -152,7 +152,7 @@ def confirm_invite(token):
                 if payload[2] == 'Confirm':
                     if g.user.current_landlord():
                         flash('End relationship with current landlord first')
-                        return redirect_xhr_or_normal('profile.profile', next=url_for('.confirm_invite', token=token))
+                        return redirect_xhr_or_normal('profile.show_profile', next=url_for('.confirm_invite', token=token))
                     lt.confirmed=True
                     db.session.add(lt)
                     db.session.commit()
@@ -175,7 +175,7 @@ def confirm_invite(token):
                 flash('Landlord confirmed')
             else:
                 flash('Bad token')
-        return redirect_xhr_or_normal('profile.profile')
+        return redirect_xhr_or_normal('profile.show_profile')
     flash('Bad token')
     return redirect_xhr_or_normal('misc.home')
 
@@ -201,7 +201,7 @@ def end_relation():
         db.session.add(lt)
         db.session.commit()
         flash('Ended landlord relationship')
-        return redirect_xhr_or_normal('profile.profile')
+        return redirect_xhr_or_normal('profile.show_profile')
     return render_xhr_or_normal('end_relation.html', form=form, landlord=lt.landlord)
 #### /LANDLORD ####
 

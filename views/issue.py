@@ -61,7 +61,7 @@ def provider_issue_email(work_order):
 #### /EMAIL STRINGS ####
 
 #### Blueprint ####
-issue = Blueprint('issue', __name__, template_folder = 'templates/issue', static_folder='static')
+issue = Blueprint('issue', __name__, template_folder = '../templates/issue', static_folder='static')
 #### /Blueprint ####
 
 #### ISSUES ####
@@ -218,7 +218,7 @@ def comment(ident):
     if g.user != issue.landlord:
         if not getattr(g.user.landlords.filter(LandlordTenant.current==True).first(),'confirmed', None):
             flash('Need to be confirmed')
-            return redirect_xhr_or_normal('profile.profile')
+            return redirect_xhr_or_normal('profile.show_profile')
     if form.validate_on_submit():
         d=request.form['comment']
         comment=Comment(text=d, user_id=g.user.id)
