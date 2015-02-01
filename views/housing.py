@@ -1,11 +1,12 @@
-from .extensions import db, mail
-from .forms import (OpenIssueForm, CloseIssueForm,
+from rentport.common.extensions import db, mail
+from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
                         AddProviderForm, ConnectProviderForm, SelectProviderForm)
-from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
-                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+from rentport.common.model import (Issue, Property, User, LandlordTenant,
+                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
+                        Address, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -18,16 +19,17 @@ from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
-from .utils import get_address, render_xhr_or_normal, redirect_xhr_or_normal
+from rentport.common.utils import (get_address, render_xhr_or_normal,
+                                    redirect_xhr_or_normal)
 from os import path as fs
 from uuid import uuid4
 
 #### Blueprint ####
-rp = Blueprint('property', __name__, template_folder = 'templates/property', static_folder='static')
+housing = Blueprint('property', __name__, template_folder = 'templates/property', static_folder='static')
 #### /Blueprint ####
 
 ##### PROPERTIES #####
-@rp.route('/landlord/property', methods=['GET'])
+@housing.route('/landlord/property', methods=['GET'])
 @login_required
 def properties():
     '''show properties
@@ -42,7 +44,7 @@ def properties():
     return render_xhr_or_normal('properties.html', props=props, form=form)
 
 # PAID ENDPOINT
-@rp.route('/landlord/property/add', methods=['POST'])
+@housing.route('/landlord/property/add', methods=['POST'])
 @login_required
 def add_property():
     '''add property
@@ -89,7 +91,7 @@ def add_property():
         return redirect_xhr_or_normal('.properties')
     return render_xhr_or_normal('add_property.html', form=form)
 
-@rp.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
+@housing.route('/landlord/property/<int(min=1):prop_id>/modify', methods=['GET', 'POST'])
 @login_required
 def modify_property(prop_id):
     '''modify existing property
@@ -113,7 +115,7 @@ def modify_property(prop_id):
     return render_xhr_or_normal('modify_location.html', form=form, location=prop)
 
 # TODO Eventually minimize the redundant code and ajax these sections
-#@rp.route('/landlord/provider/connect/<int:prop_id>/<int:prov_id>', methods=['GET', 'POST'])
+#@housing.route('/landlord/provider/connect/<int:prop_id>/<int:prov_id>', methods=['GET', 'POST'])
 #@login_required
 #def connect_provider(prop_id, prov_id):
     #'''(Dis)Connect provider with property'''
@@ -144,7 +146,7 @@ def modify_property(prop_id):
                                                     #prop=prop,
                                                     #prov=prov)
 
-@rp.route('/landlord/provider/add', methods=['POST'])
+@housing.route('/landlord/provider/add', methods=['POST'])
 @login_required
 def add_provider():
     '''Add provider'''
@@ -163,8 +165,8 @@ def add_provider():
         return render_xhr_or_normal('show_provider.html', prov=p)
     return render_xhr_or_normal('add_provider.html', form=form)
 
-@rp.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])
-@rp.route('/landlord/provider/<int:prov_id>', methods=['GET'])
+@housing.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])
+@housing.route('/landlord/provider/<int:prov_id>', methods=['GET'])
 @login_required
 def show_providers(prov_id):
     '''Show providers'''
@@ -199,3 +201,5 @@ def show_providers(prov_id):
         return render_xhr_or_normal('show_providers.html', providers=g.user.providers.all(), form=form,
                 action=url_for('.add_provider'))
 #### /PROPERTIES ####
+
+__all__=['housing']

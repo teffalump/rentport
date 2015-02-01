@@ -1,10 +1,11 @@
-from . import create_app
-from .config import TestConfig
-from .model import User, Property, LandlordTenant, Role, Fee, Payment, Issue
-from .extensions import mail, db, security, bootstrap, kvsession, limiter
-import datetime
+from rentport import create_app
+from rentport.config import TestConfig
+from rentport.common.model import User, Property, LandlordTenant, Role, Fee, Payment, Issue
+from rentport.common.extensions import mail, db, security, bootstrap, kvsession, limiter
 from flask.ext.security.utils import encrypt_password
 from flask.ext.testing import TestCase
+import datetime
+import unittest
 
 
 class MyTests(TestCase):
@@ -320,3 +321,7 @@ class MyTests(TestCase):
     def logout(self):
         return self.client.get('/logout', follow_redirects=True)
 
+__all__=['MyTests']
+
+if __name__=='__main__':
+    unittest.main()

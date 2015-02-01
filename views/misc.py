@@ -1,12 +1,13 @@
-from .extensions import db, mail
-from .forms import (OpenIssueForm, CloseIssueForm,
+from rentport.common.extensions import db, mail
+from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
-from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
-                        Fee, Payment, StripeUserInfo, Address, Provider, Image,
-                        StripeEvent)
+                        AddProviderForm, ConnectProviderForm,
+                        SelectProviderForm)
+from rentport.common.model import (Issue, Property, User, LandlordTenant,
+                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
+                        Address, Provider, Image, StripeEvent)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -22,22 +23,22 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import get_url, allowed_file, render_xhr_or_normal
+from rentport.common.utils import get_url, allowed_file, render_xhr_or_normal
 import stripe
 
 #### Blueprint ####
-rp = Blueprint('misc', __name__, template_folder = 'templates/misc', static_folder='static')
+misc = Blueprint('misc', __name__, template_folder = 'templates/misc', static_folder='static')
 #### /Blueprint ####
 
 #### DEFAULT ####
-@rp.route('/')
+@misc.route('/')
 @login_required
 def home():
     return render_xhr_or_normal('home.html')
 #### /DEFAULT ####
 
 #### HOOKS ####
-@rp.route('/hook/stripe', methods=['POST'])
+@misc.route('/hook/stripe', methods=['POST'])
 def stripe_hook():
     try:
         event=json.loads(request.data)['id']
@@ -99,7 +100,7 @@ def stripe_hook():
     #except:
         #return str(er())
 
-@rp.route('/hook/twilio')
+@misc.route('/hook/twilio')
 def twilio_hook():
     '''twilio hook'''
     #TODO
@@ -107,7 +108,7 @@ def twilio_hook():
 #### /HOOKS ####
 
 #### IMAGES ####
-@rp.route('/img/<image_uuid>', methods=['GET'])
+@misc.route('/img/<image_uuid>', methods=['GET'])
 @login_required
 def show_img(image_uuid):
     '''Use X-Accel-Redirect to let nginx handle static files'''
@@ -121,3 +122,5 @@ def show_img(image_uuid):
     response.headers['X-Accel-Redirect']=ur_redirect
     return response
 #### /IMAGES ####
+
+__all__=['misc']

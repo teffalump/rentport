@@ -108,3 +108,10 @@ class ChangeNotifyForm(Form):
 
 class ResendNotifyForm(Form):
     resend=SubmitField('Resend email', default='True')
+
+__all__=['AddLandlordForm', 'AddPhoneNumber', 'AddPropertyForm',
+        'AddProviderForm', 'AddTenantForm', 'ChangeNotifyForm',
+        'CloseIssueForm', 'CommentForm', 'ConfirmTenantForm',
+        'ConnectProviderForm', 'EndLandlordForm', 'ExtendedLoginForm',
+        'ExtendedRegisterForm', 'ModifyPropertyForm', 'OpenIssueForm',
+        'ResendNotifyForm', 'SelectProviderForm']

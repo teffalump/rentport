@@ -1,11 +1,12 @@
-from .extensions import db, mail
-from .forms import (OpenIssueForm, CloseIssueForm,
+from rentport.common.extensions import db, mail
+from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
                         AddProviderForm, ConnectProviderForm, SelectProviderForm)
-from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
-                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+from renptort.common.model import (Issue, Property, User, LandlordTenant,
+                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
+                        Address, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -21,20 +22,20 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import render_xhr_or_normal, redirect_xhr_or_normal
+from rentport.common.utils import render_xhr_or_normal, redirect_xhr_or_normal
 import stripe
 import logging
 
 logger = logging.getLogger(__name__)
 
 #### Blueprint ####
-rp = Blueprint('profile', __name__, template_folder = 'templates/profile', static_folder='static')
+profile = Blueprint('profile', __name__, template_folder = 'templates/profile', static_folder='static')
 #### /Blueprint ####
 
 #### PROFILE ####
-@rp.route('/profile', methods=['GET'])
+@profile.route('/profile', methods=['GET'])
 @login_required
-def profile():
+def show_profile():
     '''display profile
         params:     NONE
         returns:    GET: profile info
@@ -48,7 +49,7 @@ def profile():
             end_landlord_form=end_landlord_form,
             resend_form=resend_form, phone_form=phone_form)
 
-#@rp.route('/profile/phone', methods=['POST'])
+#@profile.route('/profile/phone', methods=['POST'])
 @login_required
 def phone():
     '''add phone number
@@ -74,7 +75,7 @@ def phone():
     for error in form.country.errors: flash(error, category='error')
     return redirect(url_for('.profile'))
 
-@rp.route('/profile/notify', methods=['GET', 'POST'])
+@profile.route('/profile/notify', methods=['GET', 'POST'])
 @login_required
 def notify():
     '''change notification settings
@@ -108,7 +109,7 @@ def notify():
 
     return render_xhr_or_normal('change_notify.html', form=form)
 
-@rp.route('/profile/notify/resend', methods=['POST'])
+@profile.route('/profile/notify/resend', methods=['POST'])
 @login_required
 def resend_notify_confirm():
     form = ResendNotifyForm()
@@ -123,7 +124,7 @@ def resend_notify_confirm():
             flash('Confirmation email sent')
     return redirect_xhr_or_normal('.profile')
 
-@rp.route('/profile/notify/<token>', methods=['GET'])
+@profile.route('/profile/notify/<token>', methods=['GET'])
 @login_required
 def confirm_notify(token):
     '''confirm notify endpoint
@@ -141,3 +142,5 @@ def confirm_notify(token):
         flash('Bad token')
     return redirect_xhr_or_normal('.profile')
 #### /PROFILE ####
+
+__all__=['profile']

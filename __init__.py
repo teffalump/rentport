@@ -1,7 +1,7 @@
 import os
 from flask import Flask, g
 from flask.ext.security import SQLAlchemyUserDatastore, current_user
-from .config import DebugConfig
+from rentport.config import DebugConfig
 
 
 def before_request():
@@ -19,7 +19,8 @@ def create_app(config=None):
         logging.basicConfig(filename='flask.log', level=logging.INFO,
                 format='%(asctime)s:::%(levelname)s:::%(name)s: %(message)s')
 
-        from .extensions import mail, db, security, bootstrap, kvsession, limiter
+        from rentport.common.extensions import (mail, db, security,
+                                                bootstrap, kvsession, limiter)
         #from .extensions import images
         mail.init_app(app)
         db.init_app(app)
@@ -30,10 +31,11 @@ def create_app(config=None):
         def bffr():
             db.create_all()
 
-        from .model import User, Role
+        from rentport.common.model import User, Role
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
-        from .forms import ExtendedRegisterForm, ExtendedLoginForm
+        from rentport.common.forms import (ExtendedRegisterForm,
+                                            ExtendedLoginForm)
         security.init_app(app, user_datastore,
                 register_form=ExtendedRegisterForm,
                 login_form=ExtendedLoginForm,
@@ -51,21 +53,19 @@ def create_app(config=None):
         app.before_first_request(bffr)
         app.before_request(before_request)
 
-        from .misc_views import rp as m
-        from .relation_views import rp as r
-        from .property_views import rp as p
-        from .profile_views import rp as c
-        from .fee_views import rp as f
-        from .issue_views import rp as i
-        app.register_blueprint(m)
-        app.register_blueprint(r)
-        app.register_blueprint(p)
-        app.register_blueprint(c)
-        app.register_blueprint(f)
-        app.register_blueprint(i)
+        from rentport.views import (issue, relation, housing,
+                                    profile, fee, misc)
+        app.register_blueprint(issue)
+        app.register_blueprint(relation)
+        app.register_blueprint(housing)
+        app.register_blueprint(profile)
+        app.register_blueprint(fee)
+        app.register_blueprint(misc)
 
 
     return app
+
+__all__=['create_app']
 
 if __name__ == "__main__":
     os.environ['DEBUG']="1"

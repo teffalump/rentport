@@ -1,7 +1,7 @@
 ## Payment/Oauth routes
 
 #### Blueprint ####
-rp = Blueprint('payment', __name__, template_folder = 'templates/payment', static_folder='static')
+payment = Blueprint('payment', __name__, template_folder = 'templates/payment', static_folder='static')
 #### /Blueprint ####
 
 #### PAYMENTS ####
@@ -9,8 +9,8 @@ rp = Blueprint('payment', __name__, template_folder = 'templates/payment', stati
 # PAID ENDPOINT
 # MUST BE CONFIRMED
 # ALERT USER(S)
-@rp.route('/pay/landlord', defaults={'amount': None}, methods=['GET'])
-@rp.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
+@payment.route('/pay/landlord', defaults={'amount': None}, methods=['GET'])
+@payment.route('/pay/landlord/<int(min=10):amount>', methods=['POST', 'GET'])
 @login_required
 def pay_rent(amount):
     lt=g.user.landlords.filter(LandlordTenant.current==True).first()
@@ -63,9 +63,9 @@ def pay_rent(amount):
     else:
         return render_template('get_pay_amount.html', landlord=lt.landlord, user=g.user)
 
-@rp.route('/payments', methods=['GET'])
-@rp.route('/payments/<int(min=1):page>', methods=['GET'])
-@rp.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@payment.route('/payments', methods=['GET'])
+@payment.route('/payments/<int(min=1):page>', methods=['GET'])
+@payment.route('/payments/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
 @login_required
 def payments(page=1, per_page=current_app.config['PAYMENTS_PER_PAGE']):
     '''main payments page
@@ -89,7 +89,7 @@ def payments(page=1, per_page=current_app.config['PAYMENTS_PER_PAGE']):
                 paginate(page, per_page, False)
     return render_template('payments.html', payments=payments, sort=sort_key, order=order_key)
 
-@rp.route('/payments/<int:pay_id>/show', methods=['GET'])
+@payment.route('/payments/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_payment(pay_id):
     '''show extended payment info
@@ -111,7 +111,7 @@ def show_payment(pay_id):
             ['amount', 'currency', 'paid', 'refunded', 'description']})
 
 #### OAUTH ####
-@rp.route('/oauth/authorize', methods=['GET'])
+@payment.route('/oauth/authorize', methods=['GET'])
 @login_required
 def authorize():
     '''Authorize Stripe, or refresh'''
@@ -126,7 +126,7 @@ def authorize():
     session['state']=state
     return redirect(auth_url)
 
-@rp.route('/oauth/authorized', methods=['GET'])
+@payment.route('/oauth/authorized', methods=['GET'])
 @login_required
 def authorized():
     if g.user.stripe:

@@ -1,12 +1,13 @@
-from .extensions import db, mail
-from .forms import (OpenIssueForm, CloseIssueForm,
+from rentport.common.extensions import db, mail
+from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
                         AddProviderForm, ConnectProviderForm, SelectProviderForm,
                         AddTenantForm)
-from .model import (Issue, Property, User, LandlordTenant, Comment, WorkOrder,
-                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+from rentport.common.model import (Issue, Property, User, LandlordTenant,
+                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
+                        Address, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -23,14 +24,15 @@ from datetime import datetime as dt
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import get_url, render_xhr_or_normal, redirect_xhr_or_normal
+from rentport.common.utils import (get_url, render_xhr_or_normal,
+                                    redirect_xhr_or_normal)
 import stripe
 import logging
 
 logger = logging.getLogger(__name__)
 
 #### Blueprint ####
-rp = Blueprint('relation', __name__, template_folder = 'templates/relation', static_folder='static')
+relation = Blueprint('relation', __name__, template_folder = 'templates/relation', static_folder='static')
 #### /Blueprint ####
 
 #### EMAIL STRINGS ####
@@ -53,7 +55,7 @@ def non_user_email_invite(prop):
 #TODO Switch to landlord invite and streamline
 
 #### LANDLORD ####
-@rp.route('/tenant/add', methods=['GET', 'POST'])
+@relation.route('/tenant/add', methods=['GET', 'POST'])
 @login_required
 def add_tenant():
     '''invite tenant endpoint
@@ -109,8 +111,8 @@ def add_tenant():
         return render_xhr_or_normal('add_tenant.html', form=form)
 
 #FIX I'm breaking the rule of no GET side-effects
-@rp.route('/landlord/confirm', defaults={'token': None}, methods=['GET'])
-@rp.route('/landlord/confirm/<token>', methods=['GET'])
+@relation.route('/landlord/confirm', defaults={'token': None}, methods=['GET'])
+@relation.route('/landlord/confirm/<token>', methods=['GET'])
 @login_required
 def confirm_invite(token):
     '''confirm invite endpoint
@@ -178,7 +180,7 @@ def confirm_invite(token):
     return redirect_xhr_or_normal('misc.home')
 
 # ALERT USER(S)
-@rp.route('/landlord/end', methods=['POST', 'GET'])
+@relation.route('/landlord/end', methods=['POST', 'GET'])
 @login_required
 def end_relation():
     '''end landlord relation
@@ -202,3 +204,5 @@ def end_relation():
         return redirect_xhr_or_normal('profile.profile')
     return render_xhr_or_normal('end_relation.html', form=form, landlord=lt.landlord)
 #### /LANDLORD ####
+
+__all__=['relation']

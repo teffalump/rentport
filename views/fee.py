@@ -22,18 +22,18 @@ from datetime import date
 from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
-from .utils import render_xhr_or_normal, redirect_xhr_or_normal
+from rentport.common.utils import render_xhr_or_normal, redirect_xhr_or_normal
 import stripe
 import logging
 
 logger = logging.getLogger(__name__)
 
 #### Blueprint ####
-rp = Blueprint('fee', __name__, template_folder = 'templates/fee', static_folder='static')
+fee = Blueprint('fee', __name__, template_folder = 'templates/fee', static_folder='static')
 #### /Blueprint ####
 
 #### FEES ####
-@rp.route('/fee/<int:pay_id>/show', methods=['GET'])
+@fee.route('/fee/<int:pay_id>/show', methods=['GET'])
 @login_required
 def show_fee(pay_id):
     '''show extended fee info
@@ -55,7 +55,7 @@ def show_fee(pay_id):
     return render_xhr_or_normal('show_fee.html', info=info)
 
 # RISK
-@rp.route('/fee/pay', methods=['POST', 'GET'])
+@fee.route('/fee/pay', methods=['POST', 'GET'])
 @login_required
 def pay_fee():
     if request.method == 'POST':
@@ -91,9 +91,9 @@ def pay_fee():
                                 amount=current_app.config['FEE_AMOUNT'],
                                 key=current_app.config['STRIPE_CONSUMER_KEY'])
 
-@rp.route('/fee/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
-@rp.route('/fee/<int(min=1):page>', defaults={'per_page': current_app.config['PAYMENTS_PER_PAGE']}, methods=['GET'])
-@rp.route('/fee', defaults={'page':1, 'per_page': current_app.config['PAYMENTS_PER_PAGE']}, methods=['GET'])
+@fee.route('/fee/<int(min=1):page>/<int(min=1):per_page>', methods=['GET'])
+@fee.route('/fee/<int(min=1):page>', defaults={'per_page': current_app.config['PAYMENTS_PER_PAGE']}, methods=['GET'])
+@fee.route('/fee', defaults={'page':1, 'per_page': current_app.config['PAYMENTS_PER_PAGE']}, methods=['GET'])
 @login_required
 def fees(page, per_page):
     '''main fees page
@@ -103,3 +103,5 @@ def fees(page, per_page):
     fees=g.user.fees.paginate(page, per_page, False)
     return render_xhr_or_normal('fees.html', fees=fees)
 #### /FEES ####
+
+__all__=['fee']

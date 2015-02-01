@@ -28,3 +28,6 @@ kvsession = KVSessionExtension()
 
 # Images
 #images=Images()
+
+__all__=['kvsession', 'bootstrap', 'limiter', 'security',
+        'mail', 'db']

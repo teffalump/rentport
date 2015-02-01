@@ -48,3 +48,6 @@ def render_xhr_or_normal(template, **kwargs):
         return jsonify({'page': render_template(template, **kwargs)})
     else:
         return render_template(template, **kwargs)
+
+__all__=['get_url', 'allowed_file', 'get_address',
+        'redirect_xhr_or_normal', 'render_xhr_or_normal']
