@@ -40,7 +40,7 @@ def create_app(config=None):
                 register_form=ExtendedRegisterForm,
                 login_form=ExtendedLoginForm,
                 confirm_register_form=ExtendedRegisterForm)
-        limiter.limit('10/minute;40/day')(app.blueprints['security'])
+        limiter.limit('20/minute;60/day')(app.blueprints['security'])
 
 
 
