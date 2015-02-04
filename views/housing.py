@@ -6,7 +6,7 @@ from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         AddProviderForm, ConnectProviderForm, SelectProviderForm)
 from rentport.common.model import (Issue, Property, User, LandlordTenant,
                         Comment, WorkOrder, Fee, Payment, StripeUserInfo,
-                        Address, Provider, Image)
+                        Address, SavedProvider, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
@@ -20,7 +20,7 @@ from werkzeug import secure_filename
 from sys import exc_info as er
 from datetime import datetime as dt
 from rentport.common.utils import (get_address, render_xhr_or_normal,
-                                    redirect_xhr_or_normal)
+                                    redirect_xhr_or_normal, yelp)
 from os import path as fs
 from uuid import uuid4
 
@@ -151,10 +151,10 @@ def modify_property(prop_id):
 @housing.route('/landlord/provider/add', methods=['POST'])
 @login_required
 def add_provider():
-    '''Add provider'''
+    '''Add local provider'''
     form=AddProviderForm()
     if form.validate_on_submit():
-        p=Provider()
+        p=SavedProvider()
         p.service=request.form['area']
         p.name=request.form['name']
         p.email=request.form['email']
@@ -167,40 +167,35 @@ def add_provider():
         return render_xhr_or_normal('show_provider.html', prov=p)
     return render_xhr_or_normal('add_provider.html', form=form)
 
+@housing.route('/landlord/provider/yelp', defaults={'business_id': None},
+                        methods=['GET'])
+@housing.route('/landlord/provider/yelp/<business_id>', methods=['GET'])
+@login_required
+def get_yelp_providers(business_id):
+    """Return yelp providers"""
+    yelp_api=yelp()
+    if business_id:
+        info=yelp_api.GetBusiness(business_id)
+    else:
+        info=yelp_api.Search(dict(request.args.items()))
+    return jsonify(info)
+
+
 @housing.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])
 @housing.route('/landlord/provider/<int:prov_id>', methods=['GET'])
 @login_required
 def show_providers(prov_id):
     '''Show providers'''
+    b=Provider.join(WorkOrder).query.filter(or_(Provider.by_user==g.user, Provider.by_user==g.user.current_landlord(), WorkOrder.issue.location==g.user.current_location()))
     if prov_id:
-        #b=g.user.providers.filter(Provider.id==prov_id).first()
-        b=Provider.query.filter(or_(Provider.by_user==g.user, Provider.by_user==g.user.current_landlord())).\
-                filter(Provider.id==prov_id).first()
-        if not b:
+        x=b.filter(Provider.id==prov_id).first()
+        if not x:
             flash('Not a valid provider')
             return redirect_xhr_or_normal('.show_providers')
-            #return jsonify({'error': 'No provider'})
-        #return jsonify({'success': 'Provider found',
-                        #'name': b.name,
-                        #'email': b.email,
-                        #'service': b.service,
-                        #'phone': b.phone,
-                        #'website': b.website})
-        return render_xhr_or_normal('show_provider.html', prov=b)
+        return render_xhr_or_normal('show_provider.html', prov=x)
     else:
         form=AddProviderForm()
-        #a=[]
-        #for b in g.user.providers.all():
-            #a.append({'name': b.name,
-                        #'email': b.email,
-                        #'service': b.service,
-                        #'phone': b.phone,
-                        #'website': b.website})
-        #if a:
-            #return jsonify({'success': 'Providers found',
-                            #'providers': a})
-        #return jsonify({'error': 'No provider'})
-        return render_xhr_or_normal('show_providers.html', providers=g.user.providers.all(), form=form,
+        return render_xhr_or_normal('show_providers.html', providers=b.all(), form=form,
                 action=url_for('.add_provider'))
 #### /PROPERTIES ####
 

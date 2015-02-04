@@ -1,5 +1,6 @@
 # Utility functions
 from flask import url_for, jsonify, request, render_template, redirect, current_app
+from yelp import Api
 import requests
 
 def get_url(endpoint, **kw):
@@ -49,5 +50,12 @@ def render_xhr_or_normal(template, **kwargs):
     else:
         return render_template(template, **kwargs)
 
+def yelp():
+    t = Api(current_app.config['YELP_CONSUMER_KEY'],
+            current_app.config['YELP_CONSUMER_SECRET'],
+            current_app.config['YELP_ACCESS_TOKEN'],
+            current_app.config['YELP_ACCESS_SECRET'])
+    return t
+
 __all__=['get_url', 'allowed_file', 'get_address',
-        'redirect_xhr_or_normal', 'render_xhr_or_normal']
+        'redirect_xhr_or_normal', 'render_xhr_or_normal', 'yelp']
