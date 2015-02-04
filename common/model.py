@@ -297,8 +297,8 @@ class Address(db.Model):
     postcode=db.Column(db.Text)
     country=db.Column(db.Text)
 
-class Provider(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+class SavedProvider(Provider):
+    id = db.Column(db.Integer, db.ForeignKey('provider.id'), primary_key=True)
     by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service = db.Column(issue_area, nullable=False)
     name = db.Column(db.Text, nullable=False)
@@ -306,6 +306,24 @@ class Provider(db.Model):
     phone = db.Column(db.Text)
     website = db.Column(db.Text)
     by_user = db.relationship("User", backref=db.backref('providers', lazy='dynamic'))
+
+    __mapper_args__={
+        'polymorphic_identity': 'saved_provider'}
+
+class YelpProvider(Provider):
+    id = db.Column(db.Integer, db.ForeignKey('provider.id'), primary_key=True)
+    yelp_id = db.Column(db.Text, primary_key=True)
+
+    __mapper_args__={
+        'polymorphic_identity': 'yelp_provider'}
+
+class Provider(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50))
+    __mapper_args__={
+        'polymorphic_identity': 'provider',
+        'polymorphic_on': category,
+        'with_polymorphic': '*'}
 
 class WorkOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)

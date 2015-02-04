@@ -22,6 +22,7 @@
         + security (user management, security, email, etc)
         + kvsession (server-side sessions)
         + sqlalchemy (sql)
+    + python-yelp-v2 (yelp api)
     + twilio (text) (unused at the moment)
     + dwolla (payment) (unused at the moment)
     + geopy (location)
