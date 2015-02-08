@@ -54,4 +54,6 @@
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
+<script src="{{ url_for('misc.static', filename='js/pwstrength.js') }}"></script>
+<script src="{{ url_for('misc.static', filename='js/zxcvbn-async.js') }}"></script>
 {% endblock %}
