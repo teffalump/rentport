@@ -9,9 +9,15 @@ from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
 from flask.ext.wtf.file import FileAllowed, FileField
 from werkzeug.local import LocalProxy
+from zxcvbn import password_strength
 
 
 _datastore = LocalProxy(lambda: current_app.extensions['security'].datastore)
+
+def good_enough_password(form, field):
+    if password_strength(field.data)['score'] < 4:
+        msg = 'Get a better password'
+        raise ValidationError(msg)
 
 def unique_user_username(form, field):
     if _datastore.find_user(username=field.data) is not None:
@@ -34,12 +40,13 @@ class RegisterForm(Form):
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20),
                                     unique_user_username])
-    password=PasswordField('Password', [DataRequired()])
+    password=PasswordField('Password', [DataRequired(), good_enough_password])
     submit=SubmitField('Register')
 
 class ChangePasswordForm(Form):
-    password=PasswordField('New password', [DataRequired()])
-    submit=SubmitField('Register')
+    new_password=PasswordField('New password', [DataRequired(),
+                                                good_enough_password])
+    submit=SubmitField('Update')
 
 class ExtendedLoginForm(LoginForm):
     email=StringField('Login', [DataRequired()])
