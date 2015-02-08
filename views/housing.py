@@ -175,9 +175,9 @@ def get_yelp_providers(business_id):
     """Return yelp providers"""
     yelp_api=yelp()
     if business_id:
-        info=yelp_api.GetBusiness(business_id)
+        info=yelp_api.business_query(id=business_id)
     else:
-        info=yelp_api.Search(dict(request.args.items()))
+        info=yelp_api.search_query(dict(request.args.items()))
     return jsonify(info)
 
 

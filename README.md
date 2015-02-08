@@ -23,7 +23,7 @@
         + kvsession (server-side sessions)
         + sqlalchemy (sql)
     + zxcvbn (ported to py 3, server side check)
-    + python-yelp-v2 (yelp api)
+    + yelpapi (yelp api)
     + twilio (text) (unused at the moment)
     + dwolla (payment) (unused at the moment)
     + geopy (location)

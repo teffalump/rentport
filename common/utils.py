@@ -1,6 +1,6 @@
 # Utility functions
 from flask import url_for, jsonify, request, render_template, redirect, current_app
-from yelp import Api
+from yelpapi import YelpAPI as Api
 import requests
 
 def get_url(endpoint, **kw):
