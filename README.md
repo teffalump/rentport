@@ -22,6 +22,7 @@
         + security (user management, security, email, etc)
         + kvsession (server-side sessions)
         + sqlalchemy (sql)
+    + zxcvbn (ported to py 3, server side check)
     + python-yelp-v2 (yelp api)
     + twilio (text) (unused at the moment)
     + dwolla (payment) (unused at the moment)
@@ -53,6 +54,7 @@
     + Ajax-ify - TODO
 
 # Security TODOs
+    + Add zxcvbn func to register page
     + Prevent CSRF by protecting forms - DEFAULT IN WTFORMS
     + Any DoS/spam/bruteforce-possible attack surfaces need throttling
         + Use Flask-Limiter for endpoints - TODO
