@@ -297,6 +297,14 @@ class Address(db.Model):
     postcode=db.Column(db.Text)
     country=db.Column(db.Text)
 
+class Provider(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50))
+    __mapper_args__={
+        'polymorphic_identity': 'provider',
+        'polymorphic_on': category,
+        'with_polymorphic': '*'}
+
 class SavedProvider(Provider):
     id = db.Column(db.Integer, db.ForeignKey('provider.id'), primary_key=True)
     by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -316,14 +324,6 @@ class YelpProvider(Provider):
 
     __mapper_args__={
         'polymorphic_identity': 'yelp_provider'}
-
-class Provider(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    category = db.Column(db.String(50))
-    __mapper_args__={
-        'polymorphic_identity': 'provider',
-        'polymorphic_on': category,
-        'with_polymorphic': '*'}
 
 class WorkOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)

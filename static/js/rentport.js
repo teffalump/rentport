@@ -2,20 +2,29 @@ $(document).ready(function() {
         "use strict";
         var options = {};
         options.ui = {
+            scores: Array(30, 40, 55, 70),
             container: "#pwd-container",
+            showVerdictsInsideProgressBar: true,
             viewports: {
-                progress: ".pwstrength_viewport_progress",
-                verdict: ".pwstrength_viewport_verdict"
+                progress: ".pwstrength_viewport_progress"
             }
         };
         options.common = {
-            onLoad: function () {
-                $('#messages').text('Start typing password');
-            },
             zxcvbn: true,
+            // Default disabled
+            onLoad: function () {
+                $('#submit').prop('disabled', true);
+            },
+            // Disable submit for bad passwords
+            // Enable for good enough passwords
+            onKeyUp: function () {
+                if (zxcvbn($('#password').val()).score >= 4)
+                    $('#submit').prop('disabled', false);
+                else
+                    $('#submit').prop('disabled', true);
+                   }
         };
-        $(':password').pwstrength(options);
-        });
+    $(':password').pwstrength(options);
     //$('#main').on('submit','#comment_form', function() {
         //event.preventDefault();
         //var $form = $( this ),

@@ -34,12 +34,12 @@ def create_app(config=None):
         from rentport.common.model import User, Role
         user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
-        from rentport.common.forms import (ExtendedRegisterForm,
+        from rentport.common.forms import (RegisterForm,
                                             ExtendedLoginForm)
         security.init_app(app, user_datastore,
-                register_form=ExtendedRegisterForm,
+                register_form=RegisterForm,
                 login_form=ExtendedLoginForm,
-                confirm_register_form=ExtendedRegisterForm)
+                confirm_register_form=RegisterForm)
         limiter.limit('20/minute;60/day')(app.blueprints['security'])
 
 

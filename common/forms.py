@@ -4,7 +4,8 @@ from flask import current_app
 from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
-                HiddenField, FileField, RadioField, SelectField, IntegerField, ValidationError)
+                HiddenField, FileField, RadioField, SelectField, IntegerField, ValidationError,
+                PasswordField)
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
 from flask.ext.wtf.file import FileAllowed, FileField
 from werkzeug.local import LocalProxy
@@ -17,11 +18,28 @@ def unique_user_username(form, field):
         msg = '{0} is already associated with an account.'.format(field.data)
         raise ValidationError(msg)
 
+def unique_user_email(form, field):
+    if _datastore.get_user(field.data) is not None:
+        msg = '{} alread associated with an account'.format(field.data)
+        raise ValidationError(msg)
+
 class ExtendedRegisterForm(RegisterForm):
     username=StringField('Username', [DataRequired(),
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20),
                                     unique_user_username])
+class RegisterForm(Form):
+    email=StringField('Email', [DataRequired(), unique_user_email])
+    username=StringField('Username', [DataRequired(),
+                                    Regexp(r'^\w+$', message="Only alphanumeric characters"),
+                                    Length(min=4, max=20),
+                                    unique_user_username])
+    password=PasswordField('Password', [DataRequired()])
+    submit=SubmitField('Register')
+
+class ChangePasswordForm(Form):
+    password=PasswordField('New password', [DataRequired()])
+    submit=SubmitField('Register')
 
 class ExtendedLoginForm(LoginForm):
     email=StringField('Login', [DataRequired()])

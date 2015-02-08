@@ -30,30 +30,24 @@
 <div id="main" class="container-fluid">
 <h3>Register</h3>
 <form action="{{ url_for('security.register') }}" method="POST" name="register_user_form" role="form">
-    <div id="pwd-container">
   {{ register_user_form.hidden_tag() }}
   {{ wtf.form_errors(register_user_form, hiddens="only")}}
   {{ wtf.form_field(register_user_form.email) }}
   {{ wtf.form_field(register_user_form.username) }}
+  <div id="pwd-container">
   {{ wtf.form_field(register_user_form.password) }}
-    <div class="col-sm-6 col-sm-offset-2" style="padding-top: 30px;">
-        <div class="pwstrength_viewport_progress"></div>
-    </div>
-    <div class="row">
-            <div id="messages" class="col-sm-12"></div>
-    </div>
-  {% if register_user_form.password_confirm %}
-    {{ wtf.form_field(register_user_form.password_confirm) }}
-  {% endif %}
-  {{ wtf.form_field(register_user_form.submit) }}
+      <div class="progress">
+            <div class="pwstrength_viewport_progress" role="progressbar"></div>
+      </div>
   </div>
+  {{ wtf.form_field(register_user_form.submit) }}
 </form>
 {% include "flash.html" %}
 <div class="container-fluid">
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
-<script src="{{ url_for('misc.static', filename='js/pwstrength.js') }}"></script>
 <script src="{{ url_for('misc.static', filename='js/zxcvbn-async.js') }}"></script>
+<script src="{{ url_for('misc.static', filename='js/pwstrength.js') }}"></script>
+<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}
