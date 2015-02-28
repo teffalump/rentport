@@ -4,3 +4,4 @@ from .fee import *
 from .misc import *
 from .housing import *
 from .issue import *
+from .provider import *

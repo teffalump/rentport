@@ -48,16 +48,6 @@ def new_issue_email(issue):
             issue.description,
             url_for('.show_issue', ident=issue.id, _external=True))
     return nw
-
-def provider_issue_email(work_order):
-    email='The landlord has picked a provider. Discuss with your landlord about fixing the issue - {0}:\n\nName: {1}\n\nEmail: {2}\n\nPhone: {3}\n\nWebsite: {4}'
-    t = email.format(
-            url_for('.show_issue', ident=work_order.issue.id, _external=True),
-            work_order.provider.name,
-            work_order.provider.email,
-            work_order.provider.phone,
-            work_order.provider.website)
-    return t
 #### /EMAIL STRINGS ####
 
 #### Blueprint ####
@@ -110,13 +100,9 @@ def show_issue(ident):
         close=CloseIssueForm()
         comment=CommentForm()
         if contractor is None:
-            ps = Provider.query.filter(Provider.by_user == g.user, Provider.service == issue.area).first()
-            if ps:
-                provider = ('Select provider', url_for('.authorize_provider', ident=issue.id))
-            else:
-                provider = ('No available providers', url_for('property.add_provider'))
+            provider = ('Select provider', url_for('.select_provider', ident=issue.id))
         else:
-            provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
+            provider = ('View provider info', url_for('property.show_providers', prov_id=contractor.id))
     else:
         if contractor is None:
             provider = ('No selected provider', None)
@@ -256,38 +242,6 @@ def close_issue(ident):
         flash('Issue closed')
         return redirect_xhr_or_normal('.issues')
     return render_xhr_or_normal('close_issue.html', close=form, issue=issue)
-
-@issue.route('/issues/<int(min=1):ident>/provider', methods=['GET', 'POST'])
-@login_required
-def authorize_provider(ident):
-    issue=Issue.query.filter(Issue.landlord_id==g.user.id,
-                Issue.status == 'Open',
-                Issue.id == ident).first()
-    if not issue:
-        flash('Not an open issue')
-        return redirect_xhr_or_normal('.show_issue', ident=ident)
-    if issue.work_orders.first():
-        flash('Provider already selected')
-        return redirect_xhr_or_normal('.show_issue', ident=ident)
-    form=SelectProviderForm()
-    ps = [(str(prov.id), prov.name) for prov in g.user.providers if prov.service == issue.area]
-    if not ps:
-        flash('No relevant providers')
-        return redirect_xhr_or_normal('property.add_provider')
-    form.provider.choices=ps
-    if form.validate_on_submit():
-        w=WorkOrder()
-        w.provider_id=int(request.form['provider'])
-        issue.work_orders.append(w)
-        db.session.add(w)
-        db.session.commit()
-        msg = Message('Issue provider', recipients=[u.email for u in issue.location.current_tenants().all()])
-        msg.body=provider_issue_email(w)
-        mail.send(msg)
-        logger.info('mail sent: {0}'.format(msg))
-        flash('Provider selected')
-        return redirect_xhr_or_normal('.show_issue', ident=ident)
-    return render_xhr_or_normal('select_issue_provider.html', issue=issue, form=form)
 #### /ISSUES ####
 
 __all__=['issue']

@@ -115,56 +115,6 @@ def modify_property(prop_id):
         return redirect_xhr_or_normal('.properties')
     form.description.data=prop.description
     return render_xhr_or_normal('modify_location.html', form=form, location=prop)
-
-@housing.route('/landlord/provider/add', methods=['POST'])
-@login_required
-def add_provider():
-    '''Add local provider'''
-    form=AddProviderForm()
-    if form.validate_on_submit():
-        p=SavedProvider()
-        p.service=request.form['area']
-        p.name=request.form['name']
-        p.email=request.form['email']
-        p.website=request.form['website']
-        p.phone=request.form['phone']
-        p.by_user_id=g.user.id
-        db.session.add(p)
-        db.session.commit()
-        flash('Provider added')
-        return render_xhr_or_normal('show_provider.html', prov=p)
-    return render_xhr_or_normal('add_provider.html', form=form)
-
-@housing.route('/landlord/provider/yelp', defaults={'business_id': None},
-                        methods=['GET'])
-@housing.route('/landlord/provider/yelp/<business_id>', methods=['GET'])
-@login_required
-def get_yelp_providers(business_id):
-    """Return yelp providers"""
-    yelp_api=yelp()
-    if business_id:
-        info=yelp_api.business_query(id=business_id)
-    else:
-        info=yelp_api.search_query(dict(request.args.items()))
-    return jsonify(info)
-
-
-@housing.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])
-@housing.route('/landlord/provider/<int:prov_id>', methods=['GET'])
-@login_required
-def show_providers(prov_id):
-    '''Show providers'''
-    b=Provider.join(WorkOrder).query.filter(or_(Provider.by_user==g.user, Provider.by_user==g.user.current_landlord(), WorkOrder.issue.location==g.user.current_location()))
-    if prov_id:
-        x=b.filter(Provider.id==prov_id).first()
-        if not x:
-            flash('Not a valid provider')
-            return redirect_xhr_or_normal('.show_providers')
-        return render_xhr_or_normal('show_provider.html', prov=x)
-    else:
-        form=AddProviderForm()
-        return render_xhr_or_normal('show_providers.html', providers=b.all(), form=form,
-                action=url_for('.add_provider'))
 #### /PROPERTIES ####
 
 __all__=['housing']

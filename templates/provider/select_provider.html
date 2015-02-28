@@ -1,0 +1,18 @@
+{% extends "base_nav.html" %}
+{% block navbar %}
+    {% set active_page = "issue.select_provider"|default('misc.home') %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+<div id="main" class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3 class="panel-title">Select provider</h3></div>
+        <div class="btn-group btn-group-justified" role="group">
+            <a class="btn" role="button" href="{{ prev_url }}">Previous providers</a>
+            <a class="btn" role="button" href="{{ yelp_url }}">Find new yelp provider</a>
+        </div>
+        </div>
+    </div>
+{% include "flash.html" %}
+</div>
+{% endblock %}

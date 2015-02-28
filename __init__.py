@@ -58,13 +58,14 @@ def create_app(config=None):
         #    The app object overrides the options set by the blueprint
         #    like, the template_folder and url_prefix
         from rentport.views import (issue, relation, housing,
-                                    profile, fee, misc)
+                                    profile, fee, misc, provider)
         app.register_blueprint(misc)
         app.register_blueprint(issue)
         app.register_blueprint(relation)
         app.register_blueprint(housing)
         app.register_blueprint(profile)
         app.register_blueprint(fee)
+        app.register_blueprint(provider)
 
     return app
 
