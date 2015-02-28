@@ -116,38 +116,6 @@ def modify_property(prop_id):
     form.description.data=prop.description
     return render_xhr_or_normal('modify_location.html', form=form, location=prop)
 
-# TODO Eventually minimize the redundant code and ajax these sections
-#@housing.route('/landlord/provider/connect/<int:prop_id>/<int:prov_id>', methods=['GET', 'POST'])
-#@login_required
-#def connect_provider(prop_id, prov_id):
-    #'''(Dis)Connect provider with property'''
-    #form=ConnectProviderForm()
-    #prop=g.user.properties.filter(Property.id==prop_id).first()
-    #if not prop:
-        #return jsonify({'error': 'No property'})
-    #prov=Provider.query.filter(Provider.id==prov_id).first()
-    #if not prov:
-        #return jsonify({'error': 'No provider'})
-    #if form.validate_on_submit():
-        #if request.form.get('action', None):
-            #if prov in prop.providers:
-                #prop.providers.remove(prov)
-                #db.session.add(prop)
-                #db.session.commit()
-                #return jsonify({'success': 'Provider disconnected'})
-            #else:
-                #prop.providers.append(prov)
-                #db.session.add(prop)
-                #db.session.commit()
-                #return jsonify({'success': 'Provider connected'})
-        #else:
-            #return jsonify({'error': 'Bad request'})
-    #if prov in prop.providers:
-        #form.action.label.text = 'Disconnect'
-    #return render_template('connect_provider.html', form=form,
-                                                    #prop=prop,
-                                                    #prov=prov)
-
 @housing.route('/landlord/provider/add', methods=['POST'])
 @login_required
 def add_provider():

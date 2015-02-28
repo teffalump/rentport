@@ -35,7 +35,7 @@ class ExtendedRegisterForm(RegisterForm):
                                     Length(min=4, max=20),
                                     unique_user_username])
 class RegisterForm(Form):
-    email=StringField('Email', [DataRequired(), unique_user_email])
+    email=StringField('Email', [DataRequired(), Email(), unique_user_email])
     username=StringField('Username', [DataRequired(),
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20),
