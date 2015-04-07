@@ -138,6 +138,15 @@ class ImportYelpURLForm(Form):
     url=URLField('Yelp URL')
     submit=SubmitField('Import')
 
+class SelectYelpProviderForm(Form):
+    pick=HiddenField(default='True',
+                validators=[AnyOf('True')])
+    submit=SubmitField('Select')
+
+class ConfirmYelpChoiceForm(Form):
+    provider=HiddenField()
+    confirm=SubmitField('Confirm')
+
 __all__=['AddLandlordForm', 'AddPhoneNumber', 'AddPropertyForm',
         'AddProviderForm', 'AddTenantForm', 'ChangeNotifyForm',
         'CloseIssueForm', 'CommentForm', 'ConfirmTenantForm',

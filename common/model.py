@@ -321,6 +321,7 @@ class SavedProvider(Provider):
 class YelpProvider(Provider):
     id = db.Column(db.Integer, db.ForeignKey('provider.id'), primary_key=True)
     yelp_id = db.Column(db.Text, primary_key=True)
+    name = db.Column(db.Text, nullable=False)
 
     __mapper_args__={
         'polymorphic_identity': 'yelp_provider'}

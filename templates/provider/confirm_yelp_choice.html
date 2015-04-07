@@ -1,0 +1,25 @@
+{% extends "base_nav.html" %}
+{% block navbar %}
+    {% set active_page = "provider.yelp_providers"|default('misc.home') %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+<div id="main" class="container-fluid">
+    <div class="panel-heading">
+        <h3 class="panel-title">{{ name }}</h3>
+    </div>
+        <ul class="list-group">
+            <li class="list-group-item">{{ phone }}</li>
+            <li class="list-group-item">{{ website }}</li>
+            <li class="list-group-item">{{ location }}</li>
+        </ul>
+    <form action="{{ action }}" method="POST" id="confirm_yelp_choice_form" name="confirm_yelp_choice_form" role="form">
+      {{ form.hidden_tag() }}
+      {{ wtf.form_errors(form, hiddens="only") }}
+      {{ wtf.form_field(form.provider) }}
+      {{ wtf.form_field(form.confirm) }}
+    </form>
+    </div>
+{% include "flash.html" %}
+</div>
+{% endblock %}

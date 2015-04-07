@@ -40,12 +40,19 @@ def user_email_invite(req):
     '''Email string for current user with token to confirm request:
         token = [<landlord_id>, <request_id>, 'Confirm']
     '''
-    loc_str=' '.join([str(req.location.apt_number or ''), 
-                                str(req.location.address.number), req.location.address.street])
-    st='{0} has indicated you are a tenant @ {1}\n\nFollow this link to confirm: {2}'
-    s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt=current_app.config['INVITE_CONFIRM_SALT'])
+    loc_str=' '.join([str(req.location.apt_number or ''),
+                        str(req.location.address.number),
+                        req.location.address.street])
+    st='{0} has indicated you are a tenant @ {1}\n\n\
+            Follow this link to confirm: {2}'
+    s=URLSafeTimedSerializer(current_app.config['SECRET_KEY'],
+                            salt=current_app.config['INVITE_CONFIRM_SALT'])
     token=s.dumps([req.landlord.id, req.id, 'Confirm'])
-    body=st.format(req.landlord.username, loc_str, url_for('relation.confirm_invite', token=token, _external=True))
+    body=st.format(req.landlord.username,
+                    loc_str,
+                    url_for('relation.confirm_invite',
+                            token=token,
+                            _external=True))
     return body
 
 def non_user_email_invite(prop):

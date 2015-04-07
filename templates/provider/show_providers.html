@@ -13,7 +13,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Service area</th>
+                    {#<th>Service area</th>#}
                     {#<th>Properties</th>#}
                 </tr>
             </thead>
@@ -21,7 +21,7 @@
         {% for prov in providers %}
                 <tr class='clickableRow' href="{{ url_for('.show_providers', prov_id=prov.id) }}">
                     <td>{{ prov.name }}</td>
-                    <td>{{ prov.service }}</td>
+                    {#<td>{{ prov.service }}</td>#}
                     {#<th>{{ prov.properties|map(attribute='id')|join(', ') }}</th>#}
                 </tr>
         {% endfor %}
