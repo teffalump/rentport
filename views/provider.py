@@ -3,7 +3,8 @@ from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
                         CommentForm, AddPropertyForm, ModifyPropertyForm,
                         AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
+                        AddProviderForm, ConnectProviderForm, SelectProviderForm,
+                        ImportYelpURLForm)
 from rentport.common.model import (Issue, Property, User, LandlordTenant,
                         Comment, WorkOrder, Fee, Payment, StripeUserInfo,
                         Address, SavedProvider, Provider, Image)
@@ -56,7 +57,24 @@ def select_provider(ident):
 @login_required
 def yelp_providers(ident):
     """List and select yelp provider for job"""
-    return redirect_xhr_or_normal('select_yelp_provider.html')
+    categories={'Plumbing': 'plumbing',
+                'Heating/Air Conditioning': 'hvac',
+                'Cleaning': 'homecleaning',
+                'Electrical': 'electricians'}
+    issue=Issue.query.filter(Issue.landlord_id==g.user.id,
+                Issue.status == 'Open',
+                Issue.id == ident).first()
+    if not issue:
+        flash('Issue closed or non-existent')
+        return redirect_xhr_or_normal('issue.issues')
+    form = ImportYelpURLForm()
+    api=yelp()
+    f=categories.get(issue.area, None)
+    ad = ', '.join(issue.location.address.neighborhood,
+                    issue.location.address.city,
+                    issue.location.address.state)
+    info=api.search_query(category_filter=f, limit=10, sort=2, location=ad)
+    return redirect_xhr_or_normal('select_yelp_provider.html', results=info['businesses'])
 
 @provider.route('/issues/<int(min=1):ident>/provider/saved', methods=['GET', 'POST'])
 @login_required
@@ -110,7 +128,7 @@ def add_provider():
     return render_xhr_or_normal('add_provider.html', form=form)
 
 @provider.route('/landlord/provider/yelp', defaults={'business_id': None},
-                        methods=['GET'])
+                                                        methods=['GET'])
 @provider.route('/landlord/provider/yelp/<business_id>', methods=['GET'])
 @login_required
 def get_yelp_providers(business_id):

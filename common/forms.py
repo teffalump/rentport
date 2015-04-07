@@ -5,7 +5,7 @@ from flask.ext.wtf import Form
 from flask.ext.security.forms import RegisterForm, LoginForm
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
                 HiddenField, FileField, RadioField, SelectField, IntegerField, ValidationError,
-                PasswordField)
+                PasswordField, URLField)
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
 from flask.ext.wtf.file import FileAllowed, FileField
 from werkzeug.local import LocalProxy
@@ -133,6 +133,10 @@ class ChangeNotifyForm(Form):
 
 class ResendNotifyForm(Form):
     resend=SubmitField('Resend email', default='True')
+
+class ImportYelpURLForm(Form):
+    url=URLField('Yelp URL')
+    submit=SubmitField('Import')
 
 __all__=['AddLandlordForm', 'AddPhoneNumber', 'AddPropertyForm',
         'AddProviderForm', 'AddTenantForm', 'ChangeNotifyForm',
