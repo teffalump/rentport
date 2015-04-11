@@ -21,6 +21,7 @@ from rentport.common.utils import (get_address, render_xhr_or_normal,
                                     redirect_xhr_or_normal, yelp)
 from os import path as fs
 from uuid import uuid4
+from urllib.parse import urlparse
 
 #### Blueprint ####
 provider = Blueprint('provider', __name__, template_folder = '../templates/provider', static_folder='static')
@@ -115,7 +116,8 @@ def yelp_providers(ident):
         info=api.search_query(category_filter=f, limit=10, sort=2, location=ad)
         return render_xhr_or_normal('select_yelp_provider.html',
                                             results=info['businesses'],
-                                            form=form)
+                                            form=form,
+                                            next=url_for('.saved_providers', ident=issue.id))
 
 @provider.route('/issues/<int(min=1):ident>/provider/saved', methods=['GET', 'POST'])
 @login_required
@@ -177,7 +179,10 @@ def add_yelp_provider():
     if form.validate_on_submit():
         # Submitted url
         url=request.form.get('url')
-        b_id=url.split('/')[-1] #id is last part of url
+        b_id=urlparse(url)[2].split('/')[-1] #id is last part of path
+        if not b_id:
+            flash("Cannot find business's Yelp page")
+            return redirect_xhr_or_normal('.show_providers')
         api=yelp()
         info=api.business_query(id=b_id)
         name = info['name']
@@ -188,8 +193,9 @@ def add_yelp_provider():
         y.by_user=g.user
         db.session.add(y)
         db.session.commit()
+        n = request.args.get('next')
         flash("Saved {0}'s information".format(name))
-        return redirect_xhr_or_normal('.show_providers', prov_id=y.id)
+        return redirect_xhr_or_normal('.show_providers', prov_id=y.id, next=next)
     return render_xhr_or_normal('import_from_yelp_url.html', form=form)
 
 @provider.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])

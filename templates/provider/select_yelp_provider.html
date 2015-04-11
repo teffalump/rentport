@@ -7,7 +7,7 @@
 {% block content %}
 <div id="main" class="container-fluid">
     <div class="panel panel-default">
-        <div class="panel-heading"><h3 class="panel-title">Nearby Yelp providers</h3> or <a href="{{ url_for('provider.add_yelp_provider') }}">Import from url</a></div>
+        <div class="panel-heading"><h3 class="panel-title">Nearby Yelp providers</h3> or <a href="{{ url_for('provider.add_yelp_provider', next=next) }}">Import from url</a></div>
         <table class="table table-hover">
             <thead>
                 <tr>
