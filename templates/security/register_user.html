@@ -28,26 +28,31 @@
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-<h3>Register</h3>
-<form action="{{ url_for('security.register') }}" method="POST" name="register_user_form" role="form">
-  {{ register_user_form.hidden_tag() }}
-  {{ wtf.form_errors(register_user_form, hiddens="only")}}
-  {{ wtf.form_field(register_user_form.email) }}
-  {{ wtf.form_field(register_user_form.username) }}
-  <div id="pwd-container">
-  {{ wtf.form_field(register_user_form.password) }}
-      <div class="progress">
-            <div class="pwstrength_viewport_progress" role="progressbar"></div>
-      </div>
-  </div>
-  {{ wtf.form_field(register_user_form.submit) }}
-</form>
+    <div class="page-header">
+        <h3>Register</h3>
+    </div>
+
+    <div class="well">
+        <form action="{{ url_for('security.register') }}" method="POST" name="register_user_form" role="form" id="registerForm">
+          {{ register_user_form.hidden_tag() }}
+          {{ wtf.form_errors(register_user_form, hiddens="only")}}
+          {{ wtf.form_field(register_user_form.email, placeholder='test@example.com') }}
+          {{ wtf.form_field(register_user_form.username, placeholder='test123') }}
+          <div id="pwd-container">
+          {{ wtf.form_field(register_user_form.password, placeholder='secretpassword') }}
+              <div class="progress">
+                    <div class="pwstrength_viewport_progress" role="progressbar"></div>
+              </div>
+          </div>
+          {{ wtf.form_field(register_user_form.submit) }}
+        </form>
+    </div>
 {% include "flash.html" %}
 <div class="container-fluid">
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('misc.static', filename='js/zxcvbn-async.js') }}"></script>
-<script src="{{ url_for('misc.static', filename='js/pwstrength.js') }}"></script>
-<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('misc.static', filename='js/zxcvbn-async.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('misc.static', filename='js/pwstrength.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}

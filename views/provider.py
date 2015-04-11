@@ -196,7 +196,7 @@ def add_yelp_provider(business_id):
 @login_required
 def show_providers(prov_id):
     '''Show providers'''
-    b=Provider.join(WorkOrder).query.filter(or_(Provider.by_user==g.user,
+    b=Provider.query.join(WorkOrder).filter(or_(Provider.by_user==g.user,
                             Provider.by_user==g.user.current_landlord(),
                             WorkOrder.issue.location==g.user.current_location()))
     if prov_id:

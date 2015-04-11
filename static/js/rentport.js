@@ -1,4 +1,25 @@
+/*
+ * Root javascript file
+ */
+
+/// Define namespace(s)
+var rentport = rentport || {}
+
+/// Check for multiple inclusions
+var isFirstLoad = function (ns, file) {
+    var isFirst = ns.firstload === undefined;
+    ns.firstload = false;
+    if (!isFirst) {
+        console.log('included again:' + file);
+    }
+    return isFirst
+};
+
 $(document).ready(function() {
+        if (!isFirstLoad(rentport, 'rentport.js')) {
+            return;
+        }
+
         "use strict";
         var options = {};
         options.ui = {
@@ -13,8 +34,14 @@ $(document).ready(function() {
             zxcvbn: true,
             // Default disabled
             onLoad: function () {
-                $('#submit').prop('disabled', true);
-            },
+                if ($('#password').val() == null)
+                    $('#submit').prop('disabled', true);
+                else if (zxcvbn($('#password').val()).score >= 4)
+                    $('#submit').prop('disabled', false);
+                else
+                    $('#submit').prop('disabled', true);
+           },
+
             // Disable submit for bad passwords
             // Enable for good enough passwords
             onKeyUp: function () {
@@ -41,7 +68,7 @@ $(document).ready(function() {
             //});
         //$('#comment').val('');
     //});
-    $(document).on('submit','form:not(#loginForm)', function(event) {
+    $(document).on('submit','form:not(#loginForm):not(#registerForm)', function(event) {
         event.preventDefault();
         var $form = $( this ),
             url=$form.attr("action"),
@@ -61,7 +88,7 @@ $(document).ready(function() {
                     loadPage(data.redirect);
                 } else {
                     history.pushState({id: url}, '', url);
-                    d = $(data.page).filter('#main').children();
+                    var d = $(data.page).filter('#main').children();
                     $( "#main" ).empty().append( d );
                 }
             })});
@@ -83,11 +110,11 @@ $(document).ready(function() {
                 loadPage(data.redirect);
             } else if (data.page) {
                 history.pushState({id: href}, '', href);
-                d = $(data.page).filter('#main').contents();
+                var d = $(data.page).filter('#main').contents();
                 $main.empty().append(d);
             } else {
                 history.pushState({id: href}, '', href);
-                d = $(data).filter('#main').contents();
+                var d = $(data).filter('#main').contents();
                 $main.empty().append(d);
             }})
             //$main.load(href + " #main>*", ajaxLoad);
@@ -98,10 +125,10 @@ $(document).ready(function() {
         if (e.originalEvent.state !== null) {
         $.get(location.href, function(data) {
             if (data.page) {
-                d = $(data.page).filter('#main').contents();
+                var d = $(data.page).filter('#main').contents();
                 $main.empty().append(d);
             } else {
-                d = $(data).filter('#main').contents();
+                var d = $(data).filter('#main').contents();
                 $main.empty().append(d);
             }})
           //loadPage(location.href);

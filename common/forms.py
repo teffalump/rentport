@@ -2,10 +2,11 @@
 
 from flask import current_app
 from flask.ext.wtf import Form
-from flask.ext.security.forms import RegisterForm, LoginForm
+from flask.ext.security.forms import RegisterForm, LoginForm, RegisterFormMixin
 from wtforms import (SelectField, StringField, SubmitField, TextAreaField,
                 HiddenField, FileField, RadioField, SelectField, IntegerField, ValidationError,
-                PasswordField, URLField)
+                PasswordField)
+from wtforms.fields.html5 import URLField
 from wtforms.validators import Length, DataRequired, AnyOf, Regexp, NumberRange, Optional, Email, URL
 from flask.ext.wtf.file import FileAllowed, FileField
 from werkzeug.local import LocalProxy
@@ -34,14 +35,14 @@ class ExtendedRegisterForm(RegisterForm):
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20),
                                     unique_user_username])
-class RegisterForm(Form):
+
+class RegisterForm(Form, RegisterFormMixin):
     email=StringField('Email', [DataRequired(), Email(), unique_user_email])
     username=StringField('Username', [DataRequired(),
                                     Regexp(r'^\w+$', message="Only alphanumeric characters"),
                                     Length(min=4, max=20),
                                     unique_user_username])
     password=PasswordField('Password', [DataRequired(), good_enough_password])
-    submit=SubmitField('Register')
 
 class ChangePasswordForm(Form):
     new_password=PasswordField('New password', [DataRequired(),

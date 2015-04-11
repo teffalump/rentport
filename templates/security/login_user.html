@@ -29,15 +29,20 @@
 {% endblock %}
 {% block content %}
 <div id='main' class="container-fluid">
-    <form id="loginForm" action="{{ url_for('security.login') }}" method="POST" name="login_user_form" role="form">
-      {{ login_user_form.hidden_tag() }}
-      {{ wtf.form_errors(login_user_form, hiddens='only') }}
-      {{ wtf.form_field(login_user_form.email) }}
-      {{ wtf.form_field(login_user_form.password) }}
-      {{ wtf.form_field(login_user_form.remember) }}
-      {{ login_user_form.next }}
-      {{ wtf.form_field(login_user_form.submit) }}
-    </form>
+    <div class="page-header">
+        <h3>Authenticate</h3>
+    </div>
+    <div class="well">
+        <form id="loginForm" action="{{ url_for('security.login') }}" method="POST" name="login_user_form" role="form">
+          {{ login_user_form.hidden_tag() }}
+          {{ wtf.form_errors(login_user_form, hiddens='only') }}
+          {{ wtf.form_field(login_user_form.email, placeholder='test@example.com') }}
+          {{ wtf.form_field(login_user_form.password, placeholder='secretpassword') }}
+          {{ wtf.form_field(login_user_form.remember) }}
+          {{ login_user_form.next }}
+          {{ wtf.form_field(login_user_form.submit) }}
+        </form>
+    </div>
     {% include "flash.html" %}
 </div>
 {% endblock %}
