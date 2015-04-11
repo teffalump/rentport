@@ -57,18 +57,18 @@ class MyTests(TestCase):
         db.drop_all()
 
     def test_register_user(self):
-        m = self.client.post('/register', data=dict(email='teou@example.com',
-                password='password', username='test', password_confirm='password'),
+        m = self.client.post('/register', data=dict(email='test@example.com',
+                password='password oh my god woot!',
+                username='test'),
                 follow_redirects=True)
 
         u = User.query.first()
 
-        self.assertTemplateUsed('home.html')
         self.assert200(m)
         self.assertEqual(u.id,1)
-        self.assertEqual(u.email,'teou@example.com')
+        self.assertEqual(u.email,'test@example.com')
         self.assertEqual(u.username,'test')
-        self.assertEqual(u.notify_confirmed,True)
+        self.assertEqual(u.notify_confirmed, True)
 
     def test_add_property(self):
         l,t = self.add_users()
