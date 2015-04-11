@@ -100,9 +100,9 @@ def show_issue(ident):
         close=CloseIssueForm()
         comment=CommentForm()
         if contractor is None:
-            provider = ('Select provider', url_for('.select_provider', ident=issue.id))
+            provider = ('Select provider', url_for('provider.select_provider', ident=issue.id))
         else:
-            provider = ('View provider info', url_for('property.show_providers', prov_id=contractor.id))
+            provider = ('View provider info', url_for('provider.show_providers', prov_id=contractor.id))
     else:
         if contractor is None:
             provider = ('No selected provider', None)

@@ -1,4 +1,5 @@
 {% extends "base_nav.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 {% block navbar %}
     {% set active_page = "provider.yelp_providers"|default('misc.home') %}
     {{ super() }}
@@ -6,13 +7,13 @@
 {% block content %}
 <div id="main" class="container-fluid">
     <div class="panel panel-default">
-        <div class="panel-heading"><h3 class="panel-title">Nearby Yelp providers</h3></div>
+        <div class="panel-heading"><h3 class="panel-title">Nearby Yelp providers</h3> or <a href="{{ url_for('provider.add_yelp_provider') }}">Import from url</a></div>
         <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Name</th>
                     <th>Rating</th>
-                    <th>Description</th>
+                    {# <th>Description</th> #}
                     <th>Location</th>
                 </tr>
             </thead>
@@ -21,24 +22,24 @@
             <tr class="clickableRow" href="{{ result['url'] }}">
                 <td>{{ result['name'] }}</td>
                 <td><img src="{{ result['rating_img_url'] }}" width="84" height="17" alt="{{ result['rating'] }} star rating "> | {{ result['review_count'] }}</td>
-                <td>{{ result['snippet_text'] }}</td>
-                <td>{{ result['location']['display_address'] }}</td>
+                {# <td>{{ result['snippet_text'] }}</td> #}
+                <td>{{ result['location']['display_address'] | join(', ')  }}</td>
             </tr>
-            {% endif %}
+            {% endfor %}
             </tbody>
         </table>
     </div>
-    <div class="spanForm">
+    {#    <div class="spanForm">
         <button class="btn btn-default" data-toggle="collapse" data-target="#comCol">Import from Yelp URL form</button>
     </div>
     <div id="comCol" class='collapse well'>
         <form method="POST" id="yelp_import_form" name="yelp_import_form" role="form">
           {{ form.hidden_tag() }}
           {{ wtf.form_errors(form, hiddens="only") }}
-          {{ wtf.form_field(form.url) }}
+          {{ wtf.form_field(form.url, placeholder="http://yelp.com/biz/example") }}
           {{ wtf.form_field(form.submit) }}
         </form>
-    </div>
+    </div> #}
 {% include "flash.html" %}
 </div>
 {% endblock %}

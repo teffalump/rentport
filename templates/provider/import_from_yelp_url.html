@@ -1,17 +1,22 @@
 {% extends "base_nav.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 {% block navbar %}
     {% set active_page = "provider.add_yelp_provider"|default('misc.home') %}
     {{ super() }}
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-    <h3 class="panel-title">Import from Yelp URL</h3>
-    <form method="POST" id="yelp_import_form" name="yelp_import_form" role="form">
-      {{ form.hidden_tag() }}
-      {{ wtf.form_errors(form, hiddens="only") }}
-      {{ wtf.form_field(form.url) }}
-      {{ wtf.form_field(form.submit) }}
-    </form>
+    <div class="page-header">
+        <h3>Import from Yelp URL</h3>
+    </div>
+    <div class="well">
+        <form method="POST" id="yelp_import_form" name="yelp_import_form" role="form">
+          {{ form.hidden_tag() }}
+          {{ wtf.form_errors(form, hiddens="only") }}
+          {{ wtf.form_field(form.url, placeholder="http://yelp.com/biz/example") }}
+          {{ wtf.form_field(form.submit) }}
+        </form>
+    </div>
 {% include "flash.html" %}
 </div>
 {% endblock %}

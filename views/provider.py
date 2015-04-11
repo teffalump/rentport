@@ -8,7 +8,7 @@ from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
                         ConfirmYelpChoiceForm)
 from rentport.common.model import (Issue, Property, User, LandlordTenant,
                         Comment, WorkOrder, Fee, Payment, StripeUserInfo,
-                        Address, SavedProvider, Provider, Image)
+                        Address, SavedProvider, Provider, Image, YelpProvider)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from flask import (Blueprint, render_template, request, g, redirect, url_for,
@@ -69,7 +69,7 @@ def select_provider(ident):
     if not issue:
         flash('Issue closed or non-existent')
         return redirect_xhr_or_normal('issue.issues')
-    return redirect_xhr_or_normal('select_provider.html',
+    return render_xhr_or_normal('select_provider.html',
                     prev_url=url_for('.saved_providers', ident=issue.id),
                     yelp_url=url_for('.yelp_providers', ident=issue.id))
 
@@ -87,7 +87,7 @@ def yelp_providers(ident):
     if not issue:
         flash('Issue closed or non-existent')
         return redirect_xhr_or_normal('issue.issues')
-    form= SelectYelpProviderForm()
+    form=SelectYelpProviderForm()
     if form.validate_on_submit():
         id_, name=request.form.get('id'), request.form.get('name')
         info=get_yelp_business_info(id_)
@@ -109,9 +109,9 @@ def yelp_providers(ident):
     else:
         api=yelp()
         f=categories.get(issue.area, None)
-        ad = ', '.join(issue.location.address.neighborhood,
+        ad = ', '.join([issue.location.address.neighborhood,
                         issue.location.address.city,
-                        issue.location.address.state)
+                        issue.location.address.state])
         info=api.search_query(category_filter=f, limit=10, sort=2, location=ad)
         return render_xhr_or_normal('select_yelp_provider.html',
                                             results=info['businesses'],
@@ -134,7 +134,7 @@ def saved_providers(ident):
     ps = [(str(prov.id), prov.name) for prov in g.user.providers]
     if not ps:
         flash('No previous providers!')
-        return redirect_xhr_or_normal('.select_provider')
+        return redirect_xhr_or_normal('.select_provider', ident=ident)
     form.provider.choices=ps
     if form.validate_on_submit():
         w=WorkOrder()
@@ -171,10 +171,10 @@ def add_local_provider():
 
 @provider.route('/landlord/provider/yelp', methods=['GET', 'POST'])
 @login_required
-def add_yelp_provider(business_id):
+def add_yelp_provider():
     """Add yelp provider"""
-    form= ImportYelpURLForm()
-    if form1.validate_on_submit():
+    form=ImportYelpURLForm()
+    if form.validate_on_submit():
         # Submitted url
         url=request.form.get('url')
         b_id=url.split('/')[-1] #id is last part of url
@@ -185,6 +185,7 @@ def add_yelp_provider(business_id):
         y=YelpProvider()
         y.name = name
         y.yelp_id=id_
+        y.by_user=g.user
         db.session.add(y)
         db.session.commit()
         flash("Saved {0}'s information".format(name))
@@ -196,11 +197,12 @@ def add_yelp_provider(business_id):
 @login_required
 def show_providers(prov_id):
     '''Show providers'''
-    b=Provider.query.join(WorkOrder).filter(or_(Provider.by_user==g.user,
-                            Provider.by_user==g.user.current_landlord(),
-                            WorkOrder.issue.location==g.user.current_location()))
+    b=Provider.query.filter(
+                    or_(Provider.by_user == g.user,
+                    Provider.by_user == g.user.current_landlord() ))
+
     if prov_id:
-        x=b.filter(Provider.id==prov_id).first()
+        x=b.filter(Provider.id == prov_id).first()
         if not x:
             flash('Not a valid provider')
             return redirect_xhr_or_normal('.show_providers')
@@ -208,7 +210,7 @@ def show_providers(prov_id):
             i = get_yelp_business_info(x.yelp_id)
             x.website = i['url']
             x.phone = i['phone']
-            x.email = ''
+            x.email = '<unknown email>'
             x.service = ', '.join([x[0] for x in i['categories']])
         return render_xhr_or_normal('show_provider.html', prov=x)
     else:
