@@ -19,7 +19,7 @@
             </thead>
             <tbody>
             {% for result in results %}
-            <tr class="clickableRow exempt" href="{{ result['url'] }}">
+            <tr class="outsideURL" href="{{ result['url'] }}">
                 <td>{{ result['name'] }}</td>
                 <td><img src="{{ result['rating_img_url'] }}" width="84" height="17" alt="{{ result['rating'] }} star rating "> | {{ result['review_count'] }}</td>
                 {# <td>{{ result['snippet_text'] }}</td> #}

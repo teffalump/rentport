@@ -137,9 +137,17 @@ $(document).ready(function() {
         }
       });
 
+      // To make rows, tables, etc. linkable to outside URLs
+      $(document).on("click", ".outsideURL", function(event) {
+          var href = $(this).attr("href");
+          if (href) {
+                window.location = href;
+          }
+        });
+
       //Select all links except the dropdown buttons, logout button, service
-      //fee
-      $(document).on("click", "a:not(.dropdown-toggle):not(#logout):not(#serviceFee):not(.exempt), area, .clickableRow", function(event) {
+      //fee, etc
+      $(document).on("click", "a:not(.dropdown-toggle):not(.exempt), area, .clickableRow", function(event) {
         event.preventDefault();
         var href = $(this).attr("href");
 

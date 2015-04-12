@@ -49,7 +49,7 @@
             </li>
         </ul>
         {% if g.user.unconfirmed_requests().count() > 0 %}<a class="navbar-btn btn btn-default btn-info" href="{{ url_for('relation.confirm_invite') }}">Unconfirmed requests!</a>{% endif %}
-        <a id="logout" class="navbar-btn btn navbar-right btn-default btn-danger" href="{{ url_for('security.logout') }}">Logout</a>
+        <a id="logout" class="navbar-btn btn navbar-right btn-default btn-danger exempt" href="{{ url_for('security.logout') }}">Logout</a>
       </div>
     </div>
 </nav>
