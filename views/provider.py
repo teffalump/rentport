@@ -92,6 +92,10 @@ def yelp_providers(ident):
     if form.validate_on_submit():
         id_, name=request.form.get('id'), request.form.get('name')
         info=get_yelp_business_info(id_)
+        if YelpProvider.query.filter(YelpProvider.yelp_id==info['id'],
+                                    YelpProvider.by_user==g.user).first():
+            flash('Business with same ID already saved')
+            return redirect_xhr_or_normal('.saved_providers', ident=ident)
         y=YelpProvider()
         y.name = info['name']
         y.yelp_id=info['id']
@@ -175,6 +179,7 @@ def add_local_provider():
 @login_required
 def add_yelp_provider():
     """Add yelp provider"""
+    n = request.args.get('next')
     form=ImportYelpURLForm()
     if form.validate_on_submit():
         # Submitted url
@@ -183,8 +188,16 @@ def add_yelp_provider():
         if not b_id:
             flash("Cannot find business's Yelp page")
             return redirect_xhr_or_normal('.show_providers')
-        api=yelp()
-        info=api.business_query(id=b_id)
+        try:
+            info=get_yelp_business_info(b_id)
+        except:
+            flash("Cannot find business info. Incorrect Yelp URL?")
+            return render_xhr_or_normal('import_from_yelp_url.html', form=form, next=n)
+        p=YelpProvider.query.filter(YelpProvider.yelp_id==info['id'],
+                                YelpProvider.by_user==g.user).first()
+        if p:
+            flash('Business with same ID already saved')
+            return redirect_xhr_or_normal('.show_providers', prov_id=p.id, next=n)
         name = info['name']
         id_ = info['id']
         y=YelpProvider()
@@ -193,10 +206,9 @@ def add_yelp_provider():
         y.by_user=g.user
         db.session.add(y)
         db.session.commit()
-        n = request.args.get('next')
         flash("Saved {0}'s information".format(name))
-        return redirect_xhr_or_normal('.show_providers', prov_id=y.id, next=next)
-    return render_xhr_or_normal('import_from_yelp_url.html', form=form)
+        return redirect_xhr_or_normal('.show_providers', prov_id=y.id, next=n)
+    return render_xhr_or_normal('import_from_yelp_url.html', form=form, next=n)
 
 @provider.route('/landlord/provider', defaults={'prov_id': None}, methods=['GET'])
 @provider.route('/landlord/provider/<int:prov_id>', methods=['GET'])

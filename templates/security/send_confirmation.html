@@ -18,10 +18,10 @@
     </div>
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <ul class="nav navbar-nav">
-            <li><a href="{{ url_for('security.login') }}">Login</a></li>
-            <li><a href="{{ url_for('security.forgot_password') }}">Forgot password</a></li>
-            <li class="active"><a href="{{ url_for('security.send_confirmation') }}">Resend confirm</a></li>
-            <li><a href="{{ url_for('security.register') }}">Register</a></li>
+            <li><a class="exempt" href="{{ url_for('security.login') }}">Login</a></li>
+            <li><a class="exempt" href="{{ url_for('security.forgot_password') }}">Forgot password</a></li>
+            <li class="active"><a class="exempt" href="{{ url_for('security.send_confirmation') }}">Resend confirm</a></li>
+            <li><a class="exempt" href="{{ url_for('security.register') }}">Register</a></li>
         </ul>
     </div>
 </nav>

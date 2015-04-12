@@ -45,7 +45,7 @@ class RegisterForm(Form, RegisterFormMixin):
     password=PasswordField('Password', [DataRequired(), good_enough_password])
 
 class ChangePasswordForm(Form):
-    new_password=PasswordField('New password', [DataRequired(),
+    password=PasswordField('New password', [DataRequired(),
                                                 good_enough_password])
     submit=SubmitField('Update')
 

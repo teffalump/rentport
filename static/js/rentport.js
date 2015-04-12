@@ -51,7 +51,9 @@ $(document).ready(function() {
                     $('#submit').prop('disabled', true);
                    }
         };
-    $(':password').pwstrength(options);
+    $(document).on('focus', ':password', function() {
+        $(this).pwstrength(options);
+    });
     //$('#main').on('submit','#comment_form', function() {
         //event.preventDefault();
         //var $form = $( this ),
@@ -137,7 +139,7 @@ $(document).ready(function() {
 
       //Select all links except the dropdown buttons, logout button, service
       //fee
-      $(document).on("click", "a:not(.dropdown-toggle):not(#logout):not(#serviceFee), area, .clickableRow", function(event) {
+      $(document).on("click", "a:not(.dropdown-toggle):not(#logout):not(#serviceFee):not(.exempt), area, .clickableRow", function(event) {
         event.preventDefault();
         var href = $(this).attr("href");
 

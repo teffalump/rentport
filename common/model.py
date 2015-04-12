@@ -322,6 +322,11 @@ class YelpProvider(Provider):
     id = db.Column(db.Integer, db.ForeignKey('provider.id'), primary_key=True)
     yelp_id = db.Column(db.Text, primary_key=True)
 
+    #__table_args__=(db.Index('unique_yelp_id_per_user',
+            #yelp_id,
+            #by_user_id,
+            #unique=True),)
+
     __mapper_args__={
         'polymorphic_identity': 'yelp_provider'}
 
