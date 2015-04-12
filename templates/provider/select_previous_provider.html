@@ -1,26 +1,22 @@
+{% extends "base_nav.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-{% extends "bootstrap/base.html" %}
-{% block styles %}
-    {{ super () }}
-    <link rel="stylesheet" href="{{ url_for('misc.static', filename='css/rentport_style.css') }}">
-{% endblock %}
 {% block navbar %}
-    {% set active_page="issue.select_issue_provider"|default('misc.home') %}
+    {% set active_page="provider.saved_providers"|default('misc.home') %}
     {% include "base_nav.html" %}
 {% endblock %}
 {% block content %}
 <div id="main" class="container-fluid">
-<h1>Select provider</h1>
-<form method="POST" name="select_provider_form" role="form">
-  {{ form.hidden_tag() }}
-  {{ wtf.form_errors(form, hiddens="only") }}
-  {{ wtf.form_field(form.provider) }}
-  {{ wtf.form_field(form.submit) }}
-</form>
+    <div class="page-header">
+        <h3>Select provider</h3>
+    </div>
+    <div class="well">
+        <form method="POST" name="select_provider_form" role="form">
+          {{ form.hidden_tag() }}
+          {{ wtf.form_errors(form, hiddens="only") }}
+          {{ wtf.form_field(form.provider) }}
+          {{ wtf.form_field(form.submit) }}
+        </form>
+    </div>
 {% include "flash.html" %}
 </div>
-{% endblock %}
-{% block scripts %}
-{{ super() }}
-<script src="{{ url_for('misc.static', filename='js/rentport.js') }}"></script>
 {% endblock %}
