@@ -107,7 +107,7 @@ def show_issue(ident):
         if contractor is None:
             provider = ('No selected provider', None)
         else:
-            provider = (contractor.name, url_for('property.show_providers', prov_id=contractor.id))
+            provider = (contractor.name, url_for('provider.show_providers', prov_id=contractor.id))
 
     if issue.status == 'Closed':
         return render_xhr_or_normal('show_issue.html', issue=issue,

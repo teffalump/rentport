@@ -16,10 +16,13 @@ var isFirstLoad = function (ns, file) {
 };
 
 $(document).ready(function() {
+
+        // Prevent re-import
         if (!isFirstLoad(rentport, 'rentport.js')) {
             return;
         }
 
+        // Options for pwstrength plugin
         "use strict";
         var options = {};
         options.ui = {
@@ -51,25 +54,28 @@ $(document).ready(function() {
                     $('#submit').prop('disabled', true);
                    }
         };
+
+    // Password strength bar
     $(document).on('focus', ':password', function() {
         $(this).pwstrength(options);
     });
-    //$('#main').on('submit','#comment_form', function() {
-        //event.preventDefault();
-        //var $form = $( this ),
-            //url=$form.attr("action"),
-            //data=$form.serialize();
-        //var r = $.post(url, data);
-        //r.done(function(data) {
-            //if (data.hasOwnProperty('success')) {
-                //line = "<li class='list-group-item'>@"+data.username+" ("+data.time+"): "+data.comment;
-                //$( "#comments" ).append(line);
-            //} else {
-              //line='<div class="alert alert-dismissable alert-danger"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button><strong>'+data.error+'</strong></div>';
-                //$( '#messages').append(line);}
-            //});
-        //$('#comment').val('');
-    //});
+
+    // Autocomplete user search
+    $(document).on('focus', '#userSearch', function() {
+        $(this).marcoPolo({
+          url: '/user/search',
+          required: 'true',
+          formatData: function(data) {
+            return data.results;
+          },
+          formatItem: function (data, $item) {
+            return data.username;
+          },
+          onSelect: function (data, $item) {
+            this.val(data.username);
+          }
+        });
+    });
     $(document).on('submit','form:not(#loginForm):not(#registerForm)', function(event) {
         event.preventDefault();
         var $form = $( this ),

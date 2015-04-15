@@ -100,6 +100,22 @@ def stripe_hook():
     #except:
         #return str(er())
 
+@misc.route('/user/search', methods=['GET'])
+@login_required
+def search_user():
+    """Search for users"""
+    q = request.args.get('q')
+    if not q:
+        return jsonify({'results': []})
+    r = ''.join((q,'%'))
+    u = User.query.filter(User.username.ilike(r)).limit(10).with_entities(User.username).all()
+    if u:
+        t={'results': [{'username': t[0]} for t in u]}
+    else:
+        t={'results': []}
+    return jsonify(t)
+
+
 @misc.route('/hook/twilio')
 def twilio_hook():
     '''twilio hook'''

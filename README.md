@@ -24,9 +24,12 @@
         + sqlalchemy (sql)
     + zxcvbn (ported to py 3, server side check)
     + yelpapi (yelp api)
+    + geopy (location)
     + twilio (text) (unused at the moment)
     + dwolla (payment) (unused at the moment)
-    + geopy (location)
+* jQuery/Javascript libs
+    + Marco Polo autocomplete
+    + pwstrength
 
 # Infrastructure
 * linode (hosting) - $10/month
