@@ -78,6 +78,7 @@ $(document).ready(function() {
     });
     $(document).on('submit','form:not(#loginForm):not(#registerForm)', function(event) {
         event.preventDefault();
+        console.log(event);
         var $form = $( this ),
             url=$form.attr("action"),
             body= new FormData(this);
@@ -99,7 +100,8 @@ $(document).ready(function() {
                     var d = $(data.page).filter('#main').children();
                     $( "#main" ).empty().append( d );
                 }
-            })});
+            })
+        });
 
       String.prototype.decodeHTML = function() {
         return $("<div>", {html: "" + this}).html();
@@ -145,9 +147,12 @@ $(document).ready(function() {
 
       // To make rows, tables, etc. linkable to outside URLs
       $(document).on("click", ".outsideURL", function(event) {
-          var href = $(this).attr("href");
-          if (href) {
-                window.location = href;
+          var tar = event.target.tagName;
+          if (tar != 'INPUT') {
+              var href = $(this).attr("href");
+              if (href) {
+                    window.location = href;
+              }
           }
         });
 

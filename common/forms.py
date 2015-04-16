@@ -140,9 +140,8 @@ class ImportYelpURLForm(Form):
     submit=SubmitField('Import')
 
 class SelectYelpProviderForm(Form):
-    pick=HiddenField(default='True',
-                validators=[AnyOf('True')])
-    submit=SubmitField('Select')
+    id_=HiddenField()
+    submit=SubmitField('Save')
 
 class ConfirmYelpChoiceForm(Form):
     provider=HiddenField()
