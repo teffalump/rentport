@@ -135,7 +135,6 @@ def saved_providers(ident):
     issue=Issue.query.filter(Issue.landlord_id==g.user.id,
                 Issue.status == 'Open',
                 Issue.id == ident).first()
-    print(ident)
     if not issue:
         flash('Not an open issue')
         return redirect_xhr_or_normal('issue.show_issue', ident=ident)
