@@ -1,30 +1,17 @@
 from rentport.common.extensions import db, mail
-from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
-                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
-                        CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
-from rentport.common.model import (Issue, Property, User, LandlordTenant,
-                        Comment, WorkOrder,
-                        Fee, Payment, StripeUserInfo, Address, Provider, Image)
+from rentport.common.forms import OpenIssueForm, CloseIssueForm, CommentForm
+from rentport.common.model import (Issue, LandlordTenant, Comment,
+                                WorkOrder, Provider, Image)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
-from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app,
-                    make_response)
-from itsdangerous import URLSafeTimedSerializer
+from flask import Blueprint, request, g, url_for, flash, current_app
 from sqlalchemy import or_
-from werkzeug.security import gen_salt
 from werkzeug import secure_filename
 from sys import exc_info as er
-from datetime import datetime as dt
-from geopy.geocoders import Nominatim
 from os import path as fs
 from uuid import uuid4
 from rentport.common.utils import (redirect_xhr_or_normal,
                         render_xhr_or_normal, allowed_file)
-import stripe
 import logging
 
 logger = logging.getLogger(__name__)
@@ -61,6 +48,7 @@ issue = Blueprint('issue', __name__, template_folder = '../templates/issue', sta
 @login_required
 def issues(page, per_page):
     '''display main issues page
+
         params:     GET: <page> page number (optional)
                     GET: <per_page> # of issues per page (optional)
         returns:    GET: list of issues
@@ -68,11 +56,12 @@ def issues(page, per_page):
     allowed_sort={'id': Issue.id,
             'date': Issue.opened,
             'severity': Issue.severity,
-            'status': Issue.status}
-    sort_key=request.args.get('sort', 'id')
+            'status': Issue.status,
+            'type': Issue.area}
+    sort_key=request.args.get('sort', 'id') #Default to id
     sort = allowed_sort.get(sort_key, Issue.id)
-    order_key = request.args.get('order')
-    if order_key =='asc':
+    order_key = request.args.get('order') #Default to descending
+    if order_key == 'asc':
         issues=g.user.all_issues().order_by(sort.asc()).\
                 paginate(page, per_page, False)
     else:
@@ -95,26 +84,34 @@ def show_issue(ident):
     if not issue:
         flash('No issue with that id')
         return redirect_xhr_or_normal('.issues')
-    contractor = Provider.query.join(WorkOrder).filter(WorkOrder.issue == issue).first()
+    contractor = Provider.query.join(WorkOrder).\
+            filter(WorkOrder.issue == issue).first()
     if g.user.id == issue.landlord_id:
         close=CloseIssueForm()
         comment=CommentForm()
         if contractor is None:
-            provider = ('Select provider', url_for('provider.select_provider', ident=issue.id))
+            provider = ('Select provider',
+                            url_for('provider.select_provider',
+                                ident=issue.id))
         else:
-            provider = ('View provider info', url_for('provider.show_providers', prov_id=contractor.id))
+            provider = ('View provider info',
+                            url_for('provider.show_providers',
+                                prov_id=contractor.id))
     else:
         if contractor is None:
             provider = ('No selected provider', None)
         else:
-            provider = (contractor.name, url_for('provider.show_providers', prov_id=contractor.id))
+            provider = (contractor.name,
+                            url_for('provider.show_providers',
+                                prov_id=contractor.id))
 
     if issue.status == 'Closed':
         return render_xhr_or_normal('show_issue.html', issue=issue,
                                             comment=None,
                                             close=None,
                                             provider=provider)
-    if getattr(g.user.landlords.filter(LandlordTenant.current==True).first(), 'confirmed', None):
+    if getattr(g.user.landlords.filter(LandlordTenant.current==True).\
+            first(), 'confirmed', None):
         comment=CommentForm()
     if issue.creator_id == g.user.id:
         close=CloseIssueForm()
@@ -165,9 +162,11 @@ def open_issue():
                     #optimize this eventually
                     # can't figure how to get GExiv2 to create save file
                     ex = exif_tool.Metadata()
-                    ex.open_path(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+                    ex.open_path(fs.join(current_app.config['UPLOAD_FOLDER'],
+                            filename))
                     ex.clear()
-                    ex.save_file(fs.join(current_app.config['UPLOAD_FOLDER'], filename))
+                    ex.save_file(fs.join(current_app.config['UPLOAD_FOLDER'],
+                            filename))
                 m=Image()
                 m.uuid=uuid
                 m.filename=filename

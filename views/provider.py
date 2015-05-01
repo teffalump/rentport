@@ -1,26 +1,16 @@
 from rentport.common.extensions import db, mail
-from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
-                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
-                        CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, SelectProviderForm,
+from rentport.common.forms import (AddProviderForm, SelectProviderForm,
                         ImportYelpURLForm, SelectYelpProviderForm,
                         ConfirmYelpChoiceForm)
-from rentport.common.model import (Issue, Property, User, LandlordTenant,
-                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
-                        Address, SavedProvider, Provider, Image, YelpProvider)
+from rentport.common.model import (Issue, User, WorkOrder,
+                            SavedProvider, Provider,  YelpProvider)
 from flask.ext.mail import Message
 from flask.ext.security import login_required
-from flask import (Blueprint, render_template, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app,
-                    make_response)
+from flask import Blueprint, request, g, url_for, flash
 from sqlalchemy import or_
 from sys import exc_info as er
-from datetime import datetime as dt
-from rentport.common.utils import (get_address, render_xhr_or_normal,
+from rentport.common.utils import (render_xhr_or_normal,
                                     redirect_xhr_or_normal, yelp)
-from os import path as fs
-from uuid import uuid4
 from urllib.parse import urlparse
 
 #### Blueprint ####
@@ -66,7 +56,6 @@ def select_provider(ident):
     issue=Issue.query.filter(Issue.landlord_id==g.user.id,
                 Issue.status == 'Open',
                 Issue.id == ident).first()
-    form=CloseIssueForm()
     if not issue:
         flash('Issue closed or non-existent')
         return redirect_xhr_or_normal('issue.issues')

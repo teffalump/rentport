@@ -1,30 +1,15 @@
-from rentport.common.extensions import db, mail
-from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
-                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
-                        CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm,
-                        SelectProviderForm)
+from rentport.common.extensions import db
 from rentport.common.model import (Issue, Property, User, LandlordTenant,
-                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
-                        Address, Provider, Image, StripeEvent)
-from flask.ext.mail import Message
+                        Fee, Payment, StripeUserInfo, Image, StripeEvent)
 from flask.ext.security import login_required
-from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, render_template, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app,
-                    make_response)
-from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy import or_
-from werkzeug.security import gen_salt
-from werkzeug import secure_filename
+from flask import (Blueprint, request, g, json,
+                    jsonify, current_app, make_response)
 from sys import exc_info as er
-from datetime import datetime as dt
-from geopy.geocoders import Nominatim
-from os import path as fs
-from uuid import uuid4
-from rentport.common.utils import get_url, allowed_file, render_xhr_or_normal
+from rentport.common.utils import get_url, render_xhr_or_normal
 import stripe
+import logging
+
+logger = logging.getLogger(__name__)
 
 #### Blueprint ####
 misc = Blueprint('misc', __name__, template_folder = '../templates/misc', static_folder='static')
@@ -100,6 +85,13 @@ def stripe_hook():
     #except:
         #return str(er())
 
+@misc.route('/hook/twilio')
+def twilio_hook():
+    '''twilio hook'''
+    #TODO
+    return ''
+#### /HOOKS ####
+
 @misc.route('/user/search', methods=['GET'])
 @login_required
 def search_user():
@@ -115,13 +107,6 @@ def search_user():
         t={'results': []}
     return jsonify(t)
 
-
-@misc.route('/hook/twilio')
-def twilio_hook():
-    '''twilio hook'''
-    #TODO
-    return ''
-#### /HOOKS ####
 
 #### IMAGES ####
 @misc.route('/img/<image_uuid>', methods=['GET'])

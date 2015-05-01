@@ -1,28 +1,12 @@
-from rentport.common.extensions import db, mail
-from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
-                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
-                        CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, SelectProviderForm)
-from rentport.common.model import (Issue, Property, User, LandlordTenant,
-                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
-                        Address, SavedProvider, Provider, Image)
-from flask.ext.mail import Message
+from rentport.common.extensions import db
+from rentport.common.forms import AddPropertyForm, ModifyPropertyForm
+from rentport.common.model import Property, Address
 from flask.ext.security import login_required
-from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, render_template, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app,
-                    make_response)
-from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy import or_
-from werkzeug.security import gen_salt
-from werkzeug import secure_filename
+from flask import Blueprint, request, g, url_for, flash
 from sys import exc_info as er
 from datetime import datetime as dt
 from rentport.common.utils import (get_address, render_xhr_or_normal,
                                     redirect_xhr_or_normal, yelp)
-from os import path as fs
-from uuid import uuid4
 
 #### Blueprint ####
 housing = Blueprint('property', __name__, template_folder = '../templates/property', static_folder='static')

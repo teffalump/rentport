@@ -1,29 +1,14 @@
 from rentport.common.extensions import db, mail
-from rentport.common.forms import (OpenIssueForm, CloseIssueForm,
-                        AddLandlordForm, EndLandlordForm, ConfirmTenantForm,
-                        CommentForm, AddPropertyForm, ModifyPropertyForm,
-                        AddPhoneNumber, ChangeNotifyForm, ResendNotifyForm,
-                        AddProviderForm, ConnectProviderForm, SelectProviderForm,
-                        AddTenantForm)
-from rentport.common.model import (Issue, Property, User, LandlordTenant,
-                        Comment, WorkOrder, Fee, Payment, StripeUserInfo,
-                        Address, Provider, Image)
+from rentport.common.forms import EndLandlordForm, AddTenantForm
+from rentport.common.model import User, LandlordTenant
 from flask.ext.mail import Message
 from flask.ext.security import login_required
 from requests_oauthlib import OAuth2Session
-from flask import (Blueprint, request, g, redirect, url_for,
-                    abort, flash, session, json, jsonify, current_app,
-                    make_response)
+from flask import Blueprint, request, g, url_for, flash, current_app
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import gen_salt
-from werkzeug import secure_filename
 from sys import exc_info as er
-from datetime import datetime as dt
-from geopy.geocoders import Nominatim
-from os import path as fs
-from uuid import uuid4
 from rentport.common.utils import (get_url, render_xhr_or_normal,
                                     redirect_xhr_or_normal)
 import stripe
