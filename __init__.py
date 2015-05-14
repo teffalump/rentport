@@ -2,6 +2,7 @@ import os
 from flask import Flask, g
 from flask.ext.security import SQLAlchemyUserDatastore, current_user
 from rentport.config import DebugConfig
+import sys
 
 
 def before_request():
@@ -16,7 +17,7 @@ def create_app(config=None):
 
     with app.app_context():
         import logging
-        logging.basicConfig(filename='flask.log', level=logging.INFO,
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                 format='%(asctime)s:::%(levelname)s:::%(name)s: %(message)s')
 
         from rentport.common.extensions import (mail, db, security,
