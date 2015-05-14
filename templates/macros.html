@@ -1,3 +1,10 @@
 {% macro render_link(endpoint, text, active='.home') -%}
     <li{% if active == endpoint %} class="active"{% endif %}><a href="{{ url_for(endpoint)|e }}">{{ text|e }}</a></li>
 {%- endmacro %}
+
+{% macro render_field_limited(field, label) -%}
+    <div class="form-group required">
+    <label class="control-label" for="{{ field.id }}">{{ label }}</label>
+        {{ field(class_='form-control', **kwargs) }}
+    </div>
+{%- endmacro %}

@@ -1,6 +1,6 @@
 # Functions
 * pay rent/fees
-* issues
+* issue management
 
 # Software
 * nginx (load  balancer/front)
@@ -43,45 +43,32 @@
 2. Issue tracking system - DONE
 3. Fee system(s)
     + Stripe (accept CC) -- DONE
+    + Paygarden
+    + Dwolla
 4. Payment system(s) --- PUT ON HOLD!
     + Stripe - NEEDS TESTING
     + Dwolla - TODO (optional)
     + Bitcoin - TODO (optional)
 5. Notification system(s)
-    + Mailgun for email - NEEDS TESTING
+    + Mailgun for email - DONE
     + Twilio for sms - TODO
 6. Location services
-7. Prettify
-    + Good, robust templates - Almost there
-    + Add searching along issues and comments - TODO
-    + Ajax-ify - TODO
+7. Prettify --- IN PROGRESS
+    + Good, robust templates
+    + Add searching along issues and comments
+    + Ajax-ify
+8. WebRTC
 
-# Security TODOs
-    + Add zxcvbn func to register page
-    + Prevent CSRF by protecting forms - DEFAULT IN WTFORMS
-    + Any DoS/spam/bruteforce-possible attack surfaces need throttling
-        + Use Flask-Limiter for endpoints - TODO
-    + go through OWASP top ten
-    + Do I import js plugins (e.g, jQuery)? No, store locally
-    + Payment history? How to display that. Either:
-        1. Store the payment history locally
-            Pros:
-                + User experience (pagination, etc)
-            Cons:
-                + Security; DB leak = payment history (creepy)
-                + Need to update it with hooks from stripe --> more code
-        2. Query Stripe for the info (only access token/customer id from oauth)
-            Pros:
-                + Minimal info server-side = stronger security, privacy, etc.
-            Cons:
-                + Minimal info
-                + User experience degradation
-            + I think I need to store some info locally b/c...
-                + Without, can't assign tenant to payment without doing lots of
-                  weird querying (like, iterating prev landlord with stripe)
-            + How to mitigate the info? Simply save the charge id, from, to
-              info from the webhook, but only that!
-    + Incorporate mylar: http://css.csail.mit.edu/mylar/
+# Security
+    + Prevent CSRF by protecting forms - DONE
+    + Any possible attack surface need throttling
+        + Use Flask-Limiter for endpoints - DONE
+    + Vulnerability scanners
+        + ZAP (OWASP)
+    + Store and server js locally
+    + Fee/payment history: store minimal info server-side
+    + No rental agreements at the moment
+    + Incorporate mylar: http://css.csail.mit.edu/mylar/ - WAY IN FUTURE
 
 # Service info
 + One level subscription for one year
@@ -96,9 +83,3 @@
 + Notification events
     + New issue
     + ... Any other?
-
-# Other thoughts
-+ Rental agreements? Security issues are too big... at the moment
-
-# Current issues
-+ Can confirm tenant while logged in as someone else...

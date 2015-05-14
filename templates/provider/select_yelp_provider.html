@@ -20,7 +20,10 @@
             <tbody>
             {% for result in results %}
             <tr class="outsideURL" href="{{ result['url'] }}">
-                <td>{{ result['name'] }}</td>
+                <td><form class="form-inline" method="POST" id="select_yelp_provider_form" name="select_yelp_provider_form" role="form">
+                                    {{ form.hidden_tag() }}
+                                    {{ render_field_limited(form.id_, result['name'], value=result['id']) }}
+                                    {{ wtf.form_field(form.submit) }}</form></td>
                 <td><img src="{{ result['rating_img_url'] }}" width="84" height="17" alt="{{ result['rating'] }} star rating "> | {{ result['review_count'] }}</td>
                 {# <td>{{ result['snippet_text'] }}</td> #}
                 <td>{{ result['location']['display_address'] | join(', ')  }}</td>

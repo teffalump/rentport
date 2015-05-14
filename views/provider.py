@@ -80,7 +80,7 @@ def yelp_providers(ident):
         return redirect_xhr_or_normal('issue.issues')
     form=SelectYelpProviderForm()
     if form.validate_on_submit():
-        id_, name=request.form.get('id'), request.form.get('name')
+        id_=request.form.getlist('id_')[-1]
         info=get_yelp_business_info(id_)
         if YelpProvider.query.filter(YelpProvider.yelp_id==info['id'],
                                     YelpProvider.by_user==g.user).first():
@@ -88,19 +88,23 @@ def yelp_providers(ident):
             return redirect_xhr_or_normal('.saved_providers', ident=ident)
         y=YelpProvider()
         y.name = info['name']
+        y.by_user=g.user
         y.yelp_id=info['id']
-        website = info['url']
-        location = info['location']['display_address']
+        #website = info['url']
+        #location = info['location']['display_address']
         db.session.add(y)
         db.session.commit()
-        flash("Saved {0}'s information".format(name))
-        action=url_for('provider.saved_providers', prov_id=y.id)
-        return render_xhr_or_normal('confirm_yelp_choice.html',
-                                    name=name,
-                                    id_=id_,
-                                    website=website,
-                                    location=location,
-                                    action=action)
+        flash("Saved {0}'s information".format(info['name']))
+        return redirect_xhr_or_normal('.saved_providers', ident=ident)
+        #t=ConfirmYelpChoiceForm()
+        #action=url_for('.saved_providers', ident=ident)
+        #return render_xhr_or_normal('confirm_yelp_choice.html',
+                                    #name=info['name'],
+                                    #id_=id_,
+                                    #website=website,
+                                    #location=', '.join(location),
+                                    #action=action,
+                                    #form=t)
     else:
         api=yelp()
         f=categories.get(issue.area, None)

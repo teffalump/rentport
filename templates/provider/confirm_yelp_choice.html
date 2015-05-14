@@ -1,4 +1,5 @@
 {% extends "base_nav.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 {% block navbar %}
     {% set active_page = "provider.yelp_providers"|default('misc.home') %}
     {{ super() }}
@@ -16,7 +17,7 @@
     <form action="{{ action }}" method="POST" id="confirm_yelp_choice_form" name="confirm_yelp_choice_form" role="form">
       {{ form.hidden_tag() }}
       {{ wtf.form_errors(form, hiddens="only") }}
-      {{ wtf.form_field(form.provider) }}
+      {{ wtf.form_field(form.provider, value=id_) }}
       {{ wtf.form_field(form.confirm) }}
     </form>
     </div>

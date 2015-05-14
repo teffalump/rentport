@@ -40,7 +40,7 @@
           {{ wtf.form_field(register_user_form.email, placeholder='test@example.com') }}
           {{ wtf.form_field(register_user_form.username, placeholder='test123') }}
           <div id="pwd-container">
-          {{ wtf.form_field(register_user_form.password, placeholder='secretpassword') }}
+          {{ wtf.form_field(register_user_form.password, placeholder='secretpassword', autocomplete='off') }}
               <div class="progress">
                     <div class="pwstrength_viewport_progress" role="progressbar"></div>
               </div>

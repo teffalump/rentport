@@ -50,6 +50,11 @@ def add_property():
         if not loc:
             flash("Address not found")
             return redirect_xhr_or_normal('.properties')
+        if loc.get('house_number') is None or \
+                loc.get('road') is None or \
+                loc.get('city') is None:
+            flash("Non-specific address")
+            return redirect_xhr_or_normal('.properties')
         a=Address(lat=loc.get('lat'),
                 lon=loc.get('lon'),
                 number=loc.get('house_number'),
